@@ -13,6 +13,9 @@ const chromiumChannel = CI ? {} : { channel: 'msedge' as const };
 export default defineConfig({
   testDir: 'tests/e2e',
   testMatch: '*.spec.ts',
+  // La medición de fps solo corre con `npm run perf` (un trabajador, sin otras pruebas a la
+  // vez): en paralelo con el resto, los tiempos de frame no significan nada.
+  testIgnore: process.env.npm_lifecycle_event === 'perf' ? [] : ['**/perf.spec.ts'],
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0,

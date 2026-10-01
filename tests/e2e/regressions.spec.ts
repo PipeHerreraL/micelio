@@ -158,7 +158,9 @@ test('el aviso de otra pestaña sobrevive a cambiar de idioma', async ({ page, c
   const other = await context.newPage();
   await other.goto('./');
   const warning = page.locator('.toast--sticky');
-  await expect(warning).toContainText('otra pestaña');
+  // El evento storage llega cuando la otra página termina de arrancar: con cinco navegadores
+  // en paralelo puede tardar más que la espera por defecto.
+  await expect(warning).toContainText('otra pestaña', { timeout: 15_000 });
   await page.getByRole('tab', { name: /Ajustes/ }).click();
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
