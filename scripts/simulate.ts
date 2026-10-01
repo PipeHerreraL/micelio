@@ -9,11 +9,14 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import {
+  adaptationsUnlocked,
+  buyAdaptation,
   buyGenerator,
   buyMutation,
   buyUpgrade,
   click,
   canSporulate,
+  nextAdaptationCost,
   sporeGain,
   sporulate,
 } from '../src/core/actions.ts';
@@ -110,6 +113,30 @@ function shop(state: GameState, cps: number): void {
     if (!best || num.lt(state.nutrients, best.cost)) return;
     if (best.kind === 'generator') buyGenerator(state, { id: best.id, amount: 1 });
     else buyUpgrade(state, { id: best.id });
+  }
+}
+
+/**
+ * Con el árbol completo, gasta en adaptaciones: primero Cuerpo apical (el umbral de madurez),
+ * luego la más barata de las demás que alcance. Fuego de zorro es cosmético y no se compra.
+ */
+function buyAdaptations(state: GameState): void {
+  if (!adaptationsUnlocked(state)) return;
+  for (let guard = 0; guard < 200; guard += 1) {
+    const apical = nextAdaptationCost(state, 'apicalBody');
+    if (apical !== null && state.spores.available >= apical) {
+      buyAdaptation(state, { id: 'apicalBody' });
+      continue;
+    }
+    const options = (['sclerotium', 'hydraulicLift', 'deepTorpor'] as const)
+      .map((id) => ({ id, cost: nextAdaptationCost(state, id) }))
+      .filter(
+        (o): o is { id: 'sclerotium' | 'hydraulicLift' | 'deepTorpor'; cost: number } => o.cost !== null,
+      )
+      .sort((a, b) => a.cost - b.cost);
+    const cheapest = options[0];
+    if (!cheapest || state.spores.available < cheapest.cost) return;
+    buyAdaptation(state, { id: cheapest.id });
   }
 }
 
@@ -273,6 +300,7 @@ function campaign(seed: number, sporulations: number, policy: SporulatePolicy = 
     maxValue = Math.max(maxValue, run.maxValue);
     if (run.sporesGained === 0) break;
     buyMutationsInOrder(state);
+    buyAdaptations(state);
   }
   return {
     runs,
@@ -443,6 +471,31 @@ for (let i = 0; i < 8; i += 1) {
   });
 }
 
+// Objetivos de la madurez de la red (docs/ROADMAP.md, fase 7).
+const shortestRun = (results: readonly CampaignResult[], upTo: number): number[] =>
+  Array.from({ length: upTo }, (_, i) => median(results.map((c) => c.runs[i]?.duration ?? 0)));
+metrics.push({
+  name: 'Campaña larga, regla §17: partida más corta de la 1 a la 16 (mediana por partida)',
+  target: '≥ 6 min',
+  values: [Math.min(...shortestRun(longDoubling, 16))],
+  format: clock,
+  pass: (m) => m >= 360,
+});
+metrics.push({
+  name: 'Campaña larga, regla del mejor ritmo: partida más corta de la 1 a la 20',
+  target: '≥ 8 min',
+  values: [Math.min(...shortestRun(longRate, 20))],
+  format: clock,
+  pass: (m) => m >= 480,
+});
+metrics.push({
+  name: 'Campaña larga, regla §17: esporas sin gastar al final, sobre las ganadas',
+  target: '< 50 %',
+  values: longDoubling.map((c) => (c.earnedSpores > 0 ? c.unspent / c.earnedSpores : 0)),
+  format: (v) => (v === null ? '—' : `${Math.round(v * 100)} %`),
+  pass: (m) => m < 0.5,
+});
+
 const rows = metrics.map(row);
 const maxValue = Math.max(...campaigns.map((c) => c.maxValue));
 const ceilingOk = maxValue < 1e300;
@@ -471,23 +524,32 @@ const generatorTable = [
 
 const upgradeCount = UPGRADES.length;
 
-/** Mediana de la duración de la partida i y de las horas acumuladas hasta su final. */
-function longColumn(results: readonly CampaignResult[], i: number): { duration: string; hours: string } {
-  const durations = results.map((c) => c.runs[i]?.duration).filter((d): d is number => d !== undefined);
+/** Mediana de la duración de la partida i, de las horas acumuladas y del nivel al empezar. */
+function longColumn(
+  results: readonly CampaignResult[],
+  i: number,
+): { duration: string; hours: string; level: string } {
+  const runs = results.map((c) => c.runs[i]).filter((r): r is RunRecord => r !== undefined);
   const cumulative = results
     .filter((c) => c.runs.length > i)
     .map((c) => c.runs.slice(0, i + 1).reduce((sum, r) => sum + r.duration, 0));
-  return { duration: clock(median(durations)), hours: hours(median(cumulative)) };
+  return {
+    duration: clock(median(runs.map((r) => r.duration))),
+    hours: hours(median(cumulative)),
+    level: String(Math.round(median(runs.map((r) => r.sporeLevelAtStart)))),
+  };
 }
 
 const longTable = [
-  '| Partida | Regla max(10, nivel): duración | Acumulado | Regla del mejor ritmo: duración | Acumulado |',
-  '| ------- | ------------------------------ | --------- | ------------------------------- | --------- |',
+  '| Partida | Regla max(10, nivel): duración | Acumulado | Nivel al empezar | Regla del mejor ritmo: duración | Acumulado | Nivel al empezar |',
+  '| ------- | ------------------------------ | --------- | ---------------- | ------------------------------- | --------- | ---------------- |',
 ];
 for (let i = 0; i < LONG_RUNS; i += 1) {
   const a = longColumn(longDoubling, i);
   const b = longColumn(longRate, i);
-  longTable.push(`| ${i + 1} | ${a.duration} | ${a.hours} | ${b.duration} | ${b.hours} |`);
+  longTable.push(
+    `| ${i + 1} | ${a.duration} | ${a.hours} | ${a.level} | ${b.duration} | ${b.hours} | ${b.level} |`,
+  );
 }
 const unspentShare = (results: readonly CampaignResult[]): string => {
   const shares = results.map((c) => (c.earnedSpores > 0 ? c.unspent / c.earnedSpores : 0));
