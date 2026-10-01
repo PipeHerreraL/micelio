@@ -8,6 +8,9 @@
  */
 import { nextRandom, toSeed, type RngHolder } from '../core/rng.ts';
 
+/** Vive en el núcleo (el socio deriva su semilla sin importar de render/); se reexporta aquí. */
+export { mixSeed } from '../core/rng.ts';
+
 export interface SeededRandom {
   /** Vuelve a empezar la secuencia desde `seed` (sin crear objetos). */
   reset(seed: number): void;
@@ -25,15 +28,4 @@ export function createSeededRandom(seed: number): SeededRandom {
       return nextRandom(holder);
     },
   };
-}
-
-/**
- * Mezcla dos enteros en una semilla de 32 bits (finalizador de murmur3). Sirve para sacar
- * secuencias independientes de una misma semilla: fondo, adornos y una red por partida.
- */
-export function mixSeed(a: number, b: number): number {
-  let h = (a ^ Math.imul(b | 0, 0x9e3779b1)) >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-  return (h ^ (h >>> 16)) >>> 0;
 }

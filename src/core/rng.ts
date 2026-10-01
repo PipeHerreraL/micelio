@@ -27,3 +27,15 @@ export function randomRange(holder: RngHolder, min: number, max: number): number
 export function toSeed(value: number): number {
   return Math.floor(Math.abs(value)) >>> 0;
 }
+
+/**
+ * Mezcla dos enteros en una semilla de 32 bits (finalizador de murmur3). Sirve para sacar
+ * secuencias independientes de una misma semilla: fondo, adornos, una red por partida y el azar
+ * propio de cada socio, que se deriva de `rngSeed` sin avanzarla.
+ */
+export function mixSeed(a: number, b: number): number {
+  let h = (a ^ Math.imul(b | 0, 0x9e3779b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}

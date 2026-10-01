@@ -38,6 +38,16 @@ import {
   type RainDrop,
   type RunRecord,
 } from '../core/state.ts';
+import {
+  isCount,
+  isFiniteNumber,
+  isNonNegative,
+  isObject,
+  isTimestamp,
+  oneOf,
+  uniqueList,
+  type RawObject,
+} from './validate.ts';
 
 export const SAVE_KEY = 'micelio:save';
 export const BACKUP_KEY = 'micelio:save:backup';
@@ -53,7 +63,6 @@ export interface SaveFile {
   state: GameState;
 }
 
-type RawObject = Record<string, unknown>;
 export type Migration = (raw: RawObject) => RawObject;
 
 /**
@@ -136,48 +145,7 @@ export const IMPORT_MAX_CHARS = 200_000;
 const MAX_SEEN = 500;
 
 // ---------------------------------------------------------------------------------------
-// Validación
-
-function isObject(value: unknown): value is RawObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value);
-}
-
-function isNonNegative(value: unknown): value is number {
-  return isFiniteNumber(value) && value >= 0;
-}
-
-function isCount(value: unknown): value is number {
-  return isNonNegative(value) && Number.isInteger(value);
-}
-
-/**
- * Mayor marca de tiempo que admite Date (8,64e15 ms, el año 275760). Date.now() nunca llega,
- * así que solo un guardado editado la pasa; sin este tope, la Crónica fallaba al formatear la
- * fecha (Intl lanza RangeError) y una pestaña quedaba vacía o el bucle se paraba.
- */
-const MAX_TIMESTAMP = 8.64e15;
-
-function isTimestamp(value: unknown): value is number {
-  return isNonNegative(value) && value <= MAX_TIMESTAMP;
-}
-
-function uniqueList<T extends string>(value: unknown, isValid: (v: unknown) => v is T): T[] | null {
-  if (!Array.isArray(value)) return null;
-  const out: T[] = [];
-  for (const item of value) {
-    if (!isValid(item)) return null;
-    if (!out.includes(item)) out.push(item);
-  }
-  return out;
-}
-
-function oneOf<T>(value: unknown, options: readonly T[]): value is T {
-  return options.includes(value as T);
-}
+// Validación (los validadores básicos están en ./validate.ts)
 
 /**
  * Reconstruye un GameState a partir de datos no confiables. Devuelve null si cualquier
