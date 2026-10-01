@@ -22,7 +22,16 @@ import { derived } from '../core/selectors.ts';
 import { AUTOBUY_THRESHOLDS, BUY_AMOUNTS, hasSeen, type BuyAmount, type GameState } from '../core/state.ts';
 import { GENERATORS, getGenerator, type GeneratorId } from '../data/generators.ts';
 import { formatDuration, formatPercent } from '../i18n/format.ts';
-import { fmt, getLocale, numberDetails, t, tp, type MessageKey, type PluralKey } from '../i18n/index.ts';
+import {
+  fmt,
+  formatCount,
+  getLocale,
+  numberDetails,
+  t,
+  tp,
+  type MessageKey,
+  type PluralKey,
+} from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { generatorIcon } from './icons.ts';
 import { createHint } from './hint.ts';
@@ -205,7 +214,7 @@ export function createGeneratorsTab(store: Store): TabView {
         const count = Math.max(1, quote.count);
         const gain = previewGenerator(state, id, count);
         return [
-          t('gen.buy', { count, unit: tp(unitKey(id), count) }),
+          t('gen.buy', { count: formatCount(count), unit: tp(unitKey(id), count) }),
           t('upg.gainProduction', { value: fmt(gain.production) }),
           ...numberDetails(quote.cost, gain.production),
         ];
@@ -255,7 +264,8 @@ export function createGeneratorsTab(store: Store): TabView {
       setAttr(
         row.info,
         'aria-label',
-        reveal === 'full' ? t('common.more', { name: t(nameKey(id)) }) : t('gen.hidden'),
+        // «???» se ve, pero leído en voz alta no dice qué hace el botón.
+        reveal === 'full' ? t('common.more', { name: t(nameKey(id)) }) : t('gen.hidden.label'),
       );
     }
     const silhouette = reveal === 'silhouette';
@@ -271,8 +281,8 @@ export function createGeneratorsTab(store: Store): TabView {
 
     const d = derived(state);
     const owned = state.owned[id];
-    setText(row.ownedVisible, t('gen.owned', { count: owned }));
-    setText(row.ownedSr, t('gen.owned.label', { count: owned }));
+    setText(row.ownedVisible, t('gen.owned', { count: formatCount(owned) }));
+    setText(row.ownedSr, t('gen.owned.label', { count: formatCount(owned) }));
 
     const unit = d.unitProduction[id];
     const total = d.generatorProduction[id];
@@ -299,7 +309,8 @@ export function createGeneratorsTab(store: Store): TabView {
     const amount = state.settings.buyAmount;
     const quote = quoteGenerator(state, id, amount);
     const count = Math.max(1, quote.count);
-    setText(row.buyLabel, t('gen.buy', { count, unit: tp(unitKey(id), count) }));
+    // {count} va agrupado con Intl («1.000»); la forma plural se elige con el número crudo.
+    setText(row.buyLabel, t('gen.buy', { count: formatCount(count), unit: tp(unitKey(id), count) }));
     setText(row.buyCost, t('gen.cost', { value: fmt(quote.cost) }));
     setAttr(row.buy, 'aria-disabled', quote.affordable ? 'false' : 'true');
     toggleClass(row.buy, 'is-unaffordable', !quote.affordable);

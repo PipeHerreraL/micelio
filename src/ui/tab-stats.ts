@@ -7,6 +7,7 @@ import { formatDate, formatDuration } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, numberTooltip, t, type MessageKey } from '../i18n/index.ts';
 import type { GameState } from '../core/state.ts';
 import { Disposer, h, setText } from './dom.ts';
+import { focusableWhileTooltip } from './hud.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 import { attachTooltip } from './tooltip.ts';
@@ -50,7 +51,6 @@ export function createStatsTab(store: Store): TabView {
       values.push(value);
       if (row.raw) {
         const raw = row.raw;
-        value.tabIndex = 0;
         attachTooltip(value, () => numberTooltip(raw(store.state)), disposer);
       }
       return [h('dt', { class: 'stats__label', text: t(row.label) }), value];
@@ -66,7 +66,9 @@ export function createStatsTab(store: Store): TabView {
     update() {
       ROWS.forEach((row, i) => {
         const node = values[i];
-        if (node) setText(node, row.value(store.state));
+        if (!node) return;
+        setText(node, row.value(store.state));
+        if (row.raw) focusableWhileTooltip(node, numberTooltip(row.raw(store.state)) !== null);
       });
     },
     destroy: () => {

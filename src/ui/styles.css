@@ -78,10 +78,15 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+/* margin -1px, padding y border a cero: sin ellos el texto oculto al final de la página
+   todavía sumaba 1 px de desplazamiento. */
 .visually-hidden {
   position: absolute !important;
   width: 1px;
   height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
@@ -236,10 +241,13 @@ button {
   cursor: pointer;
 }
 
+/* Encendido: la barra rebozuelo de la pestaña activa, no fuego fatuo, que la paleta reserva
+   a los pulsos de producción y a la lluvia (ARCHITECTURE.md §11). La barra y el borde claro
+   lo distinguen del apagado sin depender solo del color. */
 .toggle[aria-pressed='true'] {
-  border-color: var(--fuego-fatuo);
+  border-color: var(--micelio);
   color: var(--micelio);
-  box-shadow: inset 0 -3px 0 var(--fuego-fatuo);
+  box-shadow: inset 0 -3px 0 var(--rebozuelo);
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -267,9 +275,29 @@ button {
 
 /* Escritorio (≥ 1024 px): el corte del suelo en el centro es el protagonista. */
 @media (min-width: 1024px) {
+  /* Las columnas laterales crecen con el ancho en vez de llegar primero a su máximo: con
+     minmax(250px, 300px) y minmax(400px, 500px) la rejilla las llenaba antes que el centro y
+     a 1024 px el corte del suelo quedaba en 209 px, la columna más estrecha. Así mide 404 px
+     a 1024 (260 + 404 + 360) y es la más ancha en todo escritorio. Van en :root porque los
+     avisos, fuera de .layout, se colocan con ellas sobre el escenario. */
+  :root {
+    --col-left: clamp(260px, 24vw, 300px);
+    --col-right: clamp(360px, 34vw, 500px);
+  }
+
+  /* Con la pestaña Mutaciones abierta el panel crece hasta 470 px, lo que piden las cinco
+     columnas del árbol para leerse (~79 px cada una, ver .mut-tree más abajo). En 360 px
+     quedaban de 57 px y los nombres se partían letra a letra. Solo cambia entre 1024 y
+     ~1380 px, donde 34vw no llega a 470; ahí el corte del suelo se queda en 294 px o más
+     mientras se mira el árbol, y vuelve a ser la columna más ancha al cambiar de pestaña.
+     Se cambia la variable y no la rejilla para que los avisos sigan el mismo ancho. */
+  :root:has(.layout:not(.layout--fresh) .tabs__panel:not([hidden]) > .tab--mutations) {
+    --col-right: clamp(470px, 34vw, 500px);
+  }
+
   .layout {
     height: 100dvh;
-    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(400px, 500px);
+    grid-template-columns: var(--col-left) minmax(0, 1fr) var(--col-right);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       'hud stage panel'
@@ -309,7 +337,7 @@ button {
   }
 
   .layout--fresh {
-    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) 0;
+    grid-template-columns: var(--col-left) minmax(0, 1fr) 0;
   }
 }
 
@@ -330,9 +358,14 @@ button {
     grid-area: stage;
   }
 
+  /* El contador termina donde empieza el núcleo centrado: media área menos medio
+     clamp(120px, 15vw, 168px) (el ancho de .core__button). Las líneas largas («Faltan 18,8
+     millones N de vida…») se parten en vez de pasar por debajo del botón; el relleno derecho
+     deja 20 px de aire entre el velo y el núcleo. */
   .layout__hud {
     align-self: start;
     justify-self: start;
+    max-width: calc(50% - clamp(60px, 7.5vw, 84px));
     padding: 1rem 1.25rem;
   }
 
@@ -422,12 +455,42 @@ button {
 /* ------------------------------------------------------------------------------------ */
 /* Contador */
 
+/*
+ * Source Sans 3 seminegrita, no IM Fell English: IM Fell solo trae cifras de estilo antiguo
+ * proporcionales (sin la función tnum), así que tabular-nums no hacía nada y la cifra que
+ * más cambia bailaba ~8 px diez veces por segundo; su cero, además, se leía como una «o».
+ * Las cifras de Source Sans miden todas 0.497 em. IM Fell queda para títulos y nombres.
+ *
+ * --fit es el ancho, en em, que debe caber en una línea: «28,8 mil millones N» mide 8.33 em
+ * en esta fuente. Con él, el tamaño se deriva del hueco de cada disposición y el contador no
+ * gana una línea (ni empuja el núcleo) al pasar de «999 millones» a «1 mil millones». Los
+ * nombres más largos, de muy al final del juego, se parten como último recurso.
+ */
 .counter__value {
+  --fit: 8.6;
+
   display: block;
-  font-family: var(--font-title);
-  font-size: clamp(1.7rem, 1rem + 1.5vw, 2.4rem);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 1.75rem;
   line-height: 1.1;
   letter-spacing: 0.01em;
+}
+
+/* Escritorio: la columna izquierda menos el relleno de 1.5rem a cada lado de .layout__hud. */
+@media (min-width: 1024px) {
+  .counter__value {
+    font-size: calc((var(--col-left) - 3rem) / var(--fit));
+  }
+}
+
+/* Tableta: el ancho máximo de .layout__hud menos su relleno (1.25rem por lado), el del velo
+   (0.85rem por lado) y 0.5rem más porque 50vw cuenta la barra de desplazamiento de la página,
+   que aquí sí se desplaza. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .counter__value {
+    font-size: min(2.25rem, calc((50vw - clamp(60px, 7.5vw, 84px) - 4.7rem) / var(--fit)));
+  }
 }
 
 .counter__rate {
@@ -445,8 +508,11 @@ button {
     gap: 1rem;
   }
 
+  /* N/s comparte la fila con la cifra: a 375 px, «21,9 mil millones N» (22.5 px) y «45,3
+     millones N/s» caben juntos en 343 px. Antes N/s bajaba a otra línea y la cabecera fija
+     crecía ~40 px. Si el N/s también tiene un nombre largo, baja él solo. */
   .counter__value {
-    font-size: 1.75rem;
+    font-size: clamp(1.35rem, 6vw, 1.75rem);
   }
 
   .counter__rate {
@@ -762,7 +828,13 @@ button {
   background: var(--rebozuelo);
 }
 
+/* position: relative la vuelve el bloque contenedor de los textos .visually-hidden de las
+   pestañas: sin ella se medían contra la página y la alargaban ~455 px de humus vacío.
+   Es contenedor de consultas (panels) para que las filas se adapten al ancho del panel, que
+   en escritorio no sigue al de la ventana. */
 .tabs__panels {
+  position: relative;
+  container: panels / inline-size;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -784,14 +856,29 @@ button {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
+    scroll-padding-inline: 1.5rem;
     z-index: 20;
     padding: 0.25rem 0.5rem calc(0.25rem + env(safe-area-inset-bottom));
-    background: var(--humus-hondo);
+    /* Siete pestañas no caben en 375 px y la barra no se ve: una penumbra de arcilla en el
+       borde avisa de que hay más pestañas por ese lado. Las capas «local» van con el
+       contenido y tapan la penumbra cuando ya se llegó a ese extremo. */
+    background:
+      linear-gradient(to right, var(--humus-hondo) 40%, transparent) left / 2rem 100% no-repeat local,
+      linear-gradient(to left, var(--humus-hondo) 40%, transparent) right / 2rem 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(140 90 53 / 70%), transparent) left / 0.9rem 100% no-repeat
+        scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(140 90 53 / 70%), transparent) right / 0.9rem 100%
+        no-repeat scroll,
+      var(--humus-hondo);
     border-top: 1px solid var(--filete);
     border-bottom: 0;
   }
 
+  /* flex: none: con el encogimiento por defecto los siete botones quedaban en 64 px y las
+     etiquetas largas («Achievements») se montaban sobre la vecina. Ahora cada botón mide su
+     etiqueta y la barra se desplaza en horizontal, que ya lo hacía. */
   .tabs__tab {
+    flex: none;
     flex-direction: column;
     gap: 0.1rem;
     min-width: 64px;
@@ -983,7 +1070,10 @@ button {
   display: none;
 }
 
-@media (max-width: 479.98px) {
+/* Se mide el panel y no la ventana: en escritorio el panel lateral baja a 360 px y una fila
+   de tres columnas dejaba ~100 px para el texto. Por debajo de 30rem (lo que antes era el
+   corte de móvil, < 480 px) el botón de compra pasa a su propia fila, en móvil y escritorio. */
+@container panels (max-width: 29.99rem) {
   .gen {
     grid-template-columns: auto minmax(0, 1fr);
   }
@@ -1249,7 +1339,9 @@ button {
   color: var(--fuego-fatuo);
   cursor: pointer;
   opacity: calc(0.35 + var(--life) * 0.65);
-  transform: scale(calc(0.7 + var(--life) * 0.3));
+  /* Encoge hasta 0.8, no 0.7: 0.8 × 56 = 44.8 px, así el blanco táctil nunca baja de los
+     44 px (PROMPT.md §13) ni en los últimos segundos. El desvanecido lo hace la opacidad. */
+  transform: scale(calc(0.8 + var(--life) * 0.2));
   animation: drop-in 420ms ease-out;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1310,9 +1402,11 @@ button {
   margin-bottom: 1rem;
 }
 
+/* Cifras que cambian: Source Sans, por la misma razón que .counter__value. */
 .spore__level,
 .spore__gain {
-  font-family: var(--font-title);
+  font-family: var(--font-ui);
+  font-weight: 600;
   font-size: 1.3rem;
 }
 
@@ -1460,6 +1554,37 @@ button {
 .mut[data-state='owned'] .mut__status {
   color: var(--micelio);
   font-weight: 600;
+}
+
+/*
+ * Escritorio: el panel lateral deja ~410 a ~440 px útiles con esta pestaña abierta (ver el
+ * :has() que ensancha --col-right), así que el suelo de 36rem (576 px) dejaba la quinta columna siempre
+ * fuera de vista y la cuarta cortada, con la barra de desplazamiento al pie de un árbol más
+ * alto que el panel. Aquí las cinco columnas se reparten el ancho con huecos y rellenos más
+ * finos. En tableta el panel ocupa todo el ancho y cabe; en móvil se conserva el suelo de
+ * 36rem con desplazamiento horizontal como último recurso. Las conexiones se redibujan
+ * solas: tab-mutations.ts observa el tamaño del árbol.
+ */
+@media (min-width: 1024px) {
+  .mut-tree {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1.25rem 0.3rem;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .mut {
+    min-width: 0;
+    padding: 0.4rem 0.35rem;
+    font-size: 0.75rem;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .mut__name {
+    font-size: 0.9rem;
+    line-height: 1.15;
+  }
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -1681,9 +1806,11 @@ button {
   pointer-events: none;
 }
 
+/* Los avisos solo informan: los clics los atraviesan y llegan al núcleo, a la gota o a la
+   compra que haya debajo. Solo sus botones (acción y cerrar) los recogen. */
 .toast {
   position: relative;
-  pointer-events: auto;
+  pointer-events: none;
   padding: 0.7rem 0.9rem;
   border-radius: var(--radius);
   background: var(--humus-hondo);
@@ -1716,6 +1843,11 @@ button {
 
 .toast__action {
   margin-top: 0.5rem;
+}
+
+.toast__action,
+.toast__close {
+  pointer-events: auto;
 }
 
 .toast--sticky {
@@ -1758,6 +1890,24 @@ button {
   .toasts {
     bottom: calc(76px + env(safe-area-inset-bottom));
     left: 0.75rem;
+  }
+}
+
+/* Escritorio: la pila va centrada al pie del corte del suelo, sobre el ticker. Abajo a la
+   izquierda tapaba la parte baja del núcleo y la lista de efectos activos. Con left, right
+   y width fijos, los márgenes automáticos la centran entre las dos columnas laterales. El
+   min() la estrecha cuando el escenario baja de 404 px (Mutaciones abierta a 1024 px). */
+@media (min-width: 1024px) {
+  .toasts {
+    left: calc(var(--col-left) + 1rem);
+    right: calc(var(--col-right) + 1rem);
+    width: min(22rem, calc(100vw - var(--col-left) - var(--col-right) - 2rem));
+    margin-inline: auto;
+  }
+
+  /* Sin panel de pestañas el escenario llega hasta el borde derecho. */
+  body:has(.layout--fresh) .toasts {
+    right: 1rem;
   }
 }
 

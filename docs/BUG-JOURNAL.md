@@ -16,15 +16,20 @@ Ninguna entrada se borra, aunque el código se haya movido.
 
 ## Índice
 
-| #       | Zona                        | Bug                                                                              |
-| ------- | --------------------------- | -------------------------------------------------------------------------------- |
-| [1](#1) | `src/i18n/format.ts`        | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                |
-| [2](#2) | `src/core/actions.ts`       | Al esporular con una gota en pantalla cae otra gota al instante                  |
-| [3](#3) | `src/systems/offline.ts`    | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano |
-| [4](#4) | `src/main.ts`               | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira     |
-| [5](#5) | `src/ui/tab-upgrades.ts`    | Comprar una mejora con el teclado deja el foco perdido en la página              |
-| [6](#6) | `src/main.ts`, `styles.css` | El número flotante del clic no aparece en escritorio                             |
-| [7](#7) | `src/ui/rain-drop.ts`       | En el móvil, tocar la gota absorbe en vez de atraparla                           |
+| #         | Zona                          | Bug                                                                                        |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
+| [1](#1)   | `src/i18n/format.ts`          | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                          |
+| [2](#2)   | `src/core/actions.ts`         | Al esporular con una gota en pantalla cae otra gota al instante                            |
+| [3](#3)   | `src/systems/offline.ts`      | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano           |
+| [4](#4)   | `src/main.ts`                 | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira               |
+| [5](#5)   | `src/ui/tab-upgrades.ts`      | Comprar una mejora con el teclado deja el foco perdido en la página                        |
+| [6](#6)   | `src/main.ts`, `styles.css`   | El número flotante del clic no aparece en escritorio                                       |
+| [7](#7)   | `src/ui/rain-drop.ts`         | En el móvil, tocar la gota absorbe en vez de atraparla                                     |
+| [8](#8)   | `src/ui/hint.ts`              | Cerrar un aviso de primera vez con el teclado deja el foco perdido                         |
+| [9](#9)   | `src/ui/live.ts`, `toasts.ts` | Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…» |
+| [10](#10) | `src/main.ts`                 | Cambiar de idioma borra el aviso de que la partida no se está guardando                    |
+| [11](#11) | `src/main.ts`                 | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
+| [12](#12) | `src/ui/styles.css`           | En escritorio la página se desplaza hacia una franja vacía                                 |
 
 ---
 
@@ -167,12 +172,109 @@ un hueco libre. El estado no cambia.
 
 ---
 
+<a id="8"></a>
+
+## 8. Cerrar un aviso de primera vez con el teclado deja el foco perdido
+
+**Zona:** `src/ui/hint.ts`
+
+**Síntoma.** Tras pulsar «Entendido» con Enter, el foco caía en `<body>` y el siguiente Espacio
+absorbía en vez de actuar en el panel. Misma familia que el #5.
+
+**Causa.** El aviso se ocultaba con su botón enfocado dentro.
+
+**Arreglo.** Antes de ocultarse, si contiene el foco, lo pasa al panel de la pestaña.
+
+**Qué lo sostiene.** `tests/ui-hint.test.ts` (happy-dom). Falla sin el arreglo (comprobado por el
+agente que lo escribió).
+
+---
+
+<a id="9"></a>
+
+## 9. Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…»
+
+**Zona:** `src/ui/live.ts`, `src/ui/toasts.ts`, `src/ui/modal.ts`
+
+**Síntoma.** Al volver tras 8 horas, «Sin prisa» y otros logros se anunciaban mientras el modal
+estaba abierto: la región aria-live era inerte y los avisos caducaban detrás del velo.
+
+**Causa.** `showModal()` vuelve inerte todo lo que está fuera del diálogo.
+
+**Arreglo.** Con un modal abierto, los anuncios y los avisos pasajeros esperan y salen al
+cerrarlo (`onModalClosed`).
+
+**Qué lo sostiene.** Nada en el repositorio (se probó con pruebas temporales). Ver la tabla.
+
+---
+
+<a id="10"></a>
+
+## 10. Cambiar de idioma borra el aviso de que la partida no se está guardando
+
+**Zona:** `src/main.ts`
+
+**Síntoma.** Con el aviso fijo de «otra pestaña» o de guardado dañado en pantalla, cambiar de
+idioma o notación (o importar, o borrar) lo hacía desaparecer, y con él su botón de recargar,
+aunque el guardado seguía bloqueado.
+
+**Causa.** El contenedor de avisos y la región aria-live vivían dentro de la interfaz que se
+reconstruye.
+
+**Arreglo.** Se crean una vez en `main.ts`, fuera de lo que se reconstruye, y los avisos fijos
+se vuelven a mostrar en el idioma nuevo.
+
+**Qué lo sostiene.** Nada automático. Ver la tabla.
+
+---
+
+<a id="11"></a>
+
+## 11. Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado
+
+**Zona:** `src/main.ts`
+
+**Síntoma.** Con el guardado bloqueado (guardado dañado sin copia, u otra pestaña), importar o
+borrar mostraban el aviso de éxito pero no escribían nada.
+
+**Causa.** `saveNow()` no decía si había guardado, y el bloqueo no distinguía su motivo.
+
+**Arreglo.** `blockedBy` recuerda si el bloqueo es por guardado dañado o por otra pestaña;
+importar y borrar levantan solo el primero, y el aviso de éxito sale solo si se guardó.
+
+**Qué lo sostiene.** Nada automático. Ver la tabla.
+
+---
+
+<a id="12"></a>
+
+## 12. En escritorio la página se desplaza hacia una franja vacía
+
+**Zona:** `src/ui/styles.css`
+
+**Síntoma.** En escritorio se podía desplazar la página unos 455 px hacia abajo, a una franja de
+humus vacía.
+
+**Causa.** Los textos `.visually-hidden` de las pestañas son `position: absolute` y escapaban del
+contenedor con desplazamiento del panel, alargando la página.
+
+**Arreglo.** `.tabs__panels` es `position: relative` y `.visually-hidden` no tiene márgenes ni
+bordes que sumen.
+
+**Qué lo sostiene.** Nada automático. Ver la tabla.
+
+---
+
 ## Bugs sin nada que los sostenga
 
 Pueden volver. Se listan para que se vea.
 
-| #       | Qué falta                                                                                 |
-| ------- | ----------------------------------------------------------------------------------------- |
-| [4](#4) | Una prueba de navegador que arranque la página oculta y la muestre tras un hueco simulado |
-| [6](#6) | Una prueba visual que haga clic en el núcleo en escritorio y busque el número flotante    |
-| [7](#7) | Una prueba de navegador a 390 px que fuerce gotas en el centro y haga clic sobre ellas    |
+| #         | Qué falta                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| [4](#4)   | Una prueba de navegador que arranque la página oculta y la muestre tras un hueco simulado       |
+| [6](#6)   | Una prueba visual que haga clic en el núcleo en escritorio y busque el número flotante          |
+| [7](#7)   | Una prueba de navegador a 390 px que fuerce gotas en el centro y haga clic sobre ellas          |
+| [9](#9)   | Una prueba de DOM que abra un modal, emita un logro y compruebe que el anuncio sale al cerrarlo |
+| [10](#10) | Una prueba de navegador que muestre el aviso de otra pestaña y cambie de idioma                 |
+| [11](#11) | Una prueba que separe el bloqueo de guardado de `main.ts` en un módulo probable                 |
+| [12](#12) | Una prueba visual que compare `scrollHeight` con la altura de la ventana en escritorio          |

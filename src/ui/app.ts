@@ -11,7 +11,6 @@ import * as num from '../core/num.ts';
 import { t } from '../i18n/index.ts';
 import { h } from './dom.ts';
 import { createHud, type Hud } from './hud.ts';
-import { createLiveRegion } from './live.ts';
 import { createNewsTicker } from './news.ts';
 import { createRainDrop } from './rain-drop.ts';
 import type { Store } from './store.ts';
@@ -22,7 +21,6 @@ import { createSporulateTab } from './tab-sporulate.ts';
 import { createStatsTab } from './tab-stats.ts';
 import { createUpgradesTab } from './tab-upgrades.ts';
 import { createTabs, type TabId, type TabView, type Tabs } from './tabs.ts';
-import { createToastContainer } from './toasts.ts';
 
 export interface App {
   root: HTMLElement;
@@ -89,7 +87,11 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   const drop = createRainDrop(
     store,
     () => stage,
-    () => [hudBox, coreBox, effectsBox].map((el) => el.getBoundingClientRect()),
+    () => [
+      ...[hudBox, coreBox, effectsBox].map((el) => el.getBoundingClientRect()),
+      // Los avisos se apilan sobre el escenario en escritorio: la gota tampoco cae debajo.
+      ...Array.from(document.querySelectorAll('.toasts .toast'), (el) => el.getBoundingClientRect()),
+    ],
   );
 
   // El canvas es decorativo: toda la información está también en el DOM (PROMPT.md §16).
@@ -109,12 +111,9 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     h('footer', { class: 'layout__footer' }, [news.root]),
   ]);
   const skip = h('a', { class: 'skip-link', text: t('app.skipToGame'), attrs: { href: '#game' } });
-  const root = h('div', { class: 'app' }, [
-    skip,
-    main,
-    createToastContainer(),
-    createLiveRegion(t('live.region')),
-  ]);
+  // Los avisos y la región aria-live no van aquí: viven fuera de lo que se reconstruye
+  // (main.ts) para que un cambio de idioma no borre los avisos fijos de guardado.
+  const root = h('div', { class: 'app' }, [skip, main]);
   host.replaceChildren(root);
 
   return {

@@ -11,17 +11,17 @@
 export const es = {
   // Página
   'meta.title': 'Micelio',
-  'meta.titleWithValue': '{value} N · Micelio',
+  'meta.titleWithValue': '{value}\u00a0N · Micelio',
   'meta.description':
     'Un juego idle tranquilo: eres una red de hongos que crece bajo el suelo del bosque, incluso mientras no miras.',
   'app.skipToGame': 'Saltar al juego',
 
   // Contador y núcleo
-  'hud.nutrients': '{value} N',
+  'hud.nutrients': '{value}\u00a0N',
   'hud.nutrients.label': 'Nutrientes',
-  'hud.perSecond': '{value} N/s',
+  'hud.perSecond': '{value}\u00a0N/s',
   'hud.perSecond.label': 'Producción por segundo',
-  'core.label': 'Absorber nutrientes (+{value} N)',
+  'core.label': 'Absorber nutrientes (+{value}\u00a0N)',
   'core.hint': 'Toca para absorber nutrientes',
   'core.keyHint': 'También con Espacio o Enter',
 
@@ -32,7 +32,8 @@ export const es = {
   'effect.storm.name': 'Tormenta eléctrica',
   'effect.storm.desc': 'Clic ×500',
   'effect.dew.name': 'Rocío',
-  'effect.remaining': 'quedan {time}',
+  // Concuerda con el efecto, no con {time}: «quedan 1 s» rompía la concordancia.
+  'effect.remaining': 'termina en {time}',
 
   // Pestañas
   'tabs.label': 'Secciones del juego',
@@ -95,19 +96,20 @@ export const es = {
   'gen.planetary.flavor': 'Bajo cada pradera y cada bosque, un mismo pulso.',
 
   'gen.buy': 'Comprar {count} {unit}',
-  'gen.cost': '{value} N',
+  'gen.cost': '{value}\u00a0N',
   'gen.wait': 'en {time}',
   'gen.waitNoIncome': 'sin producción aún',
   'gen.owned': '×{count}',
   'gen.owned.label': 'Tienes {count}',
-  'gen.unitProduction': '{value} N/s por unidad',
-  'gen.totalProduction': '{value} N/s en total',
+  'gen.unitProduction': '{value}\u00a0N/s por unidad',
+  'gen.totalProduction': '{value}\u00a0N/s en total',
   'gen.share': '{percent} del total',
   'gen.milestone': 'Hito en {next}: producción ×2',
   'gen.milestone.label': 'Progreso hacia el hito de {next} unidades',
   'gen.milestone.done': 'Todos los hitos alcanzados',
   'gen.hidden': '???',
   'gen.hidden.hint': 'Algo se mueve más abajo. Sigue absorbiendo.',
+  'gen.hidden.label': 'Más información sobre un generador por descubrir',
   'gen.autobuy.label': 'Autocompra de {name}',
   'gen.autobuy.on': 'Auto',
   'generators.title': 'Generadores',
@@ -222,8 +224,8 @@ export const es = {
   'upgEffect.click': 'Clic ×{multiplier}',
   'upgEffect.clickPercent': 'Cada clic suma {percent} de tu N/s',
   'upgEffect.global': 'Producción global ×{multiplier}',
-  'upg.gainProduction': '+{value} N/s',
-  'upg.gainClick': '+{value} N por clic',
+  'upg.gainProduction': '+{value}\u00a0N/s',
+  'upg.gainClick': '+{value}\u00a0N por clic',
   'upg.buy': 'Comprar {name}',
   'upgrades.title': 'Mejoras',
   'upgrades.empty': 'No hay mejoras disponibles. Aparecen al comprar generadores y al ganar nutrientes.',
@@ -234,8 +236,8 @@ export const es = {
     'Al madurar, la red libera esporas y vuelve a empezar. Cada nivel de esporas da +1 % de producción para siempre.',
   'sporulate.gain.one': 'Esporularías ahora: {count} espora',
   'sporulate.gain.other': 'Esporularías ahora: {count} esporas',
-  'sporulate.next': 'Faltan {value} N de vida para la siguiente espora',
-  'sporulate.requirement': 'Necesitas {value} N ganados en esta partida',
+  'sporulate.next': 'Faltan {value}\u00a0N de vida para la siguiente espora',
+  'sporulate.requirement': 'Necesitas {value}\u00a0N ganados en esta partida',
   'sporulate.progress': 'Progreso hacia esporular: {percent}',
   'sporulate.level': 'Nivel de esporas: {level} (+{percent} de producción)',
   'sporulate.available.one': '{count} espora disponible',
@@ -284,8 +286,10 @@ export const es = {
   'mut.cost.other': '{count} esporas',
   'mut.requires': 'Requiere: {names}',
   'mut.owned': 'Adquirida',
+  'mut.owned.label': '{name}, adquirida',
   'mut.buy': 'Mutar: {name}',
   'mut.locked': 'Bloqueada',
+  'mut.locked.label': '{name}, bloqueada',
   'mut.done': 'Mutaste: {name}',
 
   // Autocompra
@@ -306,8 +310,8 @@ export const es = {
   'achievement.unlocked': 'Logro: {name}',
   'achDesc.owned.one': 'Ten {count} {unit}',
   'achDesc.owned.other': 'Ten {count} {unit}',
-  'achDesc.lifetime': 'Gana {value} N en toda tu vida',
-  'achDesc.production': 'Produce {value} N/s',
+  'achDesc.lifetime': 'Gana {value}\u00a0N en toda tu vida',
+  'achDesc.production': 'Produce {value}\u00a0N/s',
   'achDesc.clicks': 'Absorbe con {count} clics',
   'achDesc.drops.one': 'Atrapa {count} gota de lluvia',
   'achDesc.drops.other': 'Atrapa {count} gotas de lluvia',
@@ -371,9 +375,10 @@ export const es = {
   'rain.drop.label': 'Atrapar la gota de lluvia',
   'rain.spawn': 'Empieza a llover: atrapa la gota antes de que se evapore.',
   'rain.expired': 'La gota se evaporó.',
-  'rain.caught.downpour': 'Aguacero: producción ×5 durante {time}.',
-  'rain.caught.dew': 'Rocío: +{value} N.',
-  'rain.caught.storm': 'Tormenta eléctrica: clic ×500 durante {time}.',
+  // El aviso repite el verbo del botón «Atrapar la gota de lluvia» (PROMPT.md §13).
+  'rain.caught.downpour': 'Atrapaste la gota: Aguacero, producción ×5 durante {time}.',
+  'rain.caught.dew': 'Atrapaste la gota: Rocío, +{value}\u00a0N.',
+  'rain.caught.storm': 'Atrapaste la gota: Tormenta eléctrica, clic ×500 durante {time}.',
   'rain.storm.fact':
     'En Japón se ha experimentado con descargas eléctricas para aumentar la cosecha de setas.',
   'rain.ended.downpour': 'Terminó el Aguacero.',
@@ -444,8 +449,10 @@ export const es = {
 
   // Offline
   'offline.title': 'Mientras no estabas…',
-  'offline.body': 'Pasaron {time}. Tu red absorbió {value} N.',
-  'offline.capped': 'Solo cuentan las primeras {cap}.',
+  // Nada concuerda en género ni número con {time} o {cap}: «1 h» y «1 d» son singulares y
+  // «Pasaron 1 h» o «las primeras 1 d» sonaban mal.
+  'offline.body': 'Tiempo fuera: {time}. Tu red absorbió {value}\u00a0N.',
+  'offline.capped': 'Solo cuenta un máximo de {cap}.',
   'offline.efficiency': 'Eficiencia offline: {percent}.',
   'offline.flavor.1': 'La red siguió creciendo en la oscuridad, como siempre.',
   'offline.flavor.2': 'Mientras dormías, las hifas hicieron horas extra.',

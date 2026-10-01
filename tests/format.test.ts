@@ -102,7 +102,7 @@ describe('formatNumber: nombres desde 1e6 (estilo idle, notación por defecto)',
 
   it('sin ceros de relleno: 1.5e6 es «1,5 millones» y 2e9 «2 mil millones»', () => {
     expect(formatNumber(1.5e6, 'es', 'names', nameEs)).toBe(`1,5${NBSP}millones`);
-    expect(formatNumber(2e9, 'es', 'names', nameEs)).toBe(`2${NBSP}mil millones`);
+    expect(formatNumber(2e9, 'es', 'names', nameEs)).toBe(`2${NBSP}mil${NBSP}millones`);
   });
 
   it('la mantisa conserva hasta tres cifras significativas: 1,23 / 12,3 / 123', () => {
@@ -417,7 +417,7 @@ describe('fmt', () => {
     setNotation('names');
     expect(fmt(1.5e6)).toBe(`1,5${NBSP}millones`);
     expect(fmt(1e6)).toBe(`1${NBSP}millón`);
-    expect(fmt(2.3e9)).toBe(`2,3${NBSP}mil millones`);
+    expect(fmt(2.3e9)).toBe(`2,3${NBSP}mil${NBSP}millones`);
     expect(fmt(4e12)).toBe(`4${NBSP}billones`);
     setLocale('en');
     expect(fmt(1.5e6)).toBe(`1.5${NBSP}Million`);

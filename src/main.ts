@@ -47,7 +47,7 @@ import {
 import { createApp, type App } from './ui/app.ts';
 import { Disposer, h, restartAnimation } from './ui/dom.ts';
 import { createFloaters } from './ui/floaters.ts';
-import { announce } from './ui/live.ts';
+import { announce, createLiveRegion } from './ui/live.ts';
 import { openModal } from './ui/modal.ts';
 import { createSoundEngine, type SoundCue } from './audio/sound.ts';
 import { toSeed } from './core/rng.ts';
@@ -56,7 +56,7 @@ import { createStore, type Store } from './ui/store.ts';
 import { createSettingsTab, type SettingsServices } from './ui/tab-settings.ts';
 import { achievementDescription, achievementName } from './ui/tab-achievements.ts';
 import type { TabId } from './ui/tabs.ts';
-import { toast } from './ui/toasts.ts';
+import { createToastContainer, removeToast, toast, type ToastOptions } from './ui/toasts.ts';
 import { installTooltipGlobalHandlers, refreshTooltip } from './ui/tooltip.ts';
 
 const TICK_MS = TICK_SECONDS * 1000;
@@ -127,6 +127,11 @@ if (loaded.kind === 'loaded') {
 const store: Store = createStore(initialState);
 applyLocale(store.state);
 
+// Los avisos y la región aria-live se crean una vez, fuera de #app: rebuildApp rehace #app
+// entero y con él se irían los avisos fijos de guardado y su único botón para resolverlos.
+const liveRegion = createLiveRegion(t('live.region'));
+document.body.append(createToastContainer(), liveRegion);
+
 const globalDisposer = new Disposer();
 installTooltipGlobalHandlers(globalDisposer);
 
@@ -137,7 +142,10 @@ installTooltipGlobalHandlers(globalDisposer);
 function rebuildApp(focusId?: string): void {
   app.destroy();
   applyLocale(store.state);
+  liveRegion.setAttribute('aria-label', t('live.region'));
   app = buildApp();
+  // Los avisos fijos siguen en su contenedor; se reemiten para que cambien de idioma.
+  showStickyNotices();
   if (focusId) document.getElementById(focusId)?.focus();
 }
 
@@ -177,21 +185,28 @@ const settingsServices: SettingsServices = {
   },
   replaceGame: (next) => {
     store.replace(next);
-    saveNow();
+    // Importar es la decisión explícita de dejar atrás el guardado dañado.
+    liftCorruptBlock();
+    const saved = saveNow();
     rebuildApp();
     applyMotion();
     applySound();
-    toast(t('settings.import.done'), { kind: 'info' });
+    confirmReplaced(saved, 'settings.import.done');
   },
   wipeGame: () => {
     // Los ajustes (idioma, sonido, movimiento) se conservan: son del jugador, no de la partida.
     const fresh = createState(randomSeed(), Date.now());
     fresh.settings = { ...store.state.settings };
     store.replace(fresh);
-    saveNow();
+    // Borrar también es decidir empezar de nuevo sobre un guardado dañado.
+    liftCorruptBlock();
+    const saved = saveNow();
     currentTab = 'generators';
     rebuildApp();
-    toast(t('settings.wipe.done'), { kind: 'info' });
+    // El botón de borrar se fue con la interfaz vieja: sin esto el foco cae en <body> y el
+    // siguiente Espacio absorbe sin que el jugador sepa dónde está.
+    app.hud.coreButton.focus();
+    confirmReplaced(saved, 'settings.wipe.done');
   },
   applySound: () => {
     applySound();
@@ -203,6 +218,29 @@ const settingsServices: SettingsServices = {
 /** Red dibujada en el canvas del escenario; se rehace con la interfaz. */
 let network: NetworkView | null = null;
 let canvasObserver: ResizeObserver | null = null;
+
+// Llevar la ventana a una pantalla con otra densidad cambia devicePixelRatio sin cambiar el
+// tamaño CSS del canvas: el ResizeObserver no salta y la red se vería borrosa (o con un
+// lienzo de más). La consulta solo describe la densidad actual, así que al cambiar se
+// vuelve a armar con la nueva. matchMedia sirve en todos los navegadores; observar
+// 'device-pixel-content-box' no existe en Safari.
+let pixelRatioQuery: MediaQueryList | null = null;
+
+function onPixelRatioChange(): void {
+  network?.resize();
+  watchPixelRatio();
+}
+
+function watchPixelRatio(): void {
+  pixelRatioQuery?.removeEventListener('change', onPixelRatioChange);
+  pixelRatioQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+  pixelRatioQuery.addEventListener('change', onPixelRatioChange);
+}
+
+watchPixelRatio();
+globalDisposer.add(() => {
+  pixelRatioQuery?.removeEventListener('change', onPixelRatioChange);
+});
 
 const floaters = createFloaters();
 let currentTab: TabId = 'generators';
@@ -250,41 +288,112 @@ function buildApp(): App {
 const forceLoop = import.meta.env.DEV && new URLSearchParams(window.location.search).has('loop');
 
 const tabId = newTabId();
-// Un guardado dañado sin copia de respaldo no se pisa hasta que el jugador lo decida.
-let savingBlocked = loaded.kind === 'corrupt' && !loaded.backedUp;
-let warnedUnavailable = false;
+/**
+ * Por qué esta pestaña no guarda. Un guardado dañado sin copia de respaldo no se pisa hasta
+ * que el jugador decida empezar de nuevo (o importe, o borre); si otra pestaña tomó el
+ * guardado, esta no lo pisa nunca. Se distinguen porque solo el primero lo levanta el jugador.
+ */
+let blockedBy: 'corrupt' | 'otherTab' | null =
+  loaded.kind === 'corrupt' && !loaded.backedUp ? 'corrupt' : null;
+let warnedUnavailable = loaded.kind === 'unavailable';
 // Una página que arranca oculta (pestaña en segundo plano, sesión restaurada) no avanza
 // hasta que se muestra: cuenta desde el arranque (BUG-JOURNAL #4).
 let hiddenAt: number | null = !forceLoop && document.hidden ? bootNow : null;
 
 claimTab(storage, tabId);
 
-function saveNow(): void {
-  if (savingBlocked) return;
+/** Guarda ahora. Devuelve si la partida quedó escrita. */
+function saveNow(): boolean {
+  if (blockedBy) return false;
   // Con la pestaña oculta el estado no avanza: el guardado se fecha cuando se ocultó, para
   // que el progreso offline cuente todo el tiempo desde entonces.
   const savedAt = hiddenAt ?? Date.now();
   const ok = saveGame(storage, store.state, savedAt);
   if (!ok && !warnedUnavailable) {
     warnedUnavailable = true;
-    toast(t('save.unavailable'), { kind: 'warning', duration: 0 });
+    showStickyNotices();
   }
+  return ok;
+}
+
+/** El jugador decidió dejar atrás el guardado dañado: desde ahora se puede pisar. */
+function liftCorruptBlock(): void {
+  if (blockedBy !== 'corrupt') return;
+  blockedBy = null;
+  removeToast('save-corrupt-no-backup');
+}
+
+type NoticeId = 'save-corrupt' | 'save-corrupt-no-backup' | 'save-other-tab' | 'save-unavailable';
+/** Avisos fijos que el jugador cerró: no vuelven al reconstruir la interfaz. */
+const dismissedNotices = new Set<NoticeId>();
+const corruptBackedUp = loaded.kind === 'corrupt' && loaded.backedUp;
+
+function notice(id: NoticeId, message: string, action?: ToastOptions['action']): void {
+  if (dismissedNotices.has(id)) return;
+  toast(message, {
+    kind: 'warning',
+    duration: 0,
+    id,
+    action,
+    onClose: () => {
+      dismissedNotices.add(id);
+    },
+  });
+}
+
+/**
+ * Muestra los avisos fijos que siguen en pie, con el texto del idioma vigente. Se llama al
+ * arrancar, cuando cambia el motivo y tras reconstruir la interfaz: un aviso ya visible se
+ * sustituye en su sitio, así que cambia de idioma con todo lo demás.
+ */
+function showStickyNotices(): void {
+  if (corruptBackedUp) notice('save-corrupt', t('save.corrupt'));
+  if (blockedBy === 'corrupt') {
+    notice('save-corrupt-no-backup', t('save.corruptNoBackup'), {
+      label: t('save.startFresh'),
+      onSelect: () => {
+        liftCorruptBlock();
+        saveNow();
+      },
+    });
+  }
+  if (blockedBy === 'otherTab') {
+    notice('save-other-tab', t('save.otherTab'), {
+      label: t('save.reload'),
+      onSelect: () => {
+        window.location.reload();
+      },
+    });
+  }
+  if (warnedUnavailable) notice('save-unavailable', t('save.unavailable'));
+}
+
+/**
+ * Tras importar o borrar: confirma solo si la partida quedó guardada. Si no, decir «Partida
+ * importada» haría creer al jugador que recargar la conserva; se le vuelve a mostrar por qué
+ * no se guarda, aunque antes hubiera cerrado ese aviso.
+ */
+function confirmReplaced(saved: boolean, key: MessageKey): void {
+  if (saved) {
+    const message = t(key);
+    toast(message, { kind: 'info' });
+    announce(message);
+    return;
+  }
+  dismissedNotices.delete('save-other-tab');
+  dismissedNotices.delete('save-unavailable');
+  showStickyNotices();
+  announce(blockedBy === 'otherTab' ? t('save.otherTab') : t('save.unavailable'));
 }
 
 globalDisposer.listen(window, 'storage', (e) => {
   const event = e as StorageEvent;
-  if (!savingBlocked && isTakenByOtherTab(event.key, event.newValue, tabId)) {
-    savingBlocked = true;
-    toast(t('save.otherTab'), {
-      kind: 'warning',
-      duration: 0,
-      action: {
-        label: t('save.reload'),
-        onSelect: () => {
-          window.location.reload();
-        },
-      },
-    });
+  if (blockedBy !== 'otherTab' && isTakenByOtherTab(event.key, event.newValue, tabId)) {
+    // Si estaba bloqueada por un guardado dañado, ahora manda la otra pestaña: «Empezar de
+    // nuevo» ya no debe pisar lo que esa guarde.
+    if (blockedBy === 'corrupt') removeToast('save-corrupt-no-backup');
+    blockedBy = 'otherTab';
+    showStickyNotices();
   }
 });
 
@@ -295,32 +404,14 @@ globalDisposer.add(() => {
   window.clearInterval(saveTimer);
 });
 
-globalDisposer.listen(window, 'pagehide', saveNow);
+globalDisposer.listen(window, 'pagehide', () => {
+  saveNow();
+});
 
 // ---------------------------------------------------------------------------------------
 // Avisos del arranque
 
-if (loaded.kind === 'corrupt') {
-  if (loaded.backedUp) {
-    toast(t('save.corrupt'), { kind: 'warning', duration: 0 });
-  } else {
-    toast(t('save.corruptNoBackup'), {
-      kind: 'warning',
-      duration: 0,
-      action: {
-        label: t('save.startFresh'),
-        onSelect: () => {
-          savingBlocked = false;
-          saveNow();
-        },
-      },
-    });
-  }
-}
-if (loaded.kind === 'unavailable') {
-  warnedUnavailable = true;
-  toast(t('save.unavailable'), { kind: 'warning', duration: 0 });
-}
+showStickyNotices();
 
 const OFFLINE_FLAVORS: readonly MessageKey[] = [
   'offline.flavor.1',
@@ -436,6 +527,9 @@ let lastFrame = performance.now();
 let accumulator = 0;
 let lastUi = 0;
 
+/** Payload reutilizado en cada paso de lógica: el bucle no debe crear objetos. */
+const tickPayload = { dt: TICK_SECONDS };
+
 /** Tope de pasos por frame: si la lógica se queda atrás, se descarta el resto en vez de espiralar. */
 const MAX_TICKS_PER_FRAME = 200;
 
@@ -455,7 +549,8 @@ function advance(realMs: number): void {
   const stepMs = Math.min(1000, TICK_MS * Math.max(1, speed / 10));
   let steps = 0;
   while (accumulator >= stepMs && steps < MAX_TICKS_PER_FRAME) {
-    tick(store.state, { dt: stepMs / 1000 });
+    tickPayload.dt = stepMs / 1000;
+    tick(store.state, tickPayload);
     accumulator -= stepMs;
     steps += 1;
   }

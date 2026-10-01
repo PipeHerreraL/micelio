@@ -5,7 +5,7 @@
  * Hay un único nodo flotante para toda la app. El contenido se pide al mostrarlo, así que
  * siempre está al día (por ejemplo, «+12,4 N/s» tras una compra).
  */
-import { Disposer, h } from './dom.ts';
+import { Disposer, h, setText } from './dom.ts';
 
 export type TooltipContent = () => string | readonly string[] | null;
 
@@ -17,6 +17,9 @@ const MOVE_TOLERANCE_PX = 10;
 let tip: HTMLDivElement | null = null;
 let owner: HTMLElement | null = null;
 let currentContent: TooltipContent | null = null;
+/** Última posición escrita, para no reescribir el transform con el mismo valor a 10 Hz. */
+let placedLeft = NaN;
+let placedTop = NaN;
 
 function ensureTip(): HTMLDivElement {
   if (!tip) {
@@ -32,9 +35,21 @@ function render(content: TooltipContent): boolean {
   if (value === null) return false;
   const lines: readonly string[] = typeof value === 'string' ? [value] : value;
   if (lines.length === 0) return false;
-  node.replaceChildren(
-    ...lines.map((line, i) => h('p', { class: i === 0 ? 'tooltip__lead' : '', text: line })),
-  );
+  // Se reutilizan los párrafos y setText solo escribe lo que cambió: rehacerlos en cada
+  // repintado a 10 Hz creaba unos 18 nodos por segundo con el tooltip abierto aunque el
+  // texto fuera el mismo (PROMPT.md §4). Un párrafo nunca cambia de índice, así que la
+  // clase del primero se pone una sola vez, al crearlo.
+  for (let i = 0; i < lines.length; i++) {
+    let p = node.children.item(i);
+    if (!p) {
+      p = h('p', i === 0 ? { class: 'tooltip__lead' } : {});
+      node.append(p);
+    }
+    setText(p, lines[i] ?? '');
+  }
+  // Solo sobran párrafos al pasar a un tooltip con menos líneas. Se quitan en vez de
+  // ocultarlos para que `.tooltip p + p` y compañía vean solo los que se leen.
+  while (node.children.length > lines.length) node.lastElementChild?.remove();
   return true;
 }
 
@@ -48,7 +63,16 @@ function position(target: HTMLElement): void {
   left = Math.max(margin, Math.min(left, viewportW - tipRect.width - margin));
   let top = rect.top - tipRect.height - margin;
   if (top < margin) top = rect.bottom + margin;
-  node.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+  // Medir en cada repintado se mantiene a propósito: sin escrituras entre medias, las tres
+  // lecturas comparten un solo layout que el navegador haría igual antes de pintar, y así el
+  // tooltip sigue a su dueño si este se mueve, cambia el ancho de la ventana o llega una
+  // fuente. Lo que se evita es tocar el estilo cuando la posición no cambió.
+  const x = Math.round(left);
+  const y = Math.round(top);
+  if (x === placedLeft && y === placedTop) return;
+  placedLeft = x;
+  placedTop = y;
+  node.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 /** aria-describedby es una lista de ids: el tooltip añade y quita el suyo sin pisar otros. */

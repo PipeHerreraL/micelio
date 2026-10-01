@@ -5,7 +5,7 @@
 import { setSetting } from '../core/actions.ts';
 import { LOCALES, NOTATIONS, type GameState, type Locale, type Notation } from '../core/state.ts';
 import { formatDate, formatPercent } from '../i18n/format.ts';
-import { fmt, getLocale, t, type MessageKey } from '../i18n/index.ts';
+import { fmt, formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
 import { exportSave, importSave, type ImportError } from '../systems/save.ts';
 import { Disposer, h, setAttr, setDisabled, setHidden, setText } from './dom.ts';
 import { openModal } from './modal.ts';
@@ -85,8 +85,10 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
     return { notation, button };
   });
 
-  // El botón dice qué controla y en qué estado está: «Sonido · Activado».
-  const soundState = h('span', { class: 'toggle__state' });
+  // El botón dice qué controla y en qué estado está: «Sonido · Activado». La palabra del
+  // estado se oculta al lector: aria-pressed ya lo dice, y un nombre que cambia con el estado
+  // se lee como «Sonido Silenciado, no presionado», una doble negación.
+  const soundState = h('span', { class: 'toggle__state', attrs: { 'aria-hidden': 'true' } });
   const sound = h('button', { class: 'toggle', id: 'setting-sound', attrs: { type: 'button' } }, [
     h('span', { text: t('settings.sound') }),
     soundState,
@@ -145,15 +147,23 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
       setText(exportStatus, t(key));
       setHidden(exportStatus, false);
     };
-    navigator.clipboard.writeText(exportArea.value).then(
-      () => {
-        done('settings.export.copied');
-      },
-      () => {
-        exportArea.select();
-        done('settings.export.copyFailed');
-      },
-    );
+    const fail = (): void => {
+      exportArea.focus();
+      exportArea.select();
+      done('settings.export.copyFailed');
+    };
+    let copying: Promise<void>;
+    try {
+      // Fuera de un contexto seguro (http://192.168.x.x con `vite --host`, algunos webviews)
+      // navigator.clipboard no existe y la llamada lanza en vez de rechazar.
+      copying = navigator.clipboard.writeText(exportArea.value);
+    } catch {
+      fail();
+      return;
+    }
+    copying.then(() => {
+      done('settings.export.copied');
+    }, fail);
   });
 
   // Importar
@@ -188,11 +198,12 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
     }
     setHidden(importError, true);
     const save = result.save;
+    let imported = false;
     openModal({
       title: t('settings.import.confirm.title'),
       body: [
         t('settings.import.confirm.lifetime', { value: fmt(save.state.lifetimeEarned) }),
-        t('settings.import.confirm.level', { level: save.state.spores.level }),
+        t('settings.import.confirm.level', { level: formatCount(save.state.spores.level) }),
         t('settings.import.confirm.date', { date: formatDate(save.savedAt, getLocale()) }),
         h('p', { class: 'modal__warning', text: t('settings.import.confirm.warning') }),
       ],
@@ -202,12 +213,25 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
           label: t('settings.import.confirm.yes'),
           kind: 'danger',
           onSelect: () => {
+            imported = true;
             importArea.value = '';
             services.replaceGame(save.state);
             return undefined;
           },
         },
       ],
+      // Importar reconstruye la interfaz con el modal abierto: el diálogo devuelve el foco al
+      // botón Importar viejo, que ya no está en la página, y caería en <body>. 'close' llega
+      // después de esa devolución, así que aquí se busca el campo nuevo por su id. Si la
+      // partida importada aún no muestra Ajustes, se queda en el panel visible.
+      onClose: () => {
+        if (!imported) return;
+        const field = document.getElementById('setting-import-text');
+        field?.focus();
+        if (!field || document.activeElement !== field) {
+          document.querySelector<HTMLElement>('[role="tabpanel"]:not([hidden])')?.focus();
+        }
+      },
     });
   });
 

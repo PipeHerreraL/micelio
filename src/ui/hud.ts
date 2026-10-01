@@ -66,6 +66,15 @@ interface EffectRow {
   bar: HTMLElement;
 }
 
+/**
+ * Un número es parada de tabulación solo si tiene tooltip (desde 1e6): por debajo sería una
+ * parada que no hace nada (PROMPT.md §16). Con el foco encima no se le quita, aunque la cifra
+ * baje (la autocompra gasta): sin tabindex, el foco caería a <body>.
+ */
+export function focusableWhileTooltip(el: HTMLElement, hasTooltip: boolean): void {
+  setAttr(el, 'tabindex', hasTooltip || document.activeElement === el ? '0' : null);
+}
+
 export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) => void): Hud {
   const disposer = new Disposer();
 
@@ -85,9 +94,8 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     h('p', { class: 'counter__line counter__line--rate' }, [rate]),
     spores,
   ]);
-  // Enfocables para que el tooltip del número grande también llegue con el teclado.
-  value.tabIndex = 0;
-  rate.tabIndex = 0;
+  // El tooltip del número grande también llega con el teclado: update() los hace enfocables
+  // cuando hay tooltip que mostrar.
   attachTooltip(value, () => numberTooltip(store.state.nutrients), disposer);
   attachTooltip(rate, () => numberTooltip(derived(store.state).production), disposer);
 
@@ -130,6 +138,8 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     const d = derived(state);
     setText(value, t('hud.nutrients', { value: fmt(state.nutrients) }));
     setText(rate, t('hud.perSecond', { value: fmt(d.production) }));
+    focusableWhileTooltip(value, numberTooltip(state.nutrients) !== null);
+    focusableWhileTooltip(rate, numberTooltip(d.production) !== null);
     setAttr(coreButton, 'aria-label', t('core.label', { value: fmt(d.clickValue) }));
     const showSpores = hasSeen(state, 'tab.sporulate');
     setHidden(spores, !showSpores);

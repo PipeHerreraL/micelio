@@ -7,7 +7,7 @@ import { canSporulate, nutrientsToNextSpore, sporeGain, sporulate } from '../cor
 import * as num from '../core/num.ts';
 import { SPORE_LEVEL_BONUS, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { formatPercent } from '../i18n/format.ts';
-import { fmt, getLocale, t, tp } from '../i18n/index.ts';
+import { fmt, formatCount, getLocale, t, tp } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { createHint } from './hint.ts';
 import { uiIcon } from './icons.ts';
@@ -66,7 +66,8 @@ export function createSporulateTab(store: Store): TabView {
         t('sporulate.confirm.keep'),
       ],
       actions: [
-        { label: t('sporulate.confirm.no'), kind: 'quiet' },
+        // El foco empieza en cancelar: esporular reinicia la partida y no se deshace.
+        { label: t('sporulate.confirm.no'), kind: 'quiet', autofocus: true },
         {
           label: t('sporulate.confirm.yes'),
           kind: 'primary',
@@ -89,7 +90,10 @@ export function createSporulateTab(store: Store): TabView {
     const ready = canSporulate(state);
     setText(
       level,
-      t('sporulate.level', { level: state.spores.level, percent: bonusPercent(state.spores.level) }),
+      t('sporulate.level', {
+        level: formatCount(state.spores.level),
+        percent: bonusPercent(state.spores.level),
+      }),
     );
     setText(available, tp('sporulate.available', state.spores.available));
     setText(gain, tp('sporulate.gain', sporeGain(state)));

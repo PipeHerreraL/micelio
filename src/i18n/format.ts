@@ -141,7 +141,8 @@ export function formatNumber(
   const suffix = SUFFIXES[s.exponent / 3 - 2];
   if (!suffix) return sign + scientific(abs, locale, 1);
   const mantissa = numberFormat(locale, s.decimals).format(s.mantissa);
-  const label = notation === 'names' && nameOf ? nameOf(suffix, s.mantissa) : suffix;
+  // «mil millones» no se parte en dos líneas: los espacios del nombre tampoco separan.
+  const label = notation === 'names' && nameOf ? nameOf(suffix, s.mantissa).replace(/ /g, '\u00a0') : suffix;
   return `${sign}${mantissa}\u00a0${label}`;
 }
 

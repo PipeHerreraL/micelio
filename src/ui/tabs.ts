@@ -130,6 +130,8 @@ export function createTabs(
       if (panel) setHidden(panel, !on);
     }
     const button = buttons.get(id);
+    // En la barra de móvil, que se desplaza en horizontal, la pestaña activa queda a la vista.
+    if (focus) button?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (button && !button.hidden && !hasSeen(store.state, `tabVisited.${id}`)) {
       store.dispatch(markSeen, { key: `tabVisited.${id}` });
     }

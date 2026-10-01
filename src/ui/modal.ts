@@ -12,6 +12,11 @@ export interface ModalAction {
   kind: 'primary' | 'danger' | 'quiet';
   /** Devuelve false para dejar el modal abierto. */
   onSelect?: () => boolean | undefined;
+  /**
+   * Recibe el foco al abrir. Las confirmaciones irreversibles se lo dan a cancelar: un Enter
+   * sostenido sobre el botón que abrió el modal no debe confirmar sin leer.
+   */
+  autofocus?: boolean;
 }
 
 export interface ModalOptions {
@@ -27,16 +32,32 @@ export interface ModalOptions {
 let dialog: HTMLDialogElement | null = null;
 let disposer = new Disposer();
 let closeCallback: (() => void) | undefined;
+/** Hay un modal cuyos listeners y `onClose` siguen pendientes de atender. */
+let unsettled = false;
+const closeListeners = new Set<() => void>();
+
+/** Quita los listeners del modal actual y avisa a su `onClose`, una sola vez. */
+function settle(): void {
+  if (!unsettled) return;
+  unsettled = false;
+  disposer.dispose();
+  const cb = closeCallback;
+  closeCallback = undefined;
+  cb?.();
+}
 
 function ensureDialog(): HTMLDialogElement {
   if (!dialog) {
-    dialog = h('dialog', { class: 'modal', attrs: { 'aria-labelledby': 'modal-title' } });
-    document.body.append(dialog);
-    dialog.addEventListener('close', () => {
-      disposer.dispose();
-      const cb = closeCallback;
-      closeCallback = undefined;
-      cb?.();
+    const node = h('dialog', { class: 'modal', attrs: { 'aria-labelledby': 'modal-title' } });
+    dialog = node;
+    document.body.append(node);
+    node.addEventListener('close', () => {
+      // El navegador dispara 'close' en una tarea aparte. Si entretanto openModal abrió otro
+      // modal, este evento es del anterior, que openModal ya atendió: atenderlo aquí quitaría
+      // los listeners del modal nuevo.
+      if (node.open) return;
+      settle();
+      for (const listener of closeListeners) listener();
     });
   }
   return dialog;
@@ -44,6 +65,14 @@ function ensureDialog(): HTMLDialogElement {
 
 export function isModalOpen(): boolean {
   return dialog?.open ?? false;
+}
+
+/**
+ * Avisa cuando el último modal se cierra y el resto de la página deja de ser inerte. Los
+ * avisos pasajeros esperan a este momento: detrás del fondo nadie los vería ni los oiría.
+ */
+export function onModalClosed(listener: () => void): void {
+  closeListeners.add(listener);
 }
 
 export function closeModal(): void {
@@ -54,9 +83,18 @@ export function closeModal(): void {
 export function openModal(options: ModalOptions): void {
   const node = ensureDialog();
   if (node.open) node.close();
+  // Si el 'close' anterior aún no llegó, se atiende ya: luego lo ignorará el listener.
+  settle();
   disposer = new Disposer();
   closeCallback = options.onClose;
+  unsettled = true;
   node.className = options.variant ? `modal ${options.variant}` : 'modal';
+
+  // Un Enter sostenido repite keydown y cada repetición activaría el botón con foco: sin
+  // este freno, mantener Enter sobre «Esporular» confirmaría el reinicio sin leer el resumen.
+  disposer.listen(node, 'keydown', (event) => {
+    if (event.repeat && event.key === 'Enter') event.preventDefault();
+  });
 
   const buttons = options.actions.map((action) => {
     const button = h('button', {
@@ -93,7 +131,11 @@ export function openModal(options: ModalOptions): void {
     ]),
   );
   node.showModal();
-  // El foco va a la acción principal (o a la primera), no al botón de cerrar.
-  const primary = buttons.find((_, i) => options.actions[i]?.kind === 'primary') ?? buttons[0];
-  primary?.focus();
+  // El foco va a la acción marcada, si no a la principal (o a la primera); nunca al botón de
+  // cerrar.
+  const initial =
+    buttons.find((_, i) => options.actions[i]?.autofocus) ??
+    buttons.find((_, i) => options.actions[i]?.kind === 'primary') ??
+    buttons[0];
+  initial?.focus();
 }

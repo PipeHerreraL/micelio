@@ -24,6 +24,10 @@ interface TreeNode {
   status: HTMLElement;
   cost: HTMLElement;
   requires: HTMLElement;
+  /** Ids de las partes visibles que pueden describir el botón a un lector de pantalla. */
+  parts: { desc: string; cost: string; requires: string };
+  /** Estado con el que se escribieron el nombre y la descripción accesibles. */
+  shown: NodeState | null;
 }
 
 function requirementText(def: MutationDef): string {
@@ -48,16 +52,23 @@ export function createMutationsTab(store: Store): TabView {
     h('div', { class: 'mut-tree__scroll' }, [tree]),
   ]);
 
-  const nodes: TreeNode[] = MUTATIONS.map((def) => {
+  // El DOM va en el orden de lectura del dibujo (fila y luego columna) para que el tabulador
+  // recorra el árbol como se ve (PROMPT.md §16). MUTATIONS no se reordena: es el orden de la
+  // tabla de §10 y el de compra del simulador.
+  const visualOrder = [...MUTATIONS].sort((a, b) => a.row - b.row || a.col - b.col);
+  const nodes: TreeNode[] = visualOrder.map((def) => {
+    const parts = {
+      desc: `mut-${def.id}-desc`,
+      cost: `mut-${def.id}-cost`,
+      requires: `mut-${def.id}-requires`,
+    };
+    const requirement = def.requires.length ? requirementText(def) : '';
     const status = h('span', { class: 'mut__status' });
-    const cost = h('span', { class: 'mut__cost tabular', text: tp('mut.cost', def.cost) });
-    const requires = h('span', {
-      class: 'mut__requires',
-      text: def.requires.length ? requirementText(def) : '',
-    });
+    const cost = h('span', { class: 'mut__cost tabular', id: parts.cost, text: tp('mut.cost', def.cost) });
+    const requires = h('span', { class: 'mut__requires', id: parts.requires, text: requirement });
     const button = h('button', { class: 'mut', attrs: { type: 'button' } }, [
       h('span', { class: 'mut__name', text: nameOf(def.id) }),
-      h('span', { class: 'mut__desc', text: descOf(def.id) }),
+      h('span', { class: 'mut__desc', id: parts.desc, text: descOf(def.id) }),
       cost,
       requires,
       status,
@@ -68,9 +79,18 @@ export function createMutationsTab(store: Store): TabView {
       if (button.getAttribute('aria-disabled') === 'true') return;
       store.dispatch(buyMutation, { id: def.id });
     });
-    attachTooltip(button, () => [nameOf(def.id), descOf(def.id), tp('mut.cost', def.cost)], disposer);
+    attachTooltip(
+      button,
+      () => {
+        const lines = [nameOf(def.id), descOf(def.id), tp('mut.cost', def.cost)];
+        // El nodo bloqueado muestra su requisito; el tooltip también, para el ratón y el teclado.
+        if (requirement && stateOf(def.id) === 'locked') lines.push(requirement);
+        return lines;
+      },
+      disposer,
+    );
     tree.append(button);
-    return { def, button, status, cost, requires };
+    return { def, button, status, cost, requires, parts, shown: null };
   });
 
   /** Redibuja las conexiones entre nodos según su posición actual. */
@@ -116,6 +136,32 @@ export function createMutationsTab(store: Store): TabView {
     return isMutationAvailable(store.state, id) ? 'available' : 'locked';
   }
 
+  /**
+   * Nombre y descripción accesibles según el estado. El aria-label sustituye al contenido del
+   * botón, así que lo que se ve (efecto, coste, requisito) llega por aria-describedby, que
+   * apunta solo a las partes visibles en ese estado: una parte oculta citada por id se leería
+   * igual. Se conservan los ids ajenos, porque el tooltip añade y quita el suyo.
+   */
+  function labelNode(node: TreeNode, nodeState: NodeState): void {
+    const name = nameOf(node.def.id);
+    setAttr(
+      node.button,
+      'aria-label',
+      nodeState === 'owned'
+        ? t('mut.owned.label', { name })
+        : nodeState === 'locked'
+          ? t('mut.locked.label', { name })
+          : t('mut.buy', { name }),
+    );
+    const { desc, cost, requires } = node.parts;
+    const visible = nodeState === 'owned' ? [desc] : nodeState === 'locked' ? [cost, requires] : [desc, cost];
+    const own: readonly string[] = [desc, cost, requires];
+    const others = (node.button.getAttribute('aria-describedby') ?? '')
+      .split(/\s+/)
+      .filter((id) => id && !own.includes(id));
+    setAttr(node.button, 'aria-describedby', [...visible, ...others].join(' '));
+  }
+
   function update(): void {
     const state = store.state;
     setText(available, tp('sporulate.available', state.spores.available));
@@ -126,11 +172,10 @@ export function createMutationsTab(store: Store): TabView {
       const affordable = nodeState === 'available' && state.spores.available >= getMutation(id).cost;
       setAttr(node.button, 'aria-disabled', affordable ? 'false' : 'true');
       toggleClass(node.button, 'is-affordable', affordable);
-      setAttr(
-        node.button,
-        'aria-label',
-        nodeState === 'owned' ? `${nameOf(id)} · ${t('mut.owned')}` : t('mut.buy', { name: nameOf(id) }),
-      );
+      if (node.shown !== nodeState) {
+        node.shown = nodeState;
+        labelNode(node, nodeState);
+      }
       setText(
         node.status,
         nodeState === 'owned' ? t('mut.owned') : nodeState === 'locked' ? t('mut.locked') : '',

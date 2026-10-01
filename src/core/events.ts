@@ -27,16 +27,29 @@ export type GameEvent =
  */
 const MAX_QUEUE = 256;
 
+/**
+ * Dos arreglos que se turnan: drain() entrega uno y la cola pasa a escribir en el otro, ya
+ * vaciado. main.ts vacía la cola en cada frame y el bucle de render no debe crear objetos
+ * (AGENTS.md, Rendimiento). Se descartó devolver un arreglo vacío compartido cuando no hay
+ * eventos: los frames con eventos seguirían creando un arreglo nuevo.
+ */
 let queue: GameEvent[] = [];
+let spare: GameEvent[] = [];
 
 export function emit(event: GameEvent): void {
   if (queue.length >= MAX_QUEUE) queue.shift();
   queue.push(event);
 }
 
-/** Devuelve los eventos pendientes y vacía la cola. */
-export function drain(): GameEvent[] {
+/**
+ * Devuelve los eventos pendientes y vacía la cola. El arreglo devuelto se reutiliza: solo es
+ * válido hasta la siguiente llamada a drain(), así que quien quiera guardarlo debe copiarlo.
+ * Lo que se emita mientras se recorre va a la otra cola y llega en el siguiente drain().
+ */
+export function drain(): readonly GameEvent[] {
   const out = queue;
-  queue = [];
+  spare.length = 0;
+  queue = spare;
+  spare = out;
   return out;
 }

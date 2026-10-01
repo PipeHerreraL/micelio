@@ -32,7 +32,14 @@ export function createHint(store: Store, key: string, text: string): Hint {
   return {
     root,
     update(relevant) {
-      setHidden(root, !relevant || hasSeen(store.state, key));
+      const hide = !relevant || hasSeen(store.state, key);
+      // Ocultar el aviso con el foco en su botón lo deja caer en <body>, y el siguiente
+      // Espacio absorbería en vez de actuar sobre el panel (como en BUG-JOURNAL #5). El panel
+      // de la pestaña es enfocable, así que el foco se queda donde estaba el jugador.
+      if (hide && !root.hidden && root.contains(document.activeElement)) {
+        root.closest<HTMLElement>('[role="tabpanel"]')?.focus();
+      }
+      setHidden(root, hide);
     },
     destroy: () => {
       disposer.dispose();
