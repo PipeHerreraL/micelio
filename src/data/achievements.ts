@@ -1,0 +1,83 @@
+/**
+ * Logros (PROMPT.md §11): cada uno da +1 % de producción global (+2 % con Simbiosis
+ * antigua). Son permanentes. El texto vive en src/i18n con las claves `ach.<id>.name`;
+ * la descripción se arma con plantillas según la condición, salvo los secretos, que
+ * tienen la suya (`ach.<id>.desc`).
+ */
+import { GENERATORS, type GeneratorId } from './generators.ts';
+
+export type AchievementCondition =
+  | { kind: 'owned'; id: GeneratorId; count: number }
+  | { kind: 'lifetime'; amount: number }
+  | { kind: 'production'; amount: number }
+  | { kind: 'clicks'; count: number }
+  | { kind: 'drops'; count: number }
+  | { kind: 'sporulations'; count: number }
+  /** Segundos de juego abierto (en primer plano) sin hacer clic. */
+  | { kind: 'idle'; seconds: number }
+  /** Segundos fuera del juego entre dos sesiones (lo otorga el sistema offline). */
+  | { kind: 'away'; seconds: number };
+
+export interface AchievementDef {
+  id: string;
+  condition: AchievementCondition;
+  secret?: boolean;
+}
+
+export const OWNED_ACHIEVEMENT_COUNTS: readonly number[] = [1, 50, 100];
+export const LIFETIME_ACHIEVEMENTS: readonly number[] = [1e3, 1e6, 1e9, 1e12, 1e15];
+export const PRODUCTION_ACHIEVEMENTS: readonly number[] = [10, 1e3, 1e5, 1e7, 1e9];
+export const CLICK_ACHIEVEMENTS: readonly number[] = [100, 1000, 10000];
+export const DROP_ACHIEVEMENTS: readonly number[] = [1, 10, 50];
+export const SPORULATION_ACHIEVEMENTS: readonly number[] = [1, 5, 10];
+/** Paciencia de hongo: 10 minutos sin hacer clic con el juego abierto. */
+export const IDLE_ACHIEVEMENT_SECONDS = 600;
+/** Sin prisa: volver tras 8 horas. */
+export const AWAY_ACHIEVEMENT_SECONDS = 8 * 3600;
+
+function build(): AchievementDef[] {
+  const list: AchievementDef[] = [];
+  for (const gen of GENERATORS) {
+    for (const count of OWNED_ACHIEVEMENT_COUNTS) {
+      list.push({ id: `own.${gen.id}.${count}`, condition: { kind: 'owned', id: gen.id, count } });
+    }
+  }
+  LIFETIME_ACHIEVEMENTS.forEach((amount, i) => {
+    list.push({ id: `lifetime.${i + 1}`, condition: { kind: 'lifetime', amount } });
+  });
+  PRODUCTION_ACHIEVEMENTS.forEach((amount, i) => {
+    list.push({ id: `production.${i + 1}`, condition: { kind: 'production', amount } });
+  });
+  CLICK_ACHIEVEMENTS.forEach((count, i) => {
+    list.push({ id: `clicks.${i + 1}`, condition: { kind: 'clicks', count } });
+  });
+  DROP_ACHIEVEMENTS.forEach((count, i) => {
+    list.push({ id: `drops.${i + 1}`, condition: { kind: 'drops', count } });
+  });
+  SPORULATION_ACHIEVEMENTS.forEach((count, i) => {
+    list.push({ id: `sporulations.${i + 1}`, condition: { kind: 'sporulations', count } });
+  });
+  list.push({
+    id: 'secret.patience',
+    condition: { kind: 'idle', seconds: IDLE_ACHIEVEMENT_SECONDS },
+    secret: true,
+  });
+  list.push({
+    id: 'secret.noRush',
+    condition: { kind: 'away', seconds: AWAY_ACHIEVEMENT_SECONDS },
+    secret: true,
+  });
+  return list;
+}
+
+export const ACHIEVEMENTS: readonly AchievementDef[] = build();
+
+const BY_ID = new Map(ACHIEVEMENTS.map((a) => [a.id, a]));
+
+export function getAchievement(id: string): AchievementDef | undefined {
+  return BY_ID.get(id);
+}
+
+export function isAchievementId(value: unknown): value is string {
+  return typeof value === 'string' && BY_ID.has(value);
+}
