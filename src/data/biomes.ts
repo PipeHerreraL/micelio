@@ -60,9 +60,10 @@ export const BIOMES: readonly BiomeDef[] = [
   },
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
-    // 3,71 h. Espera entre gotas ×2: con ×1,5 el pasivo tardaba 2,64 veces lo que el activo.
+    // 3,71 h (prototipo). Espera entre gotas ×2: con ×1,5 el pasivo tardaba 2,64 veces lo que el
+    // activo. Escala: ver LEG_SCALE_GROWTH.
     id: 'taiga',
-    scale: 1e11,
+    scale: 7e10,
     production: { mycorrhiza: 5, motherTree: 5 },
     rainInterval: 2,
     rainEffects: null,
@@ -70,13 +71,13 @@ export const BIOMES: readonly BiomeDef[] = [
     dropFallsAlone: false,
   },
   {
-    // Escala el doble que la taiga: la bonificación de la taiga cae en generadores medios y la
+    // Escala mayor que la de la taiga: la bonificación de la taiga cae en generadores medios y la
     // del Chocó en la lluvia, que rinde más en cuanto hay producción. El Rocío normal casi no
     // pesa (depende de las reservas): con ×1, ×2,5 o ×6, las partidas quedaban en 31–35 min;
     // el mínimo de 300 s de producción es lo que lo hace notar. Sin la gota que cae sola, el
     // pasivo tardaba 5,88 veces lo que el activo.
     id: 'choco',
-    scale: 2e11,
+    scale: 1.2e11,
     production: {},
     rainInterval: 0.5,
     rainEffects: CHOCO_RAIN_EFFECTS,
@@ -86,10 +87,14 @@ export const BIOMES: readonly BiomeDef[] = [
 ];
 
 /**
- * R crece ×3 por tramo desde el primer destino. Con ×1 y sin linaje, el segundo bioma tardaba
- * 2,86–3,24 h; con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h.
+ * R crece ×4,5 del primer destino al segundo: taiga 7e10 y luego 3,15e11; Chocó 1,2e11 y luego
+ * 5,4e11. El prototipo usaba 1e11 y 2e11 con ×3; en el juego (con las obreras dentro de la
+ * producción y la lluvia del destino desde la llegada) el primer destino quedaba largo:
+ * partidas de 34 min de mediana y la taiga colonizada en 3,6 h. Con estos valores, 32–33 min
+ * y 3,2 h en el primero y 22–27 min y 2,2–2,9 h en el segundo (npm run sim, docs/BALANCE.md).
+ * Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h.
  */
-export const LEG_SCALE_GROWTH = 3;
+export const LEG_SCALE_GROWTH = 4.5;
 /** Nivel local de esporas que coloniza un bioma (ROADMAP). Con 300, el Chocó segundo bajaba de 2 h. */
 export const COLONIZE_LEVEL = 500;
 /**

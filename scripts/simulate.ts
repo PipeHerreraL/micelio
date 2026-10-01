@@ -11,11 +11,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import {
   adaptationsUnlocked,
   buyAdaptation,
+  buyBiomeAdaptation,
   buyGenerator,
   buyMutation,
   buyUpgrade,
   click,
   canSporulate,
+  disperse,
+  disperseBlock,
   nextAdaptationCost,
   sporeGain,
   sporulate,
@@ -29,14 +32,23 @@ import {
 } from '../src/core/economy.ts';
 import { drain } from '../src/core/events.ts';
 import * as num from '../src/core/num.ts';
-import { sporulateRequirement } from '../src/core/forest.ts';
+import {
+  biomeAdaptationGate,
+  destinations,
+  isActOneClosed,
+  isForestColonized,
+  nextBiomeAdaptationCost,
+  sporulateRequirement,
+} from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import { createState, hasMutation, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
+import { BIOME_ADAPTATION_IDS, DISPERSE_COST, type DestinationId } from '../src/data/biomes.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { catchDrop } from '../src/systems/rain.ts';
+import { parseSave, serializeSave } from '../src/systems/save.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
@@ -119,12 +131,15 @@ function shop(state: GameState, cps: number): void {
 /**
  * Con el árbol completo, gasta en adaptaciones: primero Cuerpo apical (el umbral de madurez),
  * luego la más barata de las demás que alcance. Fuego de zorro es cosmético y no se compra.
+ * `reserve` son esporas que no se tocan (las del próximo viaje); las campañas del natal pasan
+ * 0 y salen idénticas a las de la fase 7.
  */
-function buyAdaptations(state: GameState): void {
+function buyAdaptations(state: GameState, reserve = 0): void {
   if (!adaptationsUnlocked(state)) return;
   for (let guard = 0; guard < 200; guard += 1) {
+    const funds = state.spores.available - reserve;
     const apical = nextAdaptationCost(state, 'apicalBody');
-    if (apical !== null && state.spores.available >= apical) {
+    if (apical !== null && funds >= apical) {
       buyAdaptation(state, { id: 'apicalBody' });
       continue;
     }
@@ -135,8 +150,22 @@ function buyAdaptations(state: GameState): void {
       )
       .sort((a, b) => a.cost - b.cost);
     const cheapest = options[0];
-    if (!cheapest || state.spores.available < cheapest.cost) return;
+    if (!cheapest || funds < cheapest.cost) return;
     buyAdaptation(state, { id: cheapest.id });
+  }
+}
+
+/** Compra la adaptación de bioma más barata que esté abierta mientras alcance sin tocar la reserva. */
+function buyBiomeAdaptations(state: GameState, reserve: number): void {
+  for (let guard = 0; guard < 50; guard += 1) {
+    let best: { id: (typeof BIOME_ADAPTATION_IDS)[number]; cost: number } | null = null;
+    for (const id of BIOME_ADAPTATION_IDS) {
+      if (biomeAdaptationGate(state, id) !== null) continue;
+      const cost = nextBiomeAdaptationCost(state, id);
+      if (cost !== null && (best === null || cost < best.cost)) best = { id, cost };
+    }
+    if (!best || state.spores.available - reserve < best.cost) return;
+    buyBiomeAdaptation(state, { id: best.id });
   }
 }
 
@@ -194,6 +223,8 @@ interface RunOptions {
   maxSeconds: number;
   elapsedBefore: number;
   onMalheur?: (cumulative: number) => void;
+  /** Se llama en cada segundo con el Acto I cerrado (quien llama se queda con el primero). */
+  onActOne?: (cumulative: number) => void;
 }
 
 const START_TIME = Date.UTC(2026, 0, 1);
@@ -229,6 +260,7 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
       }
     }
     record.maxValue = Math.max(record.maxValue, num.toNumber(state.lifetimeEarned));
+    if (options.onActOne && isActOneClosed(state)) options.onActOne(options.elapsedBefore + t + 1);
 
     if (record.sporulateAvailableAt === null && num.gte(state.runEarned, sporulateRequirement(state))) {
       record.sporulateAvailableAt = t + 1;
@@ -312,6 +344,224 @@ function campaign(seed: number, sporulations: number, policy: SporulatePolicy = 
 }
 
 // ---------------------------------------------------------------------------------------
+// Viento de esporas (docs/ROADMAP.md, fase 8)
+
+/** Natal jugado hasta el Acto I, compartido por los dos órdenes del viaje. */
+interface NatalJourney {
+  state: GameState;
+  elapsed: number;
+  /** Tiempo acumulado del primer segundo con el Acto I cerrado. */
+  actOneAt: number | null;
+  /** Partidas jugadas tras el Acto I solo para juntar las 300 esporas del viaje. */
+  waitRuns: number;
+  maxValue: number;
+  earnedSpores: number;
+  invalidSaves: number;
+}
+
+interface BiomeLeg {
+  biome: DestinationId;
+  /** Duración de cada partida desde la llegada hasta la que coloniza, incluida. */
+  runs: number[];
+  /** Tiempo de juego entre dispersar y el final de la partida que coloniza (null si no llegó). */
+  colonizeTime: number | null;
+  /** Lo mismo con el perfil pasivo, desde la misma llegada. */
+  passiveTime: number | null;
+  levelAtColonize: number;
+  /** Tiempo acumulado al colonizar. */
+  cumulative: number;
+}
+
+interface WindResult {
+  legs: BiomeLeg[];
+  /** Partidas tras colonizar el último bioma (informativas: es el final de esta versión). */
+  after: number[];
+  unspent: number;
+  earnedSpores: number;
+  maxValue: number;
+  invalidSaves: number;
+}
+
+/**
+ * Tope de partidas por bioma con la regla de §17: si se alcanza, el bioma cuenta como no
+ * colonizado. La regla del mejor ritmo hace partidas de pocos minutos y lleva su propio tope.
+ */
+const BIOME_RUN_CAP = 30;
+const RATE_RUN_CAP = 200;
+/** Partidas que se juegan tras el último bioma (para el techo y la tabla informativa). */
+const AFTER_RUNS = 4;
+
+/** El guardado sigue siendo válido tras cada paso del viaje (ARCHITECTURE.md §4.26). */
+function saveIsValid(state: GameState, now: number): boolean {
+  return parseSave(serializeSave(state, now)).ok;
+}
+
+/** Reserva para el próximo viaje: solo con el bosque cerrado y un destino por delante. */
+function journeyReserve(state: GameState): number {
+  return isForestColonized(state) && destinations(state).length > 0 ? DISPERSE_COST : 0;
+}
+
+/** Compras entre partidas del viaje: mutaciones, adaptaciones de bioma y de la red. */
+function shopBetweenRuns(state: GameState): void {
+  buyMutationsInOrder(state);
+  const reserve = journeyReserve(state);
+  buyBiomeAdaptations(state, reserve);
+  buyAdaptations(state, reserve);
+}
+
+function natalToActOne(seed: number, policy: SporulatePolicy): NatalJourney {
+  const state = newGame(seed);
+  let elapsed = 0;
+  let actOneAt: number | null = null;
+  let maxValue = 0;
+  let earnedSpores = 0;
+  let invalidSaves = 0;
+  const play = (): RunRecord => {
+    const run = playRun(state, {
+      profile: PROFILES.active,
+      stopWhen: 'campaign',
+      policy,
+      maxSeconds: 12 * 3600,
+      elapsedBefore: elapsed,
+      onActOne: (at) => {
+        actOneAt ??= at;
+      },
+    });
+    elapsed += run.duration;
+    earnedSpores += run.sporesGained;
+    maxValue = Math.max(maxValue, run.maxValue);
+    if (!saveIsValid(state, START_TIME + elapsed * 1000)) invalidSaves += 1;
+    return run;
+  };
+  // Como la campaña de siempre hasta la partida en que se cierra el Acto I.
+  for (let i = 0; i < 60 && !isActOneClosed(state); i += 1) {
+    const run = play();
+    if (run.sporesGained === 0) break;
+    buyMutationsInOrder(state);
+    buyAdaptations(state, isActOneClosed(state) ? DISPERSE_COST : 0);
+  }
+  let waitRuns = 0;
+  while (disperseBlock(state) === 'spores' && waitRuns < 10) {
+    play();
+    waitRuns += 1;
+    buyMutationsInOrder(state);
+    buyAdaptations(state, DISPERSE_COST);
+  }
+  return { state, elapsed, actOneAt, waitRuns, maxValue, earnedSpores, invalidSaves };
+}
+
+/** Juega en el bioma actual hasta colonizarlo (o hasta el tope). Devuelve las duraciones. */
+function playBiome(
+  state: GameState,
+  profile: Profile,
+  policy: SporulatePolicy,
+  start: number,
+  onRun?: (run: RunRecord, elapsed: number) => void,
+): { runs: number[]; elapsed: number; colonized: boolean } {
+  const runs: number[] = [];
+  let elapsed = start;
+  const cap = policy === 'rate' ? RATE_RUN_CAP : BIOME_RUN_CAP;
+  for (let i = 0; i < cap && !isForestColonized(state); i += 1) {
+    const run = playRun(state, {
+      profile,
+      stopWhen: 'campaign',
+      policy,
+      maxSeconds: 12 * 3600,
+      elapsedBefore: elapsed,
+    });
+    runs.push(run.duration);
+    elapsed += run.duration;
+    onRun?.(run, elapsed);
+    if (run.sporesGained === 0) break;
+    shopBetweenRuns(state);
+  }
+  return { runs, elapsed, colonized: isForestColonized(state) };
+}
+
+function windCampaign(
+  natal: NatalJourney,
+  order: readonly DestinationId[],
+  policy: SporulatePolicy = 'doubling',
+  withPassive = true,
+): WindResult {
+  const state = structuredClone(natal.state);
+  let elapsed = natal.elapsed;
+  let maxValue = natal.maxValue;
+  let earnedSpores = natal.earnedSpores;
+  let invalidSaves = natal.invalidSaves;
+  const legs: BiomeLeg[] = [];
+  const track = (run: RunRecord, at: number): void => {
+    maxValue = Math.max(maxValue, run.maxValue);
+    earnedSpores += run.sporesGained;
+    if (!saveIsValid(state, START_TIME + at * 1000)) invalidSaves += 1;
+  };
+  for (const to of order) {
+    // El bot dispersa al empezar partida: no hay esporas de la partida que dar.
+    disperse(state, { to, now: START_TIME + elapsed * 1000 });
+    drain();
+    if (state.forest.biome !== to) break;
+    if (!saveIsValid(state, START_TIME + elapsed * 1000)) invalidSaves += 1;
+    buyBiomeAdaptations(state, 0);
+    const arrival = elapsed;
+    let passiveTime: number | null = null;
+    if (withPassive) {
+      // El pasivo compra igual que el activo entre partidas; solo cambia cómo juega.
+      const passive = structuredClone(state);
+      const p = playBiome(passive, PROFILES.passive, policy, arrival);
+      passiveTime = p.colonized ? p.elapsed - arrival : null;
+    }
+    const a = playBiome(state, PROFILES.active, policy, arrival, track);
+    elapsed = a.elapsed;
+    legs.push({
+      biome: to,
+      runs: a.runs,
+      colonizeTime: a.colonized ? elapsed - arrival : null,
+      passiveTime,
+      levelAtColonize: state.spores.level,
+      cumulative: elapsed,
+    });
+    if (!a.colonized) break;
+    // Si no alcanza para el viaje, partidas de espera (las cuenta la métrica del viaje).
+    for (
+      let wait = 0;
+      destinations(state).length > 0 && disperseBlock(state) === 'spores' && wait < 10;
+      wait += 1
+    ) {
+      const run = playRun(state, {
+        profile: PROFILES.active,
+        stopWhen: 'campaign',
+        policy,
+        maxSeconds: 12 * 3600,
+        elapsedBefore: elapsed,
+      });
+      elapsed += run.duration;
+      track(run, elapsed);
+      shopBetweenRuns(state);
+    }
+  }
+  const after: number[] = [];
+  for (
+    let i = 0;
+    i < AFTER_RUNS && legs.length === order.length && legs.every((l) => l.colonizeTime !== null);
+    i += 1
+  ) {
+    const run = playRun(state, {
+      profile: PROFILES.active,
+      stopWhen: 'campaign',
+      policy,
+      maxSeconds: 12 * 3600,
+      elapsedBefore: elapsed,
+    });
+    after.push(run.duration);
+    elapsed += run.duration;
+    track(run, elapsed);
+    if (run.sporesGained === 0) break;
+    shopBetweenRuns(state);
+  }
+  return { legs, after, unspent: state.spores.available, earnedSpores, maxValue, invalidSaves };
+}
+
+// ---------------------------------------------------------------------------------------
 // Estadística y formato
 
 const SEEDS = [11, 23, 37, 41, 53, 67, 79, 83, 97];
@@ -376,6 +626,19 @@ const campaigns = SEEDS.map((seed) => campaign(seed, 10));
 const LONG_RUNS = 20;
 const longDoubling = SEEDS.map((seed) => campaign(seed, LONG_RUNS, 'doubling'));
 const longRate = SEEDS.map((seed) => campaign(seed, LONG_RUNS, 'rate'));
+// Viento de esporas: el natal hasta el Acto I se juega una vez por semilla y lo comparten los
+// dos órdenes del viaje.
+const ORDERS: readonly (readonly DestinationId[])[] = [
+  ['taiga', 'choco'],
+  ['choco', 'taiga'],
+];
+const natals = SEEDS.map((seed) => natalToActOne(seed, 'doubling'));
+const winds = ORDERS.map((order) => natals.map((n) => windCampaign(n, order)));
+// Regla del mejor ritmo, informativa: natal y primer bioma (taiga), sin perfil pasivo.
+const rateJourneys = SEEDS.map((seed) => {
+  const natal = natalToActOne(seed, 'rate');
+  return { actOneAt: natal.actOneAt, wind: windCampaign(natal, ['taiga'], 'rate', false) };
+});
 
 const first = (id: GeneratorId) => active.map((r) => r.firstOwned[id] ?? null);
 const run1Available = active.map((r) => r.sporulateAvailableAt);
@@ -496,6 +759,97 @@ metrics.push({
   pass: (m) => m < 0.5,
 });
 
+// Objetivos de Viento de esporas (docs/ROADMAP.md, fase 8).
+const BIOME_NAMES: Record<DestinationId, string> = { taiga: 'taiga', choco: 'Chocó' };
+const orderName = (order: readonly DestinationId[]): string => order.map((b) => BIOME_NAMES[b]).join('→');
+metrics.push({
+  name: 'Viento: cierre del Acto I (tiempo acumulado)',
+  target: '2,5–3,5 h',
+  values: natals.map((n) => n.actOneAt),
+  format: hours,
+  pass: (m) => m >= 2.5 * 3600 && m <= 3.5 * 3600,
+});
+metrics.push({
+  name: 'Viento: partidas de espera entre el Acto I y el primer Dispersar',
+  target: '≤ 1',
+  values: natals.map((n) => n.waitRuns),
+  format: (v) => (v === null ? '—' : String(v)),
+  pass: (m) => m <= 1,
+});
+/** Mediana entre semillas de la partida i de un tramo (solo las semillas que la jugaron). */
+const legRunMedians = (results: readonly WindResult[], leg: number): number[] => {
+  const longest = Math.max(0, ...results.map((w) => w.legs[leg]?.runs.length ?? 0));
+  const out: number[] = [];
+  for (let i = 0; i < longest; i += 1) {
+    const values = results.map((w) => w.legs[leg]?.runs[i]).filter((v): v is number => v !== undefined);
+    // Una partida que solo jugaron una o dos semillas no dice nada de la mediana.
+    if (values.length * 2 >= results.length) out.push(median(values));
+  }
+  return out;
+};
+ORDERS.forEach((order, o) => {
+  const results = winds[o] ?? [];
+  order.forEach((biome, leg) => {
+    const label = `Viento ${orderName(order)}, ${BIOME_NAMES[biome]} (${leg === 0 ? 'primer' : 'segundo'} destino)`;
+    metrics.push({
+      name: `${label}: partidas hasta colonizar (todas)`,
+      target: '20–33 min',
+      values: results.flatMap((w) => w.legs[leg]?.runs ?? [null]),
+      format: clock,
+      pass: (m) => m >= 20 * 60 && m <= 33 * 60,
+    });
+    metrics.push({
+      name: `${label}: partida más corta (mediana por partida)`,
+      target: '≥ 10 min',
+      values: [Math.min(...legRunMedians(results, leg))],
+      format: clock,
+      pass: (m) => m >= 600,
+    });
+    metrics.push({
+      name: `${label}: tiempo para colonizar`,
+      target: '2–3,5 h',
+      values: results.map((w) => w.legs[leg]?.colonizeTime ?? null),
+      format: hours,
+      pass: (m) => m >= 2 * 3600 && m <= 3.5 * 3600,
+    });
+    metrics.push({
+      name: `${label}: pasivo hasta colonizar`,
+      target: '≤ 2,5 × el activo',
+      values: results.map((w) => {
+        const l = w.legs[leg];
+        return l?.passiveTime && l.colonizeTime ? l.passiveTime / l.colonizeTime : null;
+      }),
+      format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+      pass: (m) => m <= 2.5,
+    });
+  });
+});
+metrics.push({
+  name: 'Viento: esporas sin gastar al terminar, sobre las ganadas en toda la campaña',
+  target: '< 50 %',
+  values: winds.flat().map((w) => (w.earnedSpores > 0 ? w.unspent / w.earnedSpores : null)),
+  format: (v) => (v === null ? '—' : `${Math.round(v * 100)} %`),
+  pass: (m) => m < 0.5,
+});
+const windCeiling = Math.max(...winds.flat().map((w) => w.maxValue));
+metrics.push({
+  name: `Viento: techo numérico (campaña y ${AFTER_RUNS} partidas tras el último bioma)`,
+  target: '< 1e63',
+  values: [windCeiling],
+  format: (v) => (v === null ? '—' : fmt(v)),
+  pass: (m) => m < 1e63,
+});
+metrics.push({
+  name: 'Viento: guardados inválidos tras esporular, dispersar o colonizar',
+  target: '0',
+  values: [
+    natals.reduce((sum, n) => sum + n.invalidSaves, 0) +
+      winds.flat().reduce((sum, w) => sum + w.invalidSaves, 0),
+  ],
+  format: (v) => (v === null ? '—' : String(v)),
+  pass: (m) => m === 0,
+});
+
 const rows = metrics.map(row);
 const maxValue = Math.max(...campaigns.map((c) => c.maxValue));
 const ceilingOk = maxValue < 1e300;
@@ -512,6 +866,46 @@ for (let i = 0; i < 10; i += 1) {
     `| ${i + 1} | ${clock(median(runs.map((r) => r.duration)))} | ${Math.round(median(runs.map((r) => r.sporesGained)))} | ${Math.round(median(runs.map((r) => r.sporeLevelAtStart)))} | ${Math.round(median(runs.map((r) => r.mutationsAtStart)))} |`,
   );
 }
+
+const windTable = [
+  '| Orden | Bioma | Partidas hasta colonizar (mediana de cada una) | Todas (mediana) | Colonizar | Nivel al colonizar | Acumulado |',
+  '| ----- | ----- | ---------------------------------------------- | --------------- | --------- | ------------------ | --------- |',
+];
+const afterTable = [
+  '| Orden | Partidas tras el último bioma (mediana de cada una) |',
+  '| ----- | --------------------------------------------------- |',
+];
+ORDERS.forEach((order, o) => {
+  const results = winds[o] ?? [];
+  order.forEach((biome, leg) => {
+    const perRun = legRunMedians(results, leg).map(clock).join(', ');
+    const all = results.flatMap((w) => w.legs[leg]?.runs ?? []);
+    const colonize = results
+      .map((w) => w.legs[leg]?.colonizeTime)
+      .filter((v): v is number => typeof v === 'number');
+    const levels = results
+      .map((w) => w.legs[leg]?.levelAtColonize)
+      .filter((v): v is number => v !== undefined);
+    const cumulative = results
+      .map((w) => w.legs[leg]?.cumulative)
+      .filter((v): v is number => v !== undefined);
+    windTable.push(
+      `| ${orderName(order)} | ${BIOME_NAMES[biome]} | ${perRun} | ${clock(median(all))} | ${hours(median(colonize))} | ${Math.round(median(levels))} | ${hours(median(cumulative))} |`,
+    );
+  });
+  const after: string[] = [];
+  for (let i = 0; i < AFTER_RUNS; i += 1) {
+    const values = results.map((w) => w.after[i]).filter((v): v is number => v !== undefined);
+    if (values.length > 0) after.push(clock(median(values)));
+  }
+  afterTable.push(`| ${orderName(order)} | ${after.join(', ') || '—'} |`);
+});
+const rateTaiga = rateJourneys.map((r) => r.wind.legs[0]);
+const rateLine =
+  `Regla del mejor ritmo (informativa, sin objetivo): el Acto I se cierra a las ${hours(median(rateJourneys.map((r) => r.actOneAt ?? Number.NaN)))}` +
+  ` y la taiga se coloniza en ${hours(median(rateTaiga.map((l) => l?.colonizeTime ?? Number.NaN)))}` +
+  ` (${rateTaiga.filter((l) => l?.colonizeTime !== null && l !== undefined).length} de ${rateTaiga.length} semillas), con partidas de ${clock(median(rateTaiga.flatMap((l) => l?.runs ?? [])))} de mediana.` +
+  ' En un bioma esa regla esporula muy a menudo y coloniza más tarde que la de §17: no es la mejor estrategia para el viaje, por eso no guía su balance (ARCHITECTURE.md §4.28).';
 
 const generatorTable = [
   '| # | Generador | Coste base (N) | Producción base (N/s) | Desbloqueo |',
@@ -585,6 +979,18 @@ const block = [
   ...longTable,
   '',
   `Esporas sin gastar al final (mediana, sobre las ganadas): ${unspentShare(longDoubling)} con max(10, nivel) y ${unspentShare(longRate)} con el mejor ritmo. Techo de las campañas largas: ${fmt(longCeiling)} N.`,
+  '',
+  '### Viento de esporas (perfil activo, regla de §17)',
+  '',
+  `Natal hasta el Acto I y después los dos destinos, en los dos órdenes; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay destino por delante.`,
+  '',
+  ...windTable,
+  '',
+  `Tras colonizar el último bioma no quedan destinos en esta versión; las ${AFTER_RUNS} partidas siguientes son informativas:`,
+  '',
+  ...afterTable,
+  '',
+  rateLine,
   '',
   '### Generadores',
   '',
