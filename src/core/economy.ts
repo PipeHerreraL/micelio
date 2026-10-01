@@ -120,6 +120,58 @@ export function secondsUntil(state: GameState, cost: Num): number {
   return num.toNumber(num.div(missing, rate));
 }
 
+/** Una compra posible de la red, con su coste en nutrientes. */
+export type PurchaseCandidate =
+  { kind: 'generator'; id: GeneratorId; cost: number } | { kind: 'upgrade'; id: string; cost: number };
+
+/** Qué compras se consideran (p. ej. solo los generadores activados en la autocompra). */
+export type PurchaseFilter = (candidate: PurchaseCandidate) => boolean;
+
+/**
+ * La compra con menor suma de espera hasta poder pagarla y amortización (coste ÷ aumento de
+ * ingresos por segundo, con `cps` clics por segundo). Es la regla del bot del simulador
+ * (scripts/simulate.ts) y la de la Poda en la autocompra (fase 9): vive una sola vez.
+ */
+export function bestPurchase(
+  state: GameState,
+  cps: number,
+  filter?: PurchaseFilter,
+): PurchaseCandidate | null {
+  const d = derived(state);
+  const income = num.toNumber(d.production) + cps * num.toNumber(d.clickValue);
+  let best: PurchaseCandidate | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+  const consider = (candidate: PurchaseCandidate, gainProduction: number, gainClick: number): void => {
+    const gain = gainProduction + cps * gainClick;
+    if (!(gain > 0)) return;
+    const missing = Math.max(0, candidate.cost - num.toNumber(state.nutrients));
+    const wait = missing === 0 ? 0 : income > 0 ? missing / income : Number.POSITIVE_INFINITY;
+    const score = wait + candidate.cost / gain;
+    if (score < bestScore) {
+      bestScore = score;
+      best = candidate;
+    }
+  };
+  for (const def of GENERATORS) {
+    if (!isGeneratorUnlocked(state, def)) continue;
+    const candidate: PurchaseCandidate = {
+      kind: 'generator',
+      id: def.id,
+      cost: num.toNumber(quoteGenerator(state, def.id, 1).cost),
+    };
+    if (filter && !filter(candidate)) continue;
+    const gain = previewGenerator(state, def.id, 1);
+    consider(candidate, num.toNumber(gain.production), num.toNumber(gain.click));
+  }
+  for (const upgrade of availableUpgrades(state)) {
+    const candidate: PurchaseCandidate = { kind: 'upgrade', id: upgrade.id, cost: upgrade.cost };
+    if (filter && !filter(candidate)) continue;
+    const gain = previewUpgrade(state, upgrade.id);
+    consider(candidate, num.toNumber(gain.production), num.toNumber(gain.click));
+  }
+  return best;
+}
+
 export function hasAutobuyGenerators(state: GameState): boolean {
   return hasMutation(state, 'instinct');
 }

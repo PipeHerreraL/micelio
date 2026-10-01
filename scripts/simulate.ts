@@ -7,7 +7,6 @@
  *
  * Uso: npm run sim
  */
-import { readFileSync, writeFileSync } from 'node:fs';
 import {
   adaptationsUnlocked,
   buyAdaptation,
@@ -23,13 +22,7 @@ import {
   sporeGain,
   sporulate,
 } from '../src/core/actions.ts';
-import {
-  availableUpgrades,
-  isGeneratorUnlocked,
-  previewGenerator,
-  previewUpgrade,
-  quoteGenerator,
-} from '../src/core/economy.ts';
+import { bestPurchase } from '../src/core/economy.ts';
 import { drain } from '../src/core/events.ts';
 import * as num from '../src/core/num.ts';
 import {
@@ -40,7 +33,6 @@ import {
   nextBiomeAdaptationCost,
   sporulateRequirement,
 } from '../src/core/forest.ts';
-import { derived } from '../src/core/selectors.ts';
 import { createState, hasMutation, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
@@ -50,6 +42,7 @@ import { UPGRADES } from '../src/data/upgrades.ts';
 import { catchDrop } from '../src/systems/rain.ts';
 import { parseSave, serializeSave } from '../src/systems/save.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
+import { SEEDS, clock, hours, median, row, writeBlock, type Metric } from './sim-report.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
 setLocale('es');
@@ -74,54 +67,13 @@ const PROFILES: Record<ProfileName, Profile> = {
   passive: { name: 'passive', clicksPerSecond: (t) => (t < 60 ? 5 : 0), catchesDrops: false },
 };
 
-type Candidate =
-  { kind: 'generator'; id: GeneratorId; cost: number } | { kind: 'upgrade'; id: string; cost: number };
-
 /**
- * Elige la compra con menor suma de espera hasta poder pagarla y amortización
- * (coste ÷ aumento de ingresos por segundo, clic incluido).
+ * Compra mientras la mejor opción sea pagable ahora mismo. La elección (espera + amortización)
+ * es `bestPurchase` de src/core/economy.ts, la misma que usa la Poda en la autocompra.
  */
-function bestCandidate(state: GameState, cps: number): Candidate | null {
-  const d = derived(state);
-  const income = num.toNumber(d.production) + cps * num.toNumber(d.clickValue);
-  let best: Candidate | null = null;
-  let bestScore = Number.POSITIVE_INFINITY;
-  const consider = (candidate: Candidate, gainProduction: number, gainClick: number): void => {
-    const gain = gainProduction + cps * gainClick;
-    if (!(gain > 0)) return;
-    const missing = Math.max(0, candidate.cost - num.toNumber(state.nutrients));
-    const wait = missing === 0 ? 0 : income > 0 ? missing / income : Number.POSITIVE_INFINITY;
-    const score = wait + candidate.cost / gain;
-    if (score < bestScore) {
-      bestScore = score;
-      best = candidate;
-    }
-  };
-  for (const def of GENERATORS) {
-    if (!isGeneratorUnlocked(state, def)) continue;
-    const cost = num.toNumber(quoteGenerator(state, def.id, 1).cost);
-    const gain = previewGenerator(state, def.id, 1);
-    consider(
-      { kind: 'generator', id: def.id, cost },
-      num.toNumber(gain.production),
-      num.toNumber(gain.click),
-    );
-  }
-  for (const upgrade of availableUpgrades(state)) {
-    const gain = previewUpgrade(state, upgrade.id);
-    consider(
-      { kind: 'upgrade', id: upgrade.id, cost: upgrade.cost },
-      num.toNumber(gain.production),
-      num.toNumber(gain.click),
-    );
-  }
-  return best;
-}
-
-/** Compra mientras la mejor opción sea pagable ahora mismo. */
 function shop(state: GameState, cps: number): void {
   for (let guard = 0; guard < 500; guard += 1) {
-    const best = bestCandidate(state, cps);
+    const best = bestPurchase(state, cps);
     if (!best || num.lt(state.nutrients, best.cost)) return;
     if (best.kind === 'generator') buyGenerator(state, { id: best.id, amount: 1 });
     else buyUpgrade(state, { id: best.id });
@@ -576,60 +528,6 @@ function windCampaign(
 }
 
 // ---------------------------------------------------------------------------------------
-// Estadística y formato
-
-const SEEDS = [11, 23, 37, 41, 53, 67, 79, 83, 97];
-
-function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  if (sorted.length === 0) return Number.NaN;
-  return sorted.length % 2 === 1
-    ? (sorted[mid] ?? Number.NaN)
-    : ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
-}
-
-function clock(seconds: number | null): string {
-  if (seconds === null || !Number.isFinite(seconds)) return '—';
-  const s = Math.round(seconds);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const r = s % 60;
-  return h > 0
-    ? `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
-    : `${m}:${String(r).padStart(2, '0')}`;
-}
-
-function hours(seconds: number | null): string {
-  if (seconds === null || !Number.isFinite(seconds)) return '—';
-  return `${(seconds / 3600).toFixed(2)} h`;
-}
-
-interface Metric {
-  name: string;
-  target: string;
-  values: (number | null)[];
-  format: (v: number | null) => string;
-  pass: (median: number) => boolean;
-}
-
-function present(values: (number | null)[]): number[] {
-  return values.filter((v): v is number => v !== null && Number.isFinite(v));
-}
-
-function row(metric: Metric): { line: string; ok: boolean } {
-  const values = present(metric.values);
-  const m = median(values);
-  const ok = values.length === metric.values.length && metric.pass(m);
-  const range =
-    values.length > 0 ? `${metric.format(Math.min(...values))}–${metric.format(Math.max(...values))}` : '—';
-  return {
-    line: `| ${metric.name} | ${metric.target} | ${metric.format(m)} | ${range} | ${ok ? 'cumple' : '**no cumple**'} |`,
-    ok,
-  };
-}
-
-// ---------------------------------------------------------------------------------------
 // Corridas
 
 const started = performance.now();
@@ -1015,20 +913,7 @@ const block = [
   '<!-- sim:end -->',
 ].join('\n');
 
-const path = new URL('../docs/BALANCE.md', import.meta.url);
-let doc: string;
-try {
-  doc = readFileSync(path, 'utf8');
-} catch {
-  doc = '# Balance\n\n<!-- sim:start -->\n<!-- sim:end -->\n';
-}
-const startMark = doc.indexOf('<!-- sim:start -->');
-const endMark = doc.indexOf('<!-- sim:end -->');
-const next =
-  startMark >= 0 && endMark > startMark
-    ? doc.slice(0, startMark) + block + doc.slice(endMark + '<!-- sim:end -->'.length)
-    : `${doc.trimEnd()}\n\n${block}\n`;
-writeFileSync(path, next);
+writeBlock(new URL('../docs/BALANCE.md', import.meta.url), '<!-- sim:start -->', '<!-- sim:end -->', block);
 
 console.log(rows.map((r) => r.line).join('\n'));
 console.log(
