@@ -306,6 +306,26 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   reglas: la de PROMPT.md §17 y la del mejor ritmo de esporas por minuto, que es la que haría un
   jugador que optimiza y la que debe guiar el balance de la fase 7.
 
+### 4.27 Madurez de la red y Adaptaciones (fase 7)
+
+- **Fórmula.** El factor del nivel de esporas S es `1 + 0,01·S` hasta el umbral S0 y
+  `1 + 0,01·S0·(S/S0)^β` por encima, continuo en S0 (`sporeFactor`, `src/core/formulas.ts`).
+  S0 = 1000·1,1^r, con r el rango de Cuerpo apical; β = 0,5.
+- **S0 = 1000 y no 200** (lo que midió el prototipo): decisión del usuario para no recortar
+  las partidas avanzadas de la 1.x. Además, la migración 3 → 4 guarda en `sporeFloor` el nivel
+  de quien ya pasaba del umbral, y el umbral efectivo es el mayor de los dos: **ninguna
+  partida existente pierde bono al actualizar**; solo los niveles nuevos rinden menos.
+- **Cuerpo apical más débil que en el prototipo** (300·2^r esporas y umbral ×1,1 por rango, no
+  100·2^r y ×1,2). Con los valores del prototipo, el bot llegaba a la partida 9 con miles de
+  esporas sobrantes, compraba 6 o 7 rangos de golpe y el umbral dejaba de morder: las
+  partidas 9 a 13 seguían en 6–9 min. Medido con la campaña larga (`docs/BALANCE.md`).
+- **Adaptaciones horizontales:** Esclerocio (arrancar con 10^(3+r) N), Redistribución
+  hidráulica (gota +2 s por rango), Letargo profundo (offline +6 h por rango) y Fuego de zorro
+  (solo cosmético). Aparecen con el árbol completo, en la pestaña Mutaciones.
+- **Lo que no arregla, a propósito:** con la regla de §17 (esporular al duplicar el nivel),
+  desde la partida 16 cada partida se alarga mucho. Ese muro es la señal para Dispersar, que
+  llega en la fase 8 y devuelve el nivel a 0 en cada bioma.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |

@@ -38,7 +38,7 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 | Fase | Versión | Contenido                                                   | Tamaño |
 | ---- | ------- | ----------------------------------------------------------- | ------ |
 | 6    | 1.1.0   | Cimientos (hecha)                                           | S      |
-| 7    | 1.2.0   | Madurez de la red y Adaptaciones                            | M      |
+| 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                    | M      |
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica | L      |
 | 9    | 1.4.0   | El Plasmodio y la estructura de socios                      | L      |
 | 10   | 1.5.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre      | M      |
@@ -69,6 +69,11 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 - La interfaz muestra el bono efectivo (hoy `tab-sporulate.ts` calcula `nivel × 1 %` a mano).
 - Objetivo: con S0 = 1000, ningún jugador avanzado ve un recorte brusco, y las partidas
   largas dejan de caer por debajo de 10 min.
+- **Resultado (v1.2.0):** ninguna partida existente pierde bono (la migración guarda su nivel
+  como suelo lineal). Con la regla de §17, la partida más corta de la 1 a la 16 dura 6:25
+  (antes 2:46) y sobra el 44 % de las esporas (antes casi todas). Con la del mejor ritmo nada
+  cambia: ese jugador esporula pronto, su nivel apenas pasa de 100 y sus partidas ya rondaban
+  los 10 min. Desde la partida 16 de la regla de §17 hay un muro; lo resuelve Dispersar.
 
 ### Fase 8 — Viento de esporas I (L)
 

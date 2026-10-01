@@ -1,6 +1,6 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 1.1.0._
+_Actualizado: 2026-10-01. Versión 1.2.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -33,13 +33,14 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 ## Lo último que se hizo
 
-- **Fase 6 de la hoja de ruta (cimientos, v1.1.0):** techo numérico y guardado que nunca
-  pisa el último bueno con un valor imposible; reinicios declarativos (`src/core/resets.ts`);
-  historial de las últimas 50 partidas, visible en Estadísticas (guardado versión 3); campaña
-  larga de 20 esporulaciones en el simulador, con la regla de §17 y la del mejor ritmo.
-- **Línea base para la fase 7** (`docs/BALANCE.md`): con la regla de §17 las partidas 12 a 17
-  duran unos 3–4 min; con la del mejor ritmo, las 14 a 19 rondan los 9–10 min.
-- Antes: v1.0.0 con 57 pruebas de navegador (Playwright) y la definición de terminado cumplida.
+- **Fase 7 de la hoja de ruta (Madurez de la red, v1.2.0):** por encima del nivel 1000 cada
+  nivel de esporas aporta menos; las partidas de la 1.x que ya pasaban ese nivel conservan su
+  bono (guardado versión 4). Cinco Adaptaciones repetibles debajo del árbol de mutaciones.
+  Esporular muestra el bono efectivo y explica la madurez con texto.
+- Con la regla de §17 ninguna partida de la 1 a la 16 baja de 6:25 (antes 2:46); el simulador
+  cumple 21 de 21 objetivos. 395 pruebas unitarias y 67 de navegador.
+- **Fase 6 (v1.1.0):** techo numérico, reinicios declarativos, historial de partidas y campaña
+  larga en el simulador.
 
 ## Definición de terminado (PROMPT.md §22)
 
@@ -57,9 +58,10 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 7 — Madurez de la red (v1.2.0):** rendimiento decreciente del nivel de esporas desde
-   el nivel 1000 y Adaptaciones. Medir con las dos reglas de la campaña larga.
-2. **Fase 8 — Viento de esporas I (v1.3.0):** fin del Acto I, Dispersar, taiga, Chocó, Crónica.
+1. **Fase 8 — Viento de esporas I (v1.3.0):** fin del Acto I, Dispersar (el nivel vuelve a 0
+   en cada bioma), taiga, selva del Chocó y Crónica. Convierte el muro de la partida 16 en el
+   siguiente capítulo.
+2. **Fase 9 — El Plasmodio (v1.4.0):** el primer modo no fúngico.
 
 ## Deuda conocida
 
