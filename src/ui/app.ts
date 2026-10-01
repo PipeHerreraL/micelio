@@ -6,6 +6,8 @@
 import { availableUpgrades } from '../core/economy.ts';
 import type { GameState } from '../core/state.ts';
 import { GENERATORS } from '../data/generators.ts';
+import { SPORULATE_REQUIREMENT, SPORULATE_TAB_REVEAL } from '../data/prestige.ts';
+import * as num from '../core/num.ts';
 import { t } from '../i18n/index.ts';
 import { h } from './dom.ts';
 import { createHud, type Hud } from './hud.ts';
@@ -15,6 +17,8 @@ import { createRainDrop } from './rain-drop.ts';
 import type { Store } from './store.ts';
 import { createAchievementsTab } from './tab-achievements.ts';
 import { createGeneratorsTab, revealState } from './tab-generators.ts';
+import { createMutationsTab } from './tab-mutations.ts';
+import { createSporulateTab } from './tab-sporulate.ts';
 import { createStatsTab } from './tab-stats.ts';
 import { createUpgradesTab } from './tab-upgrades.ts';
 import { createTabs, type TabId, type TabView, type Tabs } from './tabs.ts';
@@ -55,9 +59,12 @@ export function isTabAvailable(id: TabId, state: GameState): boolean {
     case 'achievements':
       return state.achievements.length > 0;
     case 'sporulate':
+      return (
+        state.stats.sporulations > 0 ||
+        num.gte(state.runEarned, num.mul(SPORULATE_REQUIREMENT, SPORULATE_TAB_REVEAL))
+      );
     case 'mutations':
-      // Llegan con la fase 3 (prestigio).
-      return false;
+      return state.stats.sporulations > 0;
   }
 }
 
@@ -66,6 +73,8 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   const views: TabView[] = [
     createGeneratorsTab(store),
     createUpgradesTab(store),
+    createSporulateTab(store),
+    createMutationsTab(store),
     createAchievementsTab(store),
     createStatsTab(store),
     ...(options.extraViews?.(store) ?? []),

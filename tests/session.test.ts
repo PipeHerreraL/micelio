@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyGenerator, click } from '../src/core/actions.ts';
+import { buyGenerator, buyMutation, click, sporulate } from '../src/core/actions.ts';
 import { quoteGenerator } from '../src/core/economy.ts';
 import { drain } from '../src/core/events.ts';
 import * as num from '../src/core/num.ts';
@@ -60,5 +60,31 @@ describe('sesión de juego', () => {
     const loaded = loadGame(storage);
     expect(loaded.kind).toBe('loaded');
     if (loaded.kind === 'loaded') expect(loaded.save.state).toEqual(state);
+  });
+
+  it('se esporula, se compran mutaciones y todo sobrevive a una recarga', () => {
+    const start = Date.UTC(2026, 9, 1);
+    const state = createState(9, start);
+    const storage = memoryStorage();
+    // 1e8 N ganados en la partida y en la vida: E(1e8) = ⌊15 · √1⌋ = 15 esporas.
+    state.runEarned = 1e8;
+    state.lifetimeEarned = 1e8;
+    sporulate(state, { now: start + 60_000 });
+    expect(state.spores).toEqual({ level: 15, available: 15 });
+    // Memoria del suelo (1) + Quitina ligera (3) = 4 esporas; quedan 11.
+    buyMutation(state, { id: 'soilMemory' });
+    buyMutation(state, { id: 'lightChitin' });
+    expect(state.spores).toEqual({ level: 15, available: 11 });
+    expect(state.mutations).toEqual(['soilMemory', 'lightChitin']);
+
+    expect(saveGame(storage, state, start + 120_000)).toBe(true);
+    const loaded = loadGame(storage);
+    expect(loaded.kind).toBe('loaded');
+    if (loaded.kind !== 'loaded') return;
+    expect(loaded.save.state.spores).toEqual({ level: 15, available: 11 });
+    expect(loaded.save.state.mutations).toEqual(['soilMemory', 'lightChitin']);
+    expect(loaded.save.state.stats.sporulations).toBe(1);
+    // Tras recargar, la Quitina ligera sigue dando su descuento d = 0.10.
+    expect(derived(loaded.save.state).costDiscount).toBeCloseTo(0.1, 10);
   });
 });
