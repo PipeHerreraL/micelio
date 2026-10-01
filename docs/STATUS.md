@@ -1,6 +1,6 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 1.2.0._
+_Actualizado: 2026-10-01. Versión 1.2.1._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -29,10 +29,13 @@ bloque de trabajo, no en cada commit.
 Un único objeto plano y serializable; la definición al día está en `src/core/state.ts`. Los
 valores derivados (N/s, valor del clic, multiplicadores) no viven en el estado: se calculan en
 `src/core/selectors.ts` con caché por estado e invalidación explícita (ARCHITECTURE.md §4.6).
-El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 2.
+El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 4.
 
 ## Lo último que se hizo
 
+- **v1.2.1:** en el móvil y en la tableta, deslizar sobre la lista de generadores, las mejoras
+  o cualquier otra pestaña ya desplaza la página (BUG-JOURNAL #14). Solo en escritorio el
+  panel de pestañas se desplaza por su cuenta.
 - **Fase 7 de la hoja de ruta (Madurez de la red, v1.2.0):** por encima del nivel 1000 cada
   nivel de esporas aporta menos; las partidas de la 1.x que ya pasaban ese nivel conservan su
   bono (guardado versión 4). Cinco Adaptaciones repetibles debajo del árbol de mutaciones.

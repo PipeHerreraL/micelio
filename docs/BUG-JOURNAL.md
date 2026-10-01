@@ -31,6 +31,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [11](#11) | `src/main.ts`                  | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
 | [12](#12) | `src/ui/styles.css`            | En escritorio la página se desplaza hacia una franja vacía                                 |
 | [13](#13) | `src/main.ts`, `src/ui/app.ts` | Tras borrar la partida no se puede importar un respaldo sin absorber antes                 |
+| [14](#14) | `src/ui/styles.css`            | En el móvil, deslizar sobre los generadores o las mejoras no desplaza la página            |
 
 ---
 
@@ -285,6 +286,35 @@ la interfaz de partida nueva solo se usa si Ajustes aún no se había visto.
 **Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «tras borrar la partida, Ajustes sigue a
 mano para importar un respaldo» y `tests/e2e/smoke.spec.ts` → «exportar e importar devuelve la
 misma partida». Falla sin el arreglo (comprobado).
+
+---
+
+<a id="14"></a>
+
+## 14. En el móvil, deslizar sobre los generadores o las mejoras no desplaza la página
+
+**Zona:** `src/ui/styles.css` (`.tabs__panels`)
+
+**Síntoma.** Lo reportó el usuario en su teléfono: deslizar hacia arriba o hacia abajo solo
+movía la página si el dedo empezaba fuera de las pestañas (el escenario, el contador). Sobre
+la lista de generadores, las mejoras, el árbol o Ajustes no se movía nada, tocara o no un
+botón de compra. En tableta pasaba lo mismo.
+
+**Causa.** `.tabs__panels` tenía `overflow-y: auto` y `overscroll-behavior: contain` en todos
+los tamaños. En escritorio el panel tiene altura fija y se desplaza solo; en tableta y móvil la
+fila de la rejilla es `auto`, el panel mide lo que su contenido y no tiene nada que desplazar.
+Aun así el navegador lo trataba como contenedor de desplazamiento, y `contain` impedía que el
+gesto pasara a la página: el deslizamiento se perdía.
+
+**Arreglo.** `overflow-y` y `overscroll-behavior` del panel solo se aplican desde 1024 px. En
+tableta y móvil se desplaza la página entera.
+
+**Qué lo sostiene.** `tests/e2e/touch-scroll.spec.ts` → «en móvil, deslizar sobre el contenido
+de cualquier pestaña desplaza la página» y la misma prueba a 820 px («en tableta, …»). Desliza
+el dedo con eventos táctiles reales (protocolo de Chromium, perfil Pixel 7) sobre Generadores,
+Mejoras, Mutaciones y Ajustes. Falla sin el arreglo (comprobado: la página se queda en 0 px).
+WebKit no expone ese protocolo, así que en iPhone el arreglo se apoya en la misma regla de CSS
+pero no tiene prueba propia.
 
 ---
 

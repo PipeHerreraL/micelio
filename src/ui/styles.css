@@ -837,8 +837,19 @@ button {
   container: panels / inline-size;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+}
+
+/*
+ * Solo en escritorio el panel tiene altura fija y su propio desplazamiento; ahí sí conviene
+ * que no arrastre la página. En tableta y móvil se desplaza la página entera: un panel con
+ * overflow y overscroll-behavior: contain se tragaba el gesto aunque no tuviera nada que
+ * desplazar, y deslizar sobre los generadores no movía nada (BUG-JOURNAL #14).
+ */
+@media (min-width: 1024px) {
+  .tabs__panels {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 
 .tabs__panel {
