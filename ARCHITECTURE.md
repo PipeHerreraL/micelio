@@ -197,6 +197,49 @@ Chrome, Firefox y Safari ≥ 15.4.
 ambos idiomas. Una prueba (`tests/i18n.test.ts`) verifica que cada carácter de los
 catálogos cae dentro del `unicode-range` de las fuentes importadas.
 
+### 4.15 Qué aparece y cuándo
+
+- Al empezar solo se ven el núcleo, el contador y la indicación (PROMPT.md §12).
+- Generadores, Estadísticas y Ajustes aparecen juntos con el primer generador en silueta
+  (5 N, a los cinco clics). Ajustes no necesita aparecer antes: el sonido está mudo hasta la
+  primera interacción y `prefers-reduced-motion` se respeta sin tocar nada.
+- Mejoras, Logros, Esporular y Mutaciones siguen la regla de la especificación.
+- Las pestañas y los generadores revelados quedan en `seen` y no vuelven a ocultarse (§4.11).
+
+### 4.16 Botón que no alcanza: `aria-disabled`, no `disabled`
+
+Un botón de compra sin fondos sigue siendo enfocable y legible: dice «en 1 min 20 s» con
+texto (nada depende solo del color) y su tooltip sigue disponible con el teclado. Un
+`disabled` real lo sacaría del orden de tabulación y el lector de pantalla no llegaría a
+saber cuánto falta.
+
+### 4.17 Autocompra del más caro al más barato
+
+El umbral (10 %, 50 % o 100 % de los nutrientes) se evalúa con los nutrientes de cada
+momento. Si se recorriera de la Hifa hacia arriba, las unidades baratas gastarían primero y
+el generador caro casi nunca entraría en el umbral.
+
+### 4.18 Guardado con la pestaña oculta
+
+Con la pestaña oculta el estado no avanza (no hay frames). Si el guardado periódico se
+fechara con la hora real, al cerrar la pestaña después se perdería el tiempo que estuvo
+oculta. Por eso: al ocultarse se guarda y se anota la hora; mientras siga oculta no hay
+guardado periódico, y cualquier guardado (por ejemplo, `pagehide`) usa esa hora.
+
+### 4.19 Máximo comprable en el borde exacto
+
+`maxAffordable` se verifica contra la forma cerrada `C(n, k)`, que es lo que se cobra al
+comprar un lote (PROMPT.md §7). En coma flotante esa forma puede quedar un ulp por encima
+de la suma unidad a unidad (34.72500000000001 frente a 34.725 para tres Hifas), así que justo
+en el borde «Máx» puede comprar una unidad menos que tres compras sueltas. Se decidió no
+añadir tolerancia: «Máx» nunca debe ofrecer un lote que luego `spend` rechace, y en juego
+los nutrientes crecen 20 veces por segundo, así que el borde exacto dura un instante.
+
+### 4.20 Agrupación de cifras según el idioma
+
+`Intl.NumberFormat` con la agrupación por defecto de cada idioma: en español «1234» va sin
+separador y «12.345» con él (norma de la RAE para cuatro cifras); en inglés, «1,234».
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                            |
@@ -232,14 +275,14 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 
 ## 7. Presupuestos
 
-| Operación                       | Presupuesto         | Medido | Cómo                          |
-| ------------------------------- | ------------------- | ------ | ----------------------------- |
-| JavaScript del build            | < 150 kB comprimido | —      | `npm run build` + gzip        |
-| Frame                           | 60 fps estables     | —      | Herramientas del navegador    |
-| Partículas vivas                | ≤ 200 (pool)        | —      | Tope en `render/particles.ts` |
-| Segmentos de la red             | ≤ 2000              | —      | Tope en `render/network.ts`   |
-| Refresco de números en pantalla | ≤ 10 Hz             | —      | Limitador en `main.ts`        |
-| Balance en 10 esporulaciones    | < 1e300             | —      | `npm run sim`                 |
+| Operación                       | Presupuesto         | Medido           | Cómo                                    |
+| ------------------------------- | ------------------- | ---------------- | --------------------------------------- |
+| JavaScript del build            | < 150 kB comprimido | 32.4 kB (fase 1) | `npm run build` (gzip que informa Vite) |
+| Frame                           | 60 fps estables     | —                | Herramientas del navegador              |
+| Partículas vivas                | ≤ 200 (pool)        | —                | Tope en `render/particles.ts`           |
+| Segmentos de la red             | ≤ 2000              | —                | Tope en `render/network.ts`             |
+| Refresco de números en pantalla | ≤ 10 Hz             | —                | Limitador en `main.ts`                  |
+| Balance en 10 esporulaciones    | < 1e300             | 2.4e13           | `npm run sim`                           |
 
 ## 8. Escala
 
