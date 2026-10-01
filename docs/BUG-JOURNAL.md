@@ -16,20 +16,21 @@ Ninguna entrada se borra, aunque el código se haya movido.
 
 ## Índice
 
-| #         | Zona                          | Bug                                                                                        |
-| --------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
-| [1](#1)   | `src/i18n/format.ts`          | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                          |
-| [2](#2)   | `src/core/actions.ts`         | Al esporular con una gota en pantalla cae otra gota al instante                            |
-| [3](#3)   | `src/systems/offline.ts`      | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano           |
-| [4](#4)   | `src/main.ts`                 | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira               |
-| [5](#5)   | `src/ui/tab-upgrades.ts`      | Comprar una mejora con el teclado deja el foco perdido en la página                        |
-| [6](#6)   | `src/main.ts`, `styles.css`   | El número flotante del clic no aparece en escritorio                                       |
-| [7](#7)   | `src/ui/rain-drop.ts`         | En el móvil, tocar la gota absorbe en vez de atraparla                                     |
-| [8](#8)   | `src/ui/hint.ts`              | Cerrar un aviso de primera vez con el teclado deja el foco perdido                         |
-| [9](#9)   | `src/ui/live.ts`, `toasts.ts` | Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…» |
-| [10](#10) | `src/main.ts`                 | Cambiar de idioma borra el aviso de que la partida no se está guardando                    |
-| [11](#11) | `src/main.ts`                 | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
-| [12](#12) | `src/ui/styles.css`           | En escritorio la página se desplaza hacia una franja vacía                                 |
+| #         | Zona                           | Bug                                                                                        |
+| --------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
+| [1](#1)   | `src/i18n/format.ts`           | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                          |
+| [2](#2)   | `src/core/actions.ts`          | Al esporular con una gota en pantalla cae otra gota al instante                            |
+| [3](#3)   | `src/systems/offline.ts`       | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano           |
+| [4](#4)   | `src/main.ts`                  | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira               |
+| [5](#5)   | `src/ui/tab-upgrades.ts`       | Comprar una mejora con el teclado deja el foco perdido en la página                        |
+| [6](#6)   | `src/main.ts`, `styles.css`    | El número flotante del clic no aparece en escritorio                                       |
+| [7](#7)   | `src/ui/rain-drop.ts`          | En el móvil, tocar la gota absorbe en vez de atraparla                                     |
+| [8](#8)   | `src/ui/hint.ts`               | Cerrar un aviso de primera vez con el teclado deja el foco perdido                         |
+| [9](#9)   | `src/ui/live.ts`, `toasts.ts`  | Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…» |
+| [10](#10) | `src/main.ts`                  | Cambiar de idioma borra el aviso de que la partida no se está guardando                    |
+| [11](#11) | `src/main.ts`                  | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
+| [12](#12) | `src/ui/styles.css`            | En escritorio la página se desplaza hacia una franja vacía                                 |
+| [13](#13) | `src/main.ts`, `src/ui/app.ts` | Tras borrar la partida no se puede importar un respaldo sin absorber antes                 |
 
 ---
 
@@ -110,7 +111,7 @@ aplicar; el guardado de `pagehide` se fechaba con la hora real.
 
 **Arreglo.** `hiddenAt` arranca en la hora de arranque si `document.hidden` es cierto.
 
-**Qué lo sostiene.** Nada automático: el arranque toca el DOM. Ver la tabla de abajo.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «una pestaña que arranca oculta recibe el tiempo que estuvo oculta al mostrarse» (Playwright, con reloj falso y la página oculta al nacer). Falla sin el arreglo (comprobado).
 
 ---
 
@@ -149,7 +150,7 @@ escritorio el núcleo está en la columna izquierda, fuera de él.
 **Arreglo.** La capa es fija sobre toda la página y los números se colocan en coordenadas de
 viewport sobre el núcleo.
 
-**Qué lo sostiene.** Nada automático. Ver la tabla de abajo.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «el número flotante del clic se ve sobre el núcleo, sin recortarse». Falla sin el arreglo (comprobado).
 
 ---
 
@@ -168,7 +169,7 @@ apilamiento propio, así que la gota siempre quedaba debajo de esas capas.
 **Arreglo.** La interfaz comprueba si la gota cae bajo algo que tapa el escenario y la mueve a
 un hueco libre. El estado no cambia.
 
-**Qué lo sostiene.** Nada automático. Ver la tabla de abajo.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «en el móvil la gota que cae en el centro no queda debajo del núcleo y se puede atrapar» (Pixel 7 e iPhone 14 emulados). Falla sin el arreglo (comprobado).
 
 ---
 
@@ -204,7 +205,7 @@ estaba abierto: la región aria-live era inerte y los avisos caducaban detrás d
 **Arreglo.** Con un modal abierto, los anuncios y los avisos pasajeros esperan y salen al
 cerrarlo (`onModalClosed`).
 
-**Qué lo sostiene.** Nada en el repositorio (se probó con pruebas temporales). Ver la tabla.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «los logros ganados offline se anuncian al cerrar el informe «Mientras no estabas…»». Falla sin el arreglo (comprobado).
 
 ---
 
@@ -224,7 +225,7 @@ reconstruye.
 **Arreglo.** Se crean una vez en `main.ts`, fuera de lo que se reconstruye, y los avisos fijos
 se vuelven a mostrar en el idioma nuevo.
 
-**Qué lo sostiene.** Nada automático. Ver la tabla.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «el aviso de otra pestaña sobrevive a cambiar de idioma» (dos páginas del mismo contexto). Falla si se vacía el contenedor al reconstruir (comprobado).
 
 ---
 
@@ -242,7 +243,7 @@ borrar mostraban el aviso de éxito pero no escribían nada.
 **Arreglo.** `blockedBy` recuerda si el bloqueo es por guardado dañado o por otra pestaña;
 importar y borrar levantan solo el primero, y el aviso de éxito sale solo si se guardó.
 
-**Qué lo sostiene.** Nada automático. Ver la tabla.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «borrar la partida tras un guardado dañado sin copia sí guarda la partida nueva». Falla sin el arreglo (comprobado).
 
 ---
 
@@ -261,7 +262,29 @@ contenedor con desplazamiento del panel, alargando la página.
 **Arreglo.** `.tabs__panels` es `position: relative` y `.visually-hidden` no tiene márgenes ni
 bordes que sumen.
 
-**Qué lo sostiene.** Nada automático. Ver la tabla.
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «en escritorio la página no se desplaza más allá de la ventana». Falla sin el arreglo (comprobado).
+
+---
+
+<a id="13"></a>
+
+## 13. Tras borrar la partida no se puede importar un respaldo sin absorber antes
+
+**Zona:** `src/main.ts` (`wipeGame`), `src/ui/app.ts`
+
+**Síntoma.** Después de «Borrar partida» la interfaz volvía a la de partida nueva, sin pestañas.
+Quien borraba para importar un respaldo tenía que hacer cinco clics en el núcleo antes de
+poder volver a Ajustes. Lo encontró la primera prueba de Playwright, no una persona.
+
+**Causa.** Borrar crea un estado nuevo con `seen` vacío, y la interfaz de partida nueva
+esconde el panel hasta que aparece el primer generador.
+
+**Arreglo.** Borrar conserva la marca de Ajustes (`tab.settings`) y deja esa pestaña abierta;
+la interfaz de partida nueva solo se usa si Ajustes aún no se había visto.
+
+**Qué lo sostiene.** `tests/e2e/regressions.spec.ts` → «tras borrar la partida, Ajustes sigue a
+mano para importar un respaldo» y `tests/e2e/smoke.spec.ts` → «exportar e importar devuelve la
+misma partida». Falla sin el arreglo (comprobado).
 
 ---
 
@@ -269,12 +292,8 @@ bordes que sumen.
 
 Pueden volver. Se listan para que se vea.
 
-| #         | Qué falta                                                                                       |
-| --------- | ----------------------------------------------------------------------------------------------- |
-| [4](#4)   | Una prueba de navegador que arranque la página oculta y la muestre tras un hueco simulado       |
-| [6](#6)   | Una prueba visual que haga clic en el núcleo en escritorio y busque el número flotante          |
-| [7](#7)   | Una prueba de navegador a 390 px que fuerce gotas en el centro y haga clic sobre ellas          |
-| [9](#9)   | Una prueba de DOM que abra un modal, emita un logro y compruebe que el anuncio sale al cerrarlo |
-| [10](#10) | Una prueba de navegador que muestre el aviso de otra pestaña y cambie de idioma                 |
-| [11](#11) | Una prueba que separe el bloqueo de guardado de `main.ts` en un módulo probable                 |
-| [12](#12) | Una prueba visual que compare `scrollHeight` con la altura de la ventana en escritorio          |
+| #   | Qué falta |
+| --- | --------- |
+
+Ninguno a 2026-10-01: desde la llegada de Playwright (`tests/e2e/`), todos los bugs del diario
+tienen una prueba que falla sin su arreglo.

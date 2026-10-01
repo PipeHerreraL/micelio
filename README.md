@@ -34,13 +34,21 @@ npm install
 npm run dev
 ```
 
-| Comando         | Qué hace                                                              |
-| --------------- | --------------------------------------------------------------------- |
-| `npm run dev`   | Servidor de desarrollo con panel de desarrollo y acelerador de tiempo |
-| `npm test`      | Pruebas con Vitest                                                    |
-| `npm run lint`  | ESLint sin advertencias y Prettier en modo comprobación               |
-| `npm run build` | Comprobación de tipos y build estático en `dist/`                     |
-| `npm run sim`   | Simulador de balance; escribe `docs/BALANCE.md`                       |
+Para las pruebas de navegador hace falta instalar los motores una vez:
+
+```bash
+npx playwright install firefox webkit
+```
+
+| Comando            | Qué hace                                                                |
+| ------------------ | ----------------------------------------------------------------------- |
+| `npm run dev`      | Servidor de desarrollo con panel de desarrollo y acelerador de tiempo   |
+| `npm test`         | Pruebas con Vitest                                                      |
+| `npm run lint`     | ESLint sin advertencias y Prettier en modo comprobación                 |
+| `npm run build`    | Comprobación de tipos y build estático en `dist/`                       |
+| `npm run sim`      | Simulador de balance; escribe `docs/BALANCE.md`                         |
+| `npm run test:e2e` | Pruebas de navegador con Playwright (Chromium, Firefox, WebKit y móvil) |
+| `npm run perf`     | Mide fps con una partida avanzada                                       |
 
 En desarrollo, `?pseudo` en la URL activa un pseudoidioma (textos un 40 % más largos) para
 detectar cortes, y `?loop` mueve el bucle aunque la pestaña esté oculta.

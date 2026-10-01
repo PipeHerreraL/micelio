@@ -275,6 +275,21 @@ se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millo
 - Los guardados de la versión 1 tenían «suffix» por defecto: la migración 1 → 2 los pasa a
   nombres y respeta científica e ingeniería.
 
+### 4.25 Pruebas de navegador con Playwright
+
+**Elegido:** `@playwright/test` con cinco perfiles: Chromium, Firefox y WebKit (el motor de
+Safari) en escritorio, y Pixel 7 e iPhone 14 emulados. Corren contra el build de producción
+(`vite preview`), siembran partidas en `localStorage` antes de cargar y usan el reloj falso de
+Playwright para el tiempo en segundo plano. En local, Chromium es el Edge de Windows (sin
+descarga); en CI, el Chromium de Playwright.
+
+**Por qué:** siete bugs del diario solo se reproducían con un navegador real (foco, capas,
+visibilidad, `storage` entre pestañas). La primera corrida encontró uno nuevo (#13).
+
+**Lo que mide y lo que no:** `npm run perf` mide frames con una partida avanzada. El WebKit de
+Playwright en Windows da unos 50 fps incluso con una página vacía (tope del motor en ese
+sistema, no del juego); Safari en un iPhone real no se ha probado.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -286,6 +301,7 @@ se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millo
 | `prettier`, `eslint-config-prettier`                       | Formato, sin pelear con ESLint                                                         |
 | `@types/node`                                              | Tipos para el simulador y las pruebas                                                  |
 | `happy-dom`                                                | DOM simulado para las pocas pruebas de interfaz (foco, listas); el resto corre sin DOM |
+| `@playwright/test`                                         | Pruebas de navegador en Chromium, Firefox y WebKit (§4.25)                             |
 | `@fontsource/im-fell-english`, `@fontsource/source-sans-3` | Fuentes autoalojadas (§4.13)                                                           |
 
 ## 5. Datos

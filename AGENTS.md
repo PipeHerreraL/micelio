@@ -105,6 +105,7 @@ y cualquier tolerancia a datos mal formados (qué los produce en la realidad).
 - [ ] `npm test` en verde.
 - [ ] `npm run lint` limpio (ESLint sin advertencias y Prettier).
 - [ ] `npm run build` sin errores ni advertencias.
+- [ ] Si tocaste interfaz: `npm run test:e2e` en verde.
 - [ ] Hay una prueba nueva por cada bug corregido, y **falla sin el arreglo**.
 - [ ] Si tocaste balance: `npm run sim` y `docs/BALANCE.md` al día.
 
@@ -165,6 +166,8 @@ npm run lint     ESLint sin advertencias y Prettier en modo comprobación
 npm run format   aplica Prettier
 npm run build    comprobación de tipos y build estático en dist/
 npm run sim      simulador de balance; escribe docs/BALANCE.md
+npm run test:e2e pruebas de navegador (Playwright: Chromium, Firefox, WebKit, móvil)
+npm run perf     mide fps con una partida avanzada (local, no en CI)
 ```
 
 En desarrollo, `?pseudo` en la URL activa el pseudoidioma (textos un 40 % más largos) y el
