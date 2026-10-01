@@ -154,14 +154,17 @@ importa nada de presentación. El simulador simplemente vacía y descarta la col
   práctica no se solapan: el intervalo mínimo entre gotas (92 s con Olfato) supera la
   duración máxima del Aguacero (90 s con Tormenta perfecta).
 
-### 4.9 Repositorio privado y GitHub Pages
+### 4.9 Repositorio público y GitHub Pages
 
-**Elegido por el usuario:** repositorio `micelio` **privado** con licencia MIT.
+**Elegido:** repositorio `micelio` **público** con licencia MIT, publicado en
+<https://pipeherreral.github.io/micelio/> con origen GitHub Actions.
 
-**Consecuencia:** con una cuenta gratuita, GitHub Pages no publica desde repositorios
-privados y los minutos de Actions se facturan (2000 gratis al mes). El flujo de despliegue
-está listo; si GitHub rechaza activar Pages, la alternativa es hacer público el repositorio
-(la licencia MIT ya lo permite) o pasar a un plan de pago.
+~~**Elegido por el usuario:** repositorio `micelio` **privado** con licencia MIT.~~
+
+**Corrección (2026-10-01):** el repositorio se creó privado, pero GitHub respondió
+«Your current plan does not support GitHub Pages for this repository» al activar Pages con
+la cuenta gratuita. El usuario decidió hacerlo público. Público, además, los minutos de
+Actions no se facturan.
 
 ### 4.10 Tiempo aplicado de forma analítica
 

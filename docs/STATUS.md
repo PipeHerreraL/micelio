@@ -103,7 +103,7 @@ El guardado envuelve el estado: `{ version, savedAt, state }` en `localStorage['
 ## Lo último que se hizo
 
 - Lectura de `PROMPT.md`, elección de pila y versiones (Node 24, Vite 8, TypeScript 6.0, Vitest 5, ESLint 10).
-- Repositorio `micelio` privado con licencia MIT (decisión del usuario, ver `ARCHITECTURE.md` §4.9).
+- Repositorio `micelio` público con licencia MIT y GitHub Pages activado (ver `ARCHITECTURE.md` §4.9).
 
 ## Lo que sigue, en orden
 
