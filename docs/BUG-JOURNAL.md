@@ -124,7 +124,8 @@ enfocado sale del documento.
 **Arreglo.** `build()` recuerda qué tarjeta tenía el foco y lo devuelve a la misma mejora, a la
 que ocupó su lugar o al panel.
 
-**Qué lo sostiene.** Nada automático (las pruebas corren sin DOM). Ver la tabla de abajo.
+**Qué lo sostiene.** `tests/ui-upgrades.test.ts` (con DOM simulado de happy-dom) → «tras
+comprar una mejora, el foco sigue en una tarjeta de la lista». Falla sin el arreglo (comprobado).
 
 ---
 
@@ -173,6 +174,5 @@ Pueden volver. Se listan para que se vea.
 | #       | Qué falta                                                                                 |
 | ------- | ----------------------------------------------------------------------------------------- |
 | [4](#4) | Una prueba de navegador que arranque la página oculta y la muestre tras un hueco simulado |
-| [5](#5) | Una prueba de DOM que compre una mejora con el teclado y mire `document.activeElement`    |
 | [6](#6) | Una prueba visual que haga clic en el núcleo en escritorio y busque el número flotante    |
 | [7](#7) | Una prueba de navegador a 390 px que fuerce gotas en el centro y haga clic sobre ellas    |
