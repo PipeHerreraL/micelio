@@ -16,12 +16,19 @@
  * anchura no cambian esa secuencia: estiran el espacio normalizado donde vive la red. Se
  * descartó limitar la profundidad dentro de la caminata porque entonces la forma dependería
  * de en qué orden se compró y no se podría reconstruir desde el estado.
+ *
+ * Cada bioma tiene su suelo (render/palettes.ts). Al dispersar, la esporulación orquestada
+ * gana una fase: con la red ya disuelta, el suelo nuevo se pinta en la capa acumulada (vacía
+ * en ese momento) y se funde sobre el viejo. Se descartó un tercer lienzo para el suelo
+ * anterior: costaba memoria todo el tiempo para un momento que pasa una vez por bioma.
  */
 import type { GameEvent } from '../core/events.ts';
 import * as num from '../core/num.ts';
 import { derived } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
+import { BIOME_IDS, type BiomeId } from '../data/biomes.ts';
 import { GENERATOR_IDS } from '../data/generators.ts';
+import { BIRCH_ALPHA, BIRCH_TONE, LITTER_DEPTH, SOIL_PALETTES, type SoilPalette } from './palettes.ts';
 import { createParticlePool, PARTICLE_CREAM, PARTICLE_GLOW } from './particles.ts';
 import { createSeededRandom, mixSeed } from './random.ts';
 
@@ -35,36 +42,31 @@ export interface NetworkView {
   /** Dibuja un frame (lo llaman con requestAnimationFrame; nunca con la pestaña oculta). now = performance.now(). */
   frame(now: number): void;
   setReducedMotion(on: boolean): void;
+  /**
+   * Si la esporulación o la dispersión orquestada sigue en marcha (incluida la que aún no
+   * empezó). Falso sin lienzo: con 0 px no se anima nada y quien espere no debe esperar.
+   */
+  isTransitioning(): boolean;
   destroy(): void;
 }
 
 // ---------------------------------------------------------------------------------------
-// Paleta (ARCHITECTURE.md §11). El rebozuelo no aparece: es el acento de compras de la
-// interfaz, y en el canvas competiría con los botones.
+// Paleta (ARCHITECTURE.md §11). Los tonos del suelo, la hojarasca y las siluetas dependen
+// del bioma y viven en render/palettes.ts; aquí quedan los de la red y las setas, iguales en
+// todos los bosques. El rebozuelo no aparece: es el acento de compras de la interfaz, y en el
+// canvas competiría con los botones.
 
-const HUMUS = '#261C15';
-const TIERRA = '#4A3424';
-const ARCILLA = '#8C5A35';
 const MICELIO = '#EFE6D2';
 /** Solo pulsos de producción y lluvia. */
 const FUEGO_FATUO = '#B8EFC4';
 const MICELIO_RGB = '239, 230, 210';
 const FUEGO_FATUO_RGB = '184, 239, 196';
 
-// Tonos derivados: mezclas oscuras de humus, tierra y arcilla.
-const HUMUS_TOP = '#1F1711';
-const DEEP_TOP = '#5A3B26';
-const DEEP_MID = '#6E4630';
-const LITTER_TONE = '#2A1F16';
-const LEAF_TONES = ['#1E1610', '#271D14', '#33261A', '#3D2C1E', TIERRA, '#553C27'] as const;
-const LEAF_VEIN = '#5C4430';
-const SPECK_DARK = '#120C08';
-const SPECK_LIGHT = '#C9A57E';
-const PEBBLE_TONES = ['#6B4A31', '#7E5838', '#9A7150'] as const;
-const SILHOUETTE = '#0E0A07';
-const DISTANT_SILHOUETTE = '#110C08';
-/** Raíces en tono tierra: un pardo oscuro desaparecería sobre el humus. */
-const ROOT_TONE = TIERRA;
+/**
+ * Raíces en el tono tierra del natal en todos los biomas: un pardo oscuro desaparecería sobre
+ * el humus, y el de cada suelo nuevo es igual de oscuro o más.
+ */
+const ROOT_TONE = SOIL_PALETTES.natal.band;
 const BARK_TONE = '#2C211A';
 /** Luz de borde del tronco: separa la silueta de la hojarasca, igual de oscura. */
 const RIM_ALPHA = 0.14;
@@ -86,11 +88,10 @@ const MAX_DPR = 2;
 /** Por debajo de esto (en píxeles) no se dibuja: drawImage falla con lienzos vacíos. */
 const MIN_PIXELS = 2;
 
-/** Grosor medio de la hojarasca (≈ 7 % de la altura, PROMPT.md §14). */
-const LITTER_DEPTH = 0.072;
-/** Fronteras hojarasca/humus, humus/tierra y tierra/horizonte profundo. */
-const HORIZON_BASE = [LITTER_DEPTH, 0.34, 0.68] as const;
-/** Tres senos por frontera: amplitud y frecuencia (ciclos por ancho). */
+/**
+ * Tres senos por frontera: amplitud y frecuencia (ciclos por ancho). La altura media de cada
+ * frontera sale de la paleta del bioma; la ondulación es la misma en todos los suelos.
+ */
 const HORIZON_AMP = [0.007, 0.004, 0.0018, 0.016, 0.007, 0.003, 0.02, 0.009, 0.004] as const;
 const HORIZON_FREQ = [1.3, 4.1, 11.3, 0.9, 2.7, 7.9, 0.7, 2.2, 6.1] as const;
 /** La raíz de la red queda justo bajo la hojarasca, centrada. */
@@ -141,6 +142,12 @@ const ROOTS_PER_TREE = 5;
 const FOREST_CAP = 14;
 /** Árboles madre a los lados de la raíz, donde la red ya llega cuando aparecen. */
 const TREE_BASE_X = [0.25, 0.75, 0.37, 0.63] as const;
+/**
+ * Raíces tablares del Chocó (§4.5 de la fase 8): cada una sale 2,5 medios anchos del tronco
+ * y sube hasta el 40 % de la hojarasca, la misma altura donde el tronco empieza a ensancharse.
+ */
+const BUTTRESS_SPAN = 2.5;
+const BUTTRESS_RISE = 0.4;
 
 // ---------------------------------------------------------------------------------------
 // Pulsos, partículas y clima
@@ -190,9 +197,24 @@ const SPORE_GLOW_MS = 1000;
 const SPORE_DISSOLVE_MS = 800;
 const SPORE_FADE_IN_MS = 700;
 const SPORE_LIFT = 0.9;
+/**
+ * Ráfaga al dispersar: las mismas esporas del pool, empujadas hacia la derecha y subiendo
+ * despacio, en vez de flotar hacia arriba como al esporular (velocidades en anchos y altos
+ * del lienzo por segundo).
+ */
+const WIND_VX_MIN = 0.04;
+const WIND_VX_RANGE = 0.08;
+const WIND_VY_MIN = 0.02;
+const WIND_VY_RANGE = 0.04;
 const REDUCED_FADE_MS = 200;
-/** El evento y el contador de esporulaciones llegan por caminos distintos; se cuentan una vez. */
+/**
+ * El evento y el contador de esporulaciones llegan por caminos distintos; se cuentan una vez.
+ * Un cambio de bioma no pasa por aquí: dispersar justo después de esporular debe cambiar el
+ * suelo aunque caiga dentro de esta ventana.
+ */
 const SPORE_DEDUPE_MS = 3000;
+/** Fundido del suelo viejo al nuevo al dispersar, entre la red que se va y la que brota. */
+const SOIL_FADE_MS = 1000;
 
 const PHASE_IDLE = 0;
 const PHASE_GLOW = 1;
@@ -200,9 +222,17 @@ const PHASE_DISSOLVE = 2;
 const PHASE_FADE_OUT = 3;
 const PHASE_WAIT = 4;
 const PHASE_FADE_IN = 5;
+const PHASE_SOIL = 6;
 
 const DECOR_SALT = 0x51ed;
+/** Sal del grano del fondo; cada bioma suma su índice (el natal, 0: el mismo grano de la 1.2). */
 const BACKGROUND_SALT = 0xb0b;
+/**
+ * Sal de la red desde el primer destino. El natal (tramo 0) sigue con mixSeed(semilla,
+ * esporulaciones) para que la red de una partida 1.x no cambie al actualizar: mezclar el tramo
+ * también allí la habría movido, porque mixSeed(x, 0) ≠ x.
+ */
+const LEG_SALT = 0x7a1d;
 const HOP_LUT_SIZE = 256;
 
 function clamp(value: number, min: number, max: number): number {
@@ -254,6 +284,10 @@ function noop(): void {
   // Sin contexto 2D no hay nada que dibujar; el juego sigue igual sin el canvas.
 }
 
+function never(): boolean {
+  return false;
+}
+
 function createInertView(): NetworkView {
   return {
     resize: noop,
@@ -261,11 +295,15 @@ function createInertView(): NetworkView {
     onEvent: noop,
     frame: noop,
     setReducedMotion: noop,
+    isTransitioning: never,
     destroy: noop,
   };
 }
 
-export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: number }): NetworkView {
+export function createNetworkView(
+  canvas: HTMLCanvasElement,
+  options: { seed: number; biome: BiomeId },
+): NetworkView {
   const maybeCtx = canvas.getContext('2d');
   const bgCanvas = document.createElement('canvas');
   const layerCanvas = document.createElement('canvas');
@@ -290,8 +328,9 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   const horizonPhase = new Float64Array(HORIZON_AMP.length);
   for (let k = 0; k < horizonPhase.length; k++) horizonPhase[k] = decor.next() * TAU;
 
-  function horizonY(k: number, x: number): number {
-    let y = HORIZON_BASE[k] ?? 0;
+  /** Frontera k a la altura media `base` (fracción de la altura) en la x normalizada. */
+  function horizonY(k: number, base: number, x: number): number {
+    let y = base;
     for (let j = 0; j < 3; j++) {
       const m = k * 3 + j;
       y += (HORIZON_AMP[m] ?? 0) * Math.sin(TAU * (HORIZON_FREQ[m] ?? 0) * x + (horizonPhase[m] ?? 0));
@@ -299,7 +338,12 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     return y;
   }
 
-  const rootY = horizonY(0, 0.5) + ROOT_BELOW_LITTER;
+  /** Borde inferior de la hojarasca: el mismo en todos los biomas (render/palettes.ts). */
+  function surfaceY(x: number): number {
+    return horizonY(0, LITTER_DEPTH, x);
+  }
+
+  const rootY = surfaceY(0.5) + ROOT_BELOW_LITTER;
 
   // -------------------------------------------------------------------------------------
   // Huecos fijos de los elementos de superficie: comprar más solo enciende el siguiente.
@@ -400,6 +444,11 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   let wantTrees = 0;
   let wantForest = 0;
   let wantSeed = 0;
+  // Bioma y tramo que pide el estado, y el bioma que está pintado en el fondo. Difieren solo
+  // durante la dispersión: hasta que la red vieja se disuelve, sigue sobre su suelo.
+  let wantBiome: BiomeId = options.biome;
+  let wantLeg = 0;
+  let bgBiome: BiomeId = options.biome;
 
   // Lienzo y estado de dibujo.
   let W = 0;
@@ -420,6 +469,11 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   let sporePending = false;
   let sporeRequestedAt = -Infinity;
   let lastSporulations = -1;
+  let lastLeg = -1;
+  /** La esporulación en curso es una dispersión: las esporas se las lleva el viento. */
+  let windy = false;
+  /** Bioma que la fase del suelo está fundiendo encima del fondo. */
+  let soilBiome: BiomeId = options.biome;
   let layerAlpha = 1;
   let sporeLift = 0;
   // Lo que había en pantalla al empezar el fundido reducido: se apaga desde ahí, sin saltos.
@@ -758,7 +812,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       const xN = mushX[k] ?? 0.5;
       drawMushroom(
         xN * W,
-        horizonY(0, xN) * H + dpr,
+        surfaceY(xN) * H + dpr,
         maxH * (mushScale[k] ?? 1),
         mushTilt[k] ?? 0,
         mushTone[k] ?? 0,
@@ -774,7 +828,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     for (let k = 0; k < ringCount; k++) {
       const xN = ringX[k] ?? 0.5;
       const cx = xN * W;
-      const cy = horizonY(0, xN) * H + band * 0.6;
+      const cy = surfaceY(xN) * H + band * 0.6;
       const rx = (ringR[k] ?? 0.05) * W;
       const ry = band * 0.28;
       layer.globalAlpha = 0.07;
@@ -803,7 +857,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
           const depth = (Math.sin(theta) + 1) / 2;
           if ((pass === 0) !== depth < 0.5) continue;
           const x = cx + rx * Math.cos(theta);
-          const base = horizonY(0, x / W) * H - (1 - depth) * band * 0.22;
+          const base = surfaceY(x / W) * H - (1 - depth) * band * 0.22;
           drawMushroom(
             x,
             base,
@@ -818,15 +872,19 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   }
 
   /** Bosque ancestral: troncos lejanos y tenues que se pierden en la hojarasca. */
-  function drawForest(): void {
-    layer.fillStyle = DISTANT_SILHOUETTE;
+  function drawForest(p: SoilPalette): void {
+    layer.fillStyle = p.distantSilhouette;
     for (let k = 0; k < forestCount; k++) {
       const xN = forestX[k] ?? 0.5;
       const scale = forestScale[k] ?? 1;
       const x = xN * W;
-      const base = horizonY(0, xN) * H * 0.85;
-      const half = clamp(W * 0.0035, 1.5 * dpr, 5 * dpr) * scale;
-      layer.globalAlpha = 0.3 + 0.15 * scale;
+      const base = surfaceY(xN) * H * 0.85;
+      const half = clamp(W * 0.0035, 1.5 * dpr, 5 * dpr) * scale * p.distantWidth;
+      // El abedul se decide por índice y no con azar: así no mueve la secuencia de adornos y
+      // el mismo hueco es abedul en cada redibujado.
+      const birch = p.birchEvery > 0 && k % p.birchEvery === p.birchEvery - 1;
+      if (birch) layer.fillStyle = BIRCH_TONE;
+      layer.globalAlpha = birch ? BIRCH_ALPHA : 0.3 + 0.15 * scale;
       layer.beginPath();
       layer.moveTo(x - half * 0.75, 0);
       layer.lineTo(x + half * 0.75, 0);
@@ -834,17 +892,18 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       layer.lineTo(x - half * 1.2, base);
       layer.closePath();
       layer.fill();
+      if (birch) layer.fillStyle = p.distantSilhouette;
     }
   }
 
   /** Árboles madre: tronco oscuro sobre la hojarasca y raíces que bajan hasta la red. */
-  function drawTrees(): void {
+  function drawTrees(p: SoilPalette): void {
     for (let k = 0; k < treeCount; k++) {
       const xN = treeX[k] ?? 0.5;
       const scale = treeScale[k] ?? 1;
       const cx = xN * W;
-      const surface = horizonY(0, xN) * H;
-      const half = clamp(W * 0.016, 6 * dpr, 20 * dpr) * scale;
+      const surface = surfaceY(xN) * H;
+      const half = clamp(W * 0.016, 6 * dpr, 20 * dpr) * scale * p.treeWidth;
       const flare = surface * 0.4;
 
       // Raíces primero: el ensanche del tronco tapa su arranque. Curvas que se abren y bajan,
@@ -882,7 +941,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       }
 
       layer.globalAlpha = 1;
-      layer.fillStyle = SILHOUETTE;
+      layer.fillStyle = p.silhouette;
       layer.beginPath();
       layer.moveTo(cx - half * 0.92, 0);
       layer.lineTo(cx - half, surface - flare);
@@ -910,7 +969,39 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       layer.lineTo(cx - half, surface - flare);
       layer.quadraticCurveTo(cx - half, surface, cx - half * 2.1, surface + 2 * dpr);
       layer.stroke();
+
+      if (p.buttress) drawButtresses(p, cx, surface, half);
     }
+  }
+
+  /**
+   * Raíces tablares (Chocó): dos aletas rectas a los lados del ensanche. Van después de la luz
+   * de borde y la tapan donde se cruzan, así que la izquierda lleva la suya propia: sin ella,
+   * la aleta se perdería sobre una hojarasca casi igual de oscura.
+   */
+  function drawButtresses(p: SoilPalette, cx: number, surface: number, half: number): void {
+    const top = surface - surface * BUTTRESS_RISE;
+    const outer = half * (1 + BUTTRESS_SPAN);
+    const ground = surface + 2 * dpr;
+    layer.globalAlpha = 1;
+    layer.fillStyle = p.silhouette;
+    layer.beginPath();
+    layer.moveTo(cx - half, top);
+    layer.lineTo(cx - outer, ground);
+    layer.lineTo(cx - half, ground);
+    layer.closePath();
+    layer.moveTo(cx + half, top);
+    layer.lineTo(cx + half, ground);
+    layer.lineTo(cx + outer, ground);
+    layer.closePath();
+    layer.fill();
+    layer.strokeStyle = MICELIO;
+    layer.lineWidth = dpr;
+    layer.globalAlpha = RIM_ALPHA;
+    layer.beginPath();
+    layer.moveTo(cx - half, top);
+    layer.lineTo(cx - outer, ground);
+    layer.stroke();
   }
 
   /** Micorriza: cada punta de raíz se une al nodo de la red más cercano, si lo hay a mano. */
@@ -957,9 +1048,12 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     layer.globalCompositeOperation = 'source-over';
     layer.globalAlpha = 1;
     layer.clearRect(0, 0, W, H);
-    drawForest();
+    // Las siluetas usan el suelo que se ve, no el que pide el estado: durante la dispersión
+    // la red vieja se disuelve sobre su propio bosque.
+    const p = SOIL_PALETTES[bgBiome];
+    drawForest(p);
     drawRingFronts();
-    drawTrees();
+    drawTrees(p);
 
     layer.strokeStyle = MICELIO;
     layer.lineCap = 'butt';
@@ -981,140 +1075,173 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   }
 
   // -------------------------------------------------------------------------------------
-  // Fondo: hojarasca y horizontes, una vez por tamaño
+  // Fondo: hojarasca y horizontes, una vez por tamaño (y dos veces al dispersar)
 
-  function fillBelow(k: number, offset: number): void {
+  function fillBelow(c: CanvasRenderingContext2D, k: number, base: number, offset: number): void {
     const step = Math.max(4, 6 * dpr);
-    bg.beginPath();
-    bg.moveTo(0, H);
-    for (let x = 0; x <= W + step; x += step) bg.lineTo(x, horizonY(k, x / W) * H + offset);
-    bg.lineTo(W, H);
-    bg.closePath();
-    bg.fill();
+    c.beginPath();
+    c.moveTo(0, H);
+    for (let x = 0; x <= W + step; x += step) c.lineTo(x, horizonY(k, base, x / W) * H + offset);
+    c.lineTo(W, H);
+    c.closePath();
+    c.fill();
   }
 
   /** Frontera difusa: varias pasadas desplazadas y translúcidas en lugar de un borde neto. */
-  function softHorizon(k: number, style: string | CanvasGradient): void {
+  function softHorizon(
+    c: CanvasRenderingContext2D,
+    k: number,
+    base: number,
+    style: string | CanvasGradient,
+  ): void {
     const feather = Math.max(1.5 * dpr, H * 0.006);
-    bg.fillStyle = style;
-    bg.globalAlpha = 1;
-    fillBelow(k, feather);
-    bg.globalAlpha = 0.45;
-    fillBelow(k, 0);
-    bg.globalAlpha = 0.25;
-    fillBelow(k, -feather);
-    bg.globalAlpha = 0.12;
-    fillBelow(k, -2 * feather);
-    bg.globalAlpha = 1;
+    c.fillStyle = style;
+    c.globalAlpha = 1;
+    fillBelow(c, k, base, feather);
+    c.globalAlpha = 0.45;
+    fillBelow(c, k, base, 0);
+    c.globalAlpha = 0.25;
+    fillBelow(c, k, base, -feather);
+    c.globalAlpha = 0.12;
+    fillBelow(c, k, base, -2 * feather);
+    c.globalAlpha = 1;
   }
 
-  function paintBackground(): void {
-    decor.reset(mixSeed(seed, BACKGROUND_SALT));
-    bg.globalCompositeOperation = 'source-over';
-    bg.setTransform(1, 0, 0, 1, 0, 0);
-    bg.globalAlpha = 1;
+  /**
+   * Pinta el suelo de un bioma en `c` (el fondo, o la capa acumulada vacía durante la fase del
+   * suelo). Con el natal, el orden de las llamadas y la secuencia de azar son los de la 1.2:
+   * lo que solo tienen otros biomas (las matas) va al final, después de las hojas.
+   */
+  function paintBackground(c: CanvasRenderingContext2D, biome: BiomeId): void {
+    const p = SOIL_PALETTES[biome];
+    decor.reset(mixSeed(seed, BACKGROUND_SALT + BIOME_IDS.indexOf(biome)));
+    c.globalCompositeOperation = 'source-over';
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalAlpha = 1;
 
-    const humusGradient = bg.createLinearGradient(0, 0, 0, H * 0.4);
-    humusGradient.addColorStop(0, HUMUS_TOP);
-    humusGradient.addColorStop(1, HUMUS);
-    bg.fillStyle = humusGradient;
-    bg.fillRect(0, 0, W, H);
+    const humusGradient = c.createLinearGradient(0, 0, 0, H * 0.4);
+    humusGradient.addColorStop(0, p.humusTop);
+    humusGradient.addColorStop(1, p.humus);
+    c.fillStyle = humusGradient;
+    c.fillRect(0, 0, W, H);
 
-    softHorizon(1, TIERRA);
-    const deep = bg.createLinearGradient(0, H * 0.62, 0, H);
-    deep.addColorStop(0, DEEP_TOP);
-    deep.addColorStop(0.6, DEEP_MID);
-    deep.addColorStop(1, ARCILLA);
-    softHorizon(2, deep);
+    softHorizon(c, 1, p.horizons[1], p.band);
+    const deep = c.createLinearGradient(0, H * p.deepStart, 0, H);
+    deep.addColorStop(0, p.deepTop);
+    deep.addColorStop(0.6, p.deepMid);
+    deep.addColorStop(1, p.deepBottom);
+    softHorizon(c, 2, p.horizons[2], deep);
 
     // Grano: motas oscuras y claras en dos pasadas (un estilo por pasada).
     const cssArea = (W * H) / (dpr * dpr);
     const dot = Math.max(1, Math.round(dpr));
-    bg.fillStyle = SPECK_DARK;
-    bg.globalAlpha = 0.18;
+    c.fillStyle = p.speckDark;
+    c.globalAlpha = 0.18;
     const darkCount = Math.min(5000, Math.round(cssArea / 140));
     for (let n = 0; n < darkCount; n++) {
       const s = decor.next() < 0.25 ? dot * 2 : dot;
-      bg.fillRect(decor.next() * W, decor.next() * H, s, s);
+      c.fillRect(decor.next() * W, decor.next() * H, s, s);
     }
-    bg.fillStyle = SPECK_LIGHT;
-    bg.globalAlpha = 0.07;
+    c.fillStyle = p.speckLight;
+    c.globalAlpha = 0.07;
     const lightCount = Math.min(2000, Math.round(cssArea / 400));
-    for (let n = 0; n < lightCount; n++) bg.fillRect(decor.next() * W, decor.next() * H, dot, dot);
+    for (let n = 0; n < lightCount; n++) c.fillRect(decor.next() * W, decor.next() * H, dot, dot);
 
     // Piedrecitas en los horizontes bajos.
     const pebbleCount = Math.min(160, Math.round(cssArea / 9000));
     for (let n = 0; n < pebbleCount; n++) {
       const y = H * (0.3 + 0.7 * decor.next());
       const r = (1.2 + decor.next() * 2.6) * dpr;
-      bg.fillStyle = PEBBLE_TONES[Math.floor(decor.next() * PEBBLE_TONES.length)] ?? TIERRA;
-      bg.globalAlpha = 0.25 + 0.2 * decor.next();
-      bg.beginPath();
-      bg.ellipse(decor.next() * W, y, r * 1.3, r, decor.next() * Math.PI, 0, TAU);
-      bg.fill();
+      c.fillStyle = p.pebbleTones[Math.floor(decor.next() * p.pebbleTones.length)] ?? p.band;
+      c.globalAlpha = 0.25 + 0.2 * decor.next();
+      c.beginPath();
+      c.ellipse(decor.next() * W, y, r * 1.3, r, decor.next() * Math.PI, 0, TAU);
+      c.fill();
     }
 
     // Sombra bajo la hojarasca: da profundidad a la primera franja de humus.
     const band = litterPx();
-    const shade = bg.createLinearGradient(0, band * 0.8, 0, band * 1.9);
+    const shade = c.createLinearGradient(0, band * 0.8, 0, band * 1.9);
     shade.addColorStop(0, 'rgba(10, 7, 5, 0.45)');
     shade.addColorStop(1, 'rgba(10, 7, 5, 0)');
-    bg.globalAlpha = 1;
-    bg.fillStyle = shade;
-    bg.fillRect(0, band * 0.8, W, band * 1.1);
+    c.globalAlpha = 1;
+    c.fillStyle = shade;
+    c.fillRect(0, band * 0.8, W, band * 1.1);
 
     // Hojarasca: base irregular y hojas superpuestas.
     const step = Math.max(4, 6 * dpr);
-    bg.fillStyle = LITTER_TONE;
-    bg.beginPath();
-    bg.moveTo(0, 0);
-    bg.lineTo(W, 0);
-    for (let x = W + step; x >= -step; x -= step) bg.lineTo(x, horizonY(0, x / W) * H);
-    bg.closePath();
-    bg.fill();
+    c.fillStyle = p.litter;
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.lineTo(W, 0);
+    for (let x = W + step; x >= -step; x -= step) c.lineTo(x, horizonY(0, p.horizons[0], x / W) * H);
+    c.closePath();
+    c.fill();
 
-    const leafCount = clamp(Math.round(W / (2.2 * dpr)), 40, 900);
+    // La densidad multiplica después de acotar: con 1 (natal) el número de hojas es el de la 1.2.
+    const leafCount = Math.round(clamp(Math.round(W / (2.2 * dpr)), 40, 900) * p.leafDensity);
     const leafBase = clamp(band * 0.36, 5 * dpr, 18 * dpr);
     for (let n = 0; n < leafCount; n++) {
       const xN = decor.next();
-      const bottom = horizonY(0, xN) * H;
+      const bottom = horizonY(0, p.horizons[0], xN) * H;
       // Más hojas abajo, donde la hojarasca se compacta.
       const y = bottom * Math.sqrt(decor.next()) + dpr;
-      const len = leafBase * (0.65 + decor.next() * 0.8);
-      const wid = len * (0.26 + decor.next() * 0.2);
+      const len = leafBase * (p.leafLength[0] + decor.next() * p.leafLength[1]);
+      const wid = len * (p.leafWidth[0] + decor.next() * p.leafWidth[1]);
       const rot = decor.next() * TAU;
       const cos = Math.cos(rot);
       const sin = Math.sin(rot);
       const alpha = 0.7 + decor.next() * 0.3;
-      bg.setTransform(cos, sin, -sin, cos, xN * W, y);
-      bg.globalAlpha = alpha;
-      bg.fillStyle = LEAF_TONES[Math.floor(decor.next() * LEAF_TONES.length)] ?? TIERRA;
-      bg.beginPath();
-      bg.moveTo(-len / 2, 0);
-      bg.quadraticCurveTo(0, -wid, len / 2, 0);
-      bg.quadraticCurveTo(0, wid, -len / 2, 0);
-      bg.fill();
-      if (decor.next() < 0.5) {
-        bg.globalAlpha = alpha * 0.4;
-        bg.strokeStyle = LEAF_VEIN;
-        bg.lineWidth = 0.6 * dpr;
-        bg.beginPath();
-        bg.moveTo(-len / 2, 0);
-        bg.lineTo(len * 0.45, 0);
-        bg.stroke();
+      c.setTransform(cos, sin, -sin, cos, xN * W, y);
+      c.globalAlpha = alpha;
+      c.fillStyle = p.leafTones[Math.floor(decor.next() * p.leafTones.length)] ?? p.band;
+      c.beginPath();
+      c.moveTo(-len / 2, 0);
+      c.quadraticCurveTo(0, -wid, len / 2, 0);
+      c.quadraticCurveTo(0, wid, -len / 2, 0);
+      c.fill();
+      // El azar del nervio se consume aunque el bioma no tenga nervios (acículas): así la
+      // secuencia de cada hoja tiene siempre el mismo largo.
+      if (decor.next() < p.veinChance) {
+        c.globalAlpha = alpha * 0.4;
+        c.strokeStyle = p.leafVein;
+        c.lineWidth = 0.6 * dpr;
+        c.beginPath();
+        c.moveTo(-len / 2, 0);
+        c.lineTo(len * 0.45, 0);
+        c.stroke();
       }
     }
-    bg.setTransform(1, 0, 0, 1, 0, 0);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+
+    // Matas (musgo y liquen de la taiga): manchas sueltas sobre la hojarasca, en proporción a
+    // las hojas y con su misma distribución.
+    for (let t = 0; t < p.tufts.length; t++) {
+      const tuft = p.tufts[t];
+      if (!tuft) continue;
+      const tuftCount = Math.round(leafCount * tuft.share);
+      c.globalAlpha = tuft.alpha;
+      for (let n = 0; n < tuftCount; n++) {
+        const xN = decor.next();
+        const y = horizonY(0, p.horizons[0], xN) * H * Math.sqrt(decor.next()) + dpr;
+        const rx = leafBase * (0.3 + decor.next() * 0.4);
+        const ry = rx * (0.45 + decor.next() * 0.25);
+        c.fillStyle = tuft.tones[Math.floor(decor.next() * tuft.tones.length)] ?? p.litter;
+        c.beginPath();
+        c.ellipse(xN * W, y, rx, ry, (decor.next() - 0.5) * 0.6, 0, TAU);
+        c.fill();
+      }
+    }
 
     // Viñeta suave en los laterales: centra la mirada en la raíz.
-    const side = bg.createLinearGradient(0, 0, W, 0);
+    const side = c.createLinearGradient(0, 0, W, 0);
     side.addColorStop(0, 'rgba(8, 5, 3, 0.22)');
     side.addColorStop(0.16, 'rgba(8, 5, 3, 0)');
     side.addColorStop(0.84, 'rgba(8, 5, 3, 0)');
     side.addColorStop(1, 'rgba(8, 5, 3, 0.22)');
-    bg.globalAlpha = 1;
-    bg.fillStyle = side;
-    bg.fillRect(0, 0, W, H);
+    c.globalAlpha = 1;
+    c.fillStyle = side;
+    c.fillRect(0, 0, W, H);
   }
 
   function paintSprite(sprite: HTMLCanvasElement, rgb: string): void {
@@ -1288,7 +1415,8 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     }
   }
 
-  function spawnSpores(): void {
+  /** Esporas que salen de la red; con viento (al dispersar) se van hacia la derecha. */
+  function spawnSpores(wind: boolean): void {
     if (count === 0) return;
     for (let m = 0; m < SPORE_PARTICLES; m++) {
       const i = Math.floor(Math.random() * count);
@@ -1296,8 +1424,8 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       particles.spawn(
         nx(((segX1[i] ?? 0.5) + (segX2[i] ?? 0.5)) / 2),
         ny(((segY1[i] ?? 0) + (segY2[i] ?? 0)) / 2),
-        (Math.random() - 0.5) * 0.03,
-        -0.035 - Math.random() * 0.055,
+        wind ? WIND_VX_MIN + Math.random() * WIND_VX_RANGE : (Math.random() - 0.5) * 0.03,
+        wind ? -WIND_VY_MIN - Math.random() * WIND_VY_RANGE : -0.035 - Math.random() * 0.055,
         -0.02,
         1 + Math.random() * 0.6,
         1.3 + Math.random() * 0.8,
@@ -1368,10 +1496,19 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   // -------------------------------------------------------------------------------------
   // Esporulación
 
-  function requestSporulation(): void {
+  /**
+   * Pide la esporulación orquestada. Con `wind` es una dispersión: las esporas se van con el
+   * viento y, con la red ya disuelta, cambia el suelo.
+   */
+  function requestSporulation(wind: boolean): void {
+    // Si la animación en marcha descarta el aviso, la ráfaga queda pedida igual para cuando
+    // suelte las esporas.
+    if (wind) windy = true;
     if (phase !== PHASE_IDLE && phase !== PHASE_FADE_IN) return;
     const now = performance.now();
-    if (now - sporeRequestedAt < SPORE_DEDUPE_MS) return;
+    // La ventana solo une el evento y el contador de una misma esporulación. Una dispersión
+    // no se descarta nunca: justo después de esporular, la red nueva brotaría en el suelo viejo.
+    if (!wind && now - sporeRequestedAt < SPORE_DEDUPE_MS) return;
     sporeRequestedAt = now;
     sporePending = true;
     pendingMotes = 0;
@@ -1381,6 +1518,42 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     resetNetworkData(netSeed);
     if (ready) layer.clearRect(0, 0, W, H);
     clearPulses();
+    needsDraw = true;
+  }
+
+  /**
+   * Con la red ya disuelta, cambia el suelo si el estado pide otro bioma. El nuevo se pinta en
+   * la capa acumulada, vacía en este momento, y se funde encima del viejo: no hace falta otro
+   * lienzo. Con movimiento reducido (o sin lienzo) el cambio es instantáneo. Devuelve si
+   * empezó el fundido.
+   */
+  function beginSoilChange(now: number): boolean {
+    if (bgBiome === wantBiome) return false;
+    if (reducedMotion || !ready) {
+      bgBiome = wantBiome;
+      if (ready) paintBackground(bg, bgBiome);
+      needsDraw = true;
+      return false;
+    }
+    soilBiome = wantBiome;
+    paintBackground(layer, soilBiome);
+    phase = PHASE_SOIL;
+    phaseStart = now;
+    layerAlpha = 0;
+    sporeLift = 0;
+    return true;
+  }
+
+  /** Termina el fundido: el suelo nuevo pasa al fondo y la capa queda vacía para la red. */
+  function finishSoilChange(): void {
+    bgBiome = soilBiome;
+    if (ready) {
+      paintBackground(bg, bgBiome);
+      layer.clearRect(0, 0, W, H);
+    }
+    phase = PHASE_WAIT;
+    layerAlpha = 0;
+    sporeLift = 0;
     needsDraw = true;
   }
 
@@ -1408,7 +1581,8 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
         layerAlpha = 1;
         sporeLift = smooth(p) * SPORE_LIFT;
         if (p >= 1) {
-          spawnSpores();
+          spawnSpores(windy);
+          windy = false;
           phase = PHASE_DISSOLVE;
           phaseStart = now;
         }
@@ -1419,11 +1593,13 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
         layerAlpha = 1 - smooth(p);
         sporeLift = (1 - p) * SPORE_LIFT;
         if (p >= 1) {
-          // La red se va: la siguiente lectura del estado la regenera de golpe.
+          // La red se va: la siguiente lectura del estado la regenera de golpe (tras el suelo
+          // nuevo, si se dispersó).
           clearNetwork();
           phase = PHASE_WAIT;
           layerAlpha = 0;
           sporeLift = 0;
+          beginSoilChange(now);
         }
         break;
       }
@@ -1436,7 +1612,18 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
           phase = PHASE_WAIT;
           layerAlpha = 0;
           sporeLift = 0;
+          // Movimiento reducido: el suelo cambia de golpe, sin fundido.
+          windy = false;
+          beginSoilChange(now);
         }
+        break;
+      }
+      case PHASE_SOIL: {
+        const p = clamp01(elapsed / SOIL_FADE_MS);
+        // La capa acumulada lleva el suelo nuevo: se funde encima del viejo.
+        layerAlpha = smooth(p);
+        sporeLift = 0;
+        if (p >= 1) finishSoilChange();
         break;
       }
       case PHASE_WAIT:
@@ -1450,6 +1637,9 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
         if (p >= 1) {
           phase = PHASE_IDLE;
           layerAlpha = 1;
+          // Una dispersión que llegó con las esporas ya sueltas no deja la ráfaga para la
+          // próxima esporulación.
+          windy = false;
         }
         break;
       }
@@ -1476,14 +1666,22 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     }
     wantTarget = segmentTarget(weighted);
 
+    wantBiome = state.forest.biome;
+    wantLeg = state.forest.leg;
+    const soil = SOIL_PALETTES[wantBiome];
+
     // Profundidad: cada nivel de generador baja la red y las esporas la ahondan un poco
-    // más; Malheur y Planetario la llevan al fondo y a todo el ancho.
+    // más; Malheur y Planetario la llevan al fondo y a todo el ancho. El bioma la acorta
+    // después de redondear (en el Chocó se queda cerca de la superficie, como la estera de
+    // raíces), así que en el natal (×1) es exactamente la de la 1.2.
     const sporeDepth = Math.log10(1 + Math.max(0, state.spores.level));
     if (highest >= DEEPEST_TIER) {
-      wantReach = 1;
+      wantReach = soil.reach;
       wantSpread = 0.49;
     } else {
-      wantReach = Math.round(Math.min(0.97, 0.26 + 0.078 * (highest + 1) + 0.1 * sporeDepth) * 100) / 100;
+      wantReach =
+        (Math.round(Math.min(0.97, 0.26 + 0.078 * (highest + 1) + 0.1 * sporeDepth) * 100) / 100) *
+        soil.reach;
       wantSpread = Math.round(Math.min(0.46, 0.28 + 0.022 * (highest + 1) + 0.03 * sporeDepth) * 100) / 100;
     }
 
@@ -1493,7 +1691,10 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
     wantRings = ringsFor(state.owned.fairyRing);
     wantTrees = treesFor(state.owned.motherTree);
     wantForest = forestFor(state.owned.ancientForest);
-    wantSeed = mixSeed(seed, state.stats.sporulations);
+    // Una red por partida y, desde el primer destino, otra familia de redes por tramo.
+    const sporulations = state.stats.sporulations;
+    wantSeed =
+      wantLeg === 0 ? mixSeed(seed, sporulations) : mixSeed(mixSeed(seed, LEG_SALT + wantLeg), sporulations);
 
     const decades = num.log10(num.add(num.ONE, derived(state).production));
     pulseRate =
@@ -1567,10 +1768,20 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       bgCanvas.height = ready ? H : 0;
       layerCanvas.width = ready ? W : 0;
       layerCanvas.height = ready ? H : 0;
+      // Cambiar el tamaño borra la capa con el suelo que se estaba fundiendo: el cambio se da
+      // por terminado aquí (el fondo se pinta abajo, una sola vez) y la red nueva brota sobre
+      // el suelo nuevo. Sin transición en marcha, el fondo toma ya el bioma del estado.
+      if (phase === PHASE_SOIL) {
+        bgBiome = soilBiome;
+        phase = PHASE_WAIT;
+        layerAlpha = 0;
+      } else if (!sporePending && phase === PHASE_IDLE) {
+        bgBiome = wantBiome;
+      }
       if (!ready) return;
       paintSprite(creamSprite, MICELIO_RGB);
       paintSprite(glowSprite, FUEGO_FATUO_RGB);
-      paintBackground();
+      paintBackground(bg, bgBiome);
       stormGradient = ctx.createLinearGradient(0, 0, 0, H * 0.6);
       stormGradient.addColorStop(0, `rgba(${MICELIO_RGB}, 1)`);
       stormGradient.addColorStop(1, `rgba(${MICELIO_RGB}, 0)`);
@@ -1583,13 +1794,39 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       if (destroyed) return;
       readState(state);
       const sporulations = state.stats.sporulations;
-      if (lastSporulations >= 0 && sporulations > lastSporulations) requestSporulation();
+      // Un tramo nuevo es una dispersión aunque su evento no haya llegado; si además esporuló,
+      // es la misma animación.
+      if (lastLeg >= 0 && wantLeg !== lastLeg) requestSporulation(true);
+      else if (lastSporulations >= 0 && sporulations > lastSporulations) requestSporulation(false);
+      lastLeg = wantLeg;
       lastSporulations = sporulations;
 
-      // Durante la esporulación la red vieja se queda quieta hasta disolverse.
-      if (sporePending || phase === PHASE_GLOW || phase === PHASE_DISSOLVE || phase === PHASE_FADE_OUT)
+      if (!ready) {
+        // Sin lienzo no hay suelo que fundir: el próximo cambio de tamaño ya pinta el nuevo.
+        bgBiome = wantBiome;
+      } else if (
+        bgBiome !== wantBiome &&
+        !sporePending &&
+        (phase === PHASE_IDLE || phase === PHASE_FADE_IN)
+      ) {
+        // Un cambio de bioma pasa siempre por la transición, aunque su aviso se haya perdido:
+        // regenerar aquí de golpe dejaría la red nueva sobre el suelo viejo.
+        requestSporulation(true);
+      }
+
+      // Durante la esporulación la red vieja se queda quieta hasta disolverse, y la nueva
+      // espera a que termine de cambiar el suelo.
+      if (
+        sporePending ||
+        phase === PHASE_GLOW ||
+        phase === PHASE_DISSOLVE ||
+        phase === PHASE_FADE_OUT ||
+        phase === PHASE_SOIL
+      )
         return;
       if (phase === PHASE_WAIT) {
+        // La red se disolvió antes de que llegara la dispersión: falta cambiar el suelo.
+        if (beginSoilChange(performance.now())) return;
         regrowInstant();
         phase = PHASE_FADE_IN;
         phaseStart = performance.now();
@@ -1622,10 +1859,17 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
           }
           break;
         case 'rainCaught':
+        case 'rainFell':
           if (!reducedMotion) spawnDroplets();
           break;
         case 'sporulate':
-          requestSporulation();
+          requestSporulation(false);
+          break;
+        case 'disperse':
+          // El evento llega antes que la próxima lectura del estado: el destino se toma de él
+          // para que el suelo cambie aunque la red termine de disolverse antes de esa lectura.
+          wantBiome = event.to;
+          requestSporulation(true);
           break;
         default:
           break;
@@ -1638,18 +1882,28 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       lastNow = now;
       if (!ready) {
         // Sin lienzo no hay nada que orquestar: la red se regenera en la próxima lectura en
-        // vez de quedarse congelada a media esporulación hasta que vuelva a tener tamaño.
-        if (sporePending || phase === PHASE_GLOW || phase === PHASE_DISSOLVE || phase === PHASE_FADE_OUT) {
+        // vez de quedarse congelada a media esporulación hasta que vuelva a tener tamaño, y el
+        // suelo cambia de golpe (el próximo cambio de tamaño lo pinta).
+        if (
+          sporePending ||
+          phase === PHASE_GLOW ||
+          phase === PHASE_DISSOLVE ||
+          phase === PHASE_FADE_OUT ||
+          phase === PHASE_SOIL
+        ) {
           sporePending = false;
+          windy = false;
           clearNetwork();
           phase = PHASE_WAIT;
         }
+        bgBiome = wantBiome;
         return;
       }
 
       const growing = advanceGrowth(now);
       updatePhase(now);
-      const lift = Math.max(sporeLift, achievementLift(now));
+      // Durante el fundido la capa lleva el suelo nuevo: el brillo del logro lo encendería.
+      const lift = phase === PHASE_SOIL ? 0 : Math.max(sporeLift, achievementLift(now));
       const storm = stormIntensity(now);
 
       if (pulseRate > 0 && canPulse()) {
@@ -1712,7 +1966,13 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
       pendingMotes = 0;
       finishGrowth();
       if (phase === PHASE_GLOW || phase === PHASE_DISSOLVE) startReducedFade(performance.now());
+      else if (phase === PHASE_SOIL) finishSoilChange();
+      windy = false;
       needsDraw = true;
+    },
+
+    isTransitioning() {
+      return ready && (sporePending || phase !== PHASE_IDLE);
     },
 
     destroy() {

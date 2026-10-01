@@ -255,7 +255,10 @@ function mountNetwork(canvas: HTMLCanvasElement): void {
   canvasObserver?.disconnect();
   network?.destroy();
   // La semilla sale del inicio de la vida: la misma partida vuelve a dibujar la misma red.
-  network = createNetworkView(canvas, { seed: toSeed(store.state.stats.startedAt) });
+  network = createNetworkView(canvas, {
+    seed: toSeed(store.state.stats.startedAt),
+    biome: store.state.forest.biome,
+  });
   network.setReducedMotion(motionReduced());
   canvasObserver = new ResizeObserver(() => {
     network?.resize();

@@ -44,7 +44,13 @@ async function measure(page: Page, ms: number): Promise<FrameStats> {
   }, ms);
 }
 
-async function advancedGame(page: Page): Promise<void> {
+/**
+ * Partida avanzada. En la taiga es la misma partida un tramo después de dispersar: el bosque en
+ * el tramo 1 y la entrada natal de la Crónica cerrada al irse, para que el guardado valide. El
+ * suelo de la taiga lleva matas de musgo y liquen que el natal no tiene.
+ */
+async function advancedGame(page: Page, biome: 'natal' | 'taiga' = 'natal'): Promise<void> {
+  const now = Date.now();
   await seedSave(
     page,
     stateWith((s) => {
@@ -66,7 +72,34 @@ async function advancedGame(page: Page): Promise<void> {
         planetary: 0,
       };
       s.effects = [{ kind: 'downpour', remaining: 50, duration: 60 }];
-    }),
+      if (biome === 'taiga') {
+        const leftAt = now - 60_000;
+        s.chronicle = [
+          {
+            biome: 'natal',
+            leg: 0,
+            arrivedAt: s.stats.startedAt,
+            colonizedAt: null,
+            // Las tres esporulaciones de la partida cuentan como de la taiga (arrivalSporulations 0).
+            sporulations: 0,
+            playTime: 0,
+            leftAt,
+            levelReached: 120,
+          },
+        ];
+        s.forest = {
+          biome: 'taiga',
+          leg: 1,
+          earned: 2e10,
+          arrivedAt: leftAt,
+          arrivalSporulations: 0,
+          arrivalPlayTime: 0,
+        };
+        // Las láminas del Acto I y de la llegada ya vistas: la medición no debe quedar detrás
+        // de un modal.
+        s.seen.push('chapter.act1', 'chapter.arrive.taiga');
+      }
+    }, now),
   );
   await page.goto('./');
   // Deja que la red termine de crecer y que el informe offline no tape nada.
@@ -80,6 +113,15 @@ test('la partida avanzada corre a 60 fps', async ({ page }, info) => {
   info.annotations.push({ type: 'fps', description: JSON.stringify(stats) });
   console.log(`[${info.project.name}] ${JSON.stringify(stats)}`);
   // Mediana de frame dentro de 60 fps (16,7 ms con margen de reloj).
+  expect(stats.p50).toBeLessThanOrEqual(17.5);
+});
+
+test('la misma partida avanzada en la taiga corre a 60 fps', async ({ page }, info) => {
+  test.skip(Boolean(process.env.CI), 'Medición local: los runners de CI son ruidosos.');
+  await advancedGame(page, 'taiga');
+  const stats = await measure(page, 4000);
+  info.annotations.push({ type: 'fps-taiga', description: JSON.stringify(stats) });
+  console.log(`[${info.project.name} taiga] ${JSON.stringify(stats)}`);
   expect(stats.p50).toBeLessThanOrEqual(17.5);
 });
 
