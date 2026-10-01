@@ -233,10 +233,10 @@ export const es = {
   // Esporular
   'sporulate.title': 'Esporular',
   'sporulate.intro':
-    'Al madurar, la red libera esporas y vuelve a empezar. Cada nivel de esporas da +1 % de producción para siempre.',
+    'Al madurar, la red libera esporas y vuelve a empezar. Cada nivel de esporas da +1 % de producción mientras tu linaje viva en este bosque.',
   'sporulate.gain.one': 'Esporularías ahora: {count} espora',
   'sporulate.gain.other': 'Esporularías ahora: {count} esporas',
-  'sporulate.next': 'Faltan {value}\u00a0N de vida para la siguiente espora',
+  'sporulate.next': 'Faltan {value}\u00a0N en este bosque para la siguiente espora',
   'sporulate.requirement': 'Necesitas {value}\u00a0N ganados en esta partida',
   'sporulate.progress': 'Progreso hacia esporular: {percent}',
   'sporulate.level': 'Nivel de esporas: {level} (+{percent} de producción)',

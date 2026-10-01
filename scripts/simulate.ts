@@ -29,12 +29,12 @@ import {
 } from '../src/core/economy.ts';
 import { drain } from '../src/core/events.ts';
 import * as num from '../src/core/num.ts';
+import { sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import { createState, hasMutation, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
-import { SPORULATE_REQUIREMENT } from '../src/data/prestige.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { catchDrop } from '../src/systems/rain.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
@@ -230,7 +230,7 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
     }
     record.maxValue = Math.max(record.maxValue, num.toNumber(state.lifetimeEarned));
 
-    if (record.sporulateAvailableAt === null && num.gte(state.runEarned, SPORULATE_REQUIREMENT)) {
+    if (record.sporulateAvailableAt === null && num.gte(state.runEarned, sporulateRequirement(state))) {
       record.sporulateAvailableAt = t + 1;
       if (options.stopWhen === 'available') {
         record.duration = t + 1;

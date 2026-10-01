@@ -545,6 +545,7 @@ describe('esporular', () => {
     state.runEarned = 99_999_999;
     // Aunque la vida dé muchas esporas, la partida no llega al requisito.
     state.lifetimeEarned = 1e10;
+    state.forest.earned = 1e10;
     expect(canSporulate(state)).toBe(false);
     sporulate(state, { now: NOW + 1000 });
     expect(state.spores).toEqual({ level: 0, available: 0 });
@@ -556,6 +557,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     // E = ⌊15 · √(1e8 / 1e8)⌋ = 15; S = 0 → gana 15.
     expect(sporeGain(state)).toBe(15);
     sporulate(state, { now: NOW });
@@ -567,6 +569,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 4e8;
+    state.forest.earned = 4e8;
     state.spores = { level: 10, available: 3 };
     // E = ⌊15 · √4⌋ = 30; gana 30 − 10 = 20. Nivel 30, disponibles 3 + 20 = 23.
     expect(sporeGain(state)).toBe(20);
@@ -578,6 +581,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     // E = 15 y ya se tiene nivel 15: gana 0.
     state.spores = { level: 15, available: 0 };
     expect(canSporulate(state)).toBe(false);
@@ -591,6 +595,7 @@ describe('esporular', () => {
     state.nutrients = 5e7;
     state.runEarned = 2e8;
     state.lifetimeEarned = 2.25e8;
+    state.forest.earned = 2.25e8;
     state.owned.hypha = 120;
     state.owned.mushroom = 30;
     state.upgrades = ['hypha.u1', 'sensitiveTouch'];
@@ -617,6 +622,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 2e8;
     state.lifetimeEarned = 2.25e8;
+    state.forest.earned = 2.25e8;
     // Así queda la lluvia cuando una gota acaba de aparecer (rain.ts pone nextIn a 0).
     state.rain.drop = { x: 0.5, y: 0.5, remaining: 10 };
     state.rain.nextIn = 0;
@@ -631,6 +637,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 2e8;
     state.lifetimeEarned = 2.25e8;
+    state.forest.earned = 2.25e8;
     state.spores = { level: 5, available: 2 };
     state.achievements = ['clicks.1', 'drops.1'];
     state.stats.clicks = 150;
@@ -664,6 +671,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     withMutations(state, ['soilMemory']);
     sporulate(state, { now: NOW });
     expect(state.nutrients).toBe(100);
@@ -675,6 +683,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     withMutations(state, ['inheritance']);
     sporulate(state, { now: NOW });
     expect(state.owned.hypha).toBe(10);
@@ -689,6 +698,7 @@ describe('esporular', () => {
     const state = fresh();
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     withMutations(state, ['soilMemory', 'inheritance']);
     sporulate(state, { now: NOW });
     // 10 de Memoria del suelo + 10 de Herencia = 20.

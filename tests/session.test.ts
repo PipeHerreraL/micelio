@@ -69,6 +69,7 @@ describe('sesión de juego', () => {
     // 1e8 N ganados en la partida y en la vida: E(1e8) = ⌊15 · √1⌋ = 15 esporas.
     state.runEarned = 1e8;
     state.lifetimeEarned = 1e8;
+    state.forest.earned = 1e8;
     sporulate(state, { now: start + 60_000 });
     expect(state.spores).toEqual({ level: 15, available: 15 });
     // Memoria del suelo (1) + Quitina ligera (3) = 4 esporas; quedan 11.

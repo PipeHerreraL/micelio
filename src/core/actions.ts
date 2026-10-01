@@ -20,12 +20,13 @@ import {
   isMutationId,
   type MutationId,
 } from '../data/mutations.ts';
-import { HISTORY_LIMIT, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
+import { HISTORY_LIMIT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
 import { evaporateDrop } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
 import { emit } from './events.ts';
+import { sporeScale, sporulateRequirement } from './forest.ts';
 import { adaptationCost, nutrientsForSpores, sporesFor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
@@ -35,6 +36,7 @@ import {
   createState,
   hasMutation,
   hasUpgrade,
+  isTreeComplete,
   type AutobuyThreshold,
   type BuyAmount,
   type GameState,
@@ -74,20 +76,26 @@ export function buyUpgrade(state: GameState, payload: { id: string }): void {
   checkAchievements(state);
 }
 
-/** Esporas que se ganarían al esporular ahora: E(L) − S. */
+/**
+ * Esporas que se ganarían al esporular ahora: E(L) − S, con L los nutrientes ganados en este
+ * bosque (no los de toda la vida: al llegar a un bioma nuevo, la vida daría miles de esporas de
+ * golpe) y la escala del bosque.
+ */
 export function sporeGain(state: GameState): number {
-  return Math.max(0, sporesFor(state.lifetimeEarned, derived(state).sporeK) - state.spores.level);
+  const total = sporesFor(state.forest.earned, derived(state).sporeK, sporeScale(state));
+  return Math.max(0, total - state.spores.level);
 }
 
-/** Nutrientes de vida que faltan para que E(L) suba una espora más. */
+/** Nutrientes del bosque que faltan para que E(L) suba una espora más. */
 export function nutrientsToNextSpore(state: GameState): Num {
   const k = derived(state).sporeK;
-  const next = sporesFor(state.lifetimeEarned, k) + 1;
-  return num.max(num.ZERO, num.sub(nutrientsForSpores(next, k), state.lifetimeEarned));
+  const scale = sporeScale(state);
+  const next = sporesFor(state.forest.earned, k, scale) + 1;
+  return num.max(num.ZERO, num.sub(nutrientsForSpores(next, k, scale), state.forest.earned));
 }
 
 export function canSporulate(state: GameState): boolean {
-  return num.gte(state.runEarned, SPORULATE_REQUIREMENT) && sporeGain(state) > 0;
+  return num.gte(state.runEarned, sporulateRequirement(state)) && sporeGain(state) > 0;
 }
 
 /**
@@ -105,6 +113,7 @@ export function sporulate(state: GameState, payload: { now: number }): void {
     duration: state.stats.runTime,
     spores: gained,
     endedAt: payload.now,
+    biome: state.forest.biome,
   });
   if (state.history.length > HISTORY_LIMIT) state.history.splice(0, state.history.length - HISTORY_LIMIT);
 
@@ -156,7 +165,7 @@ export function buyMutation(state: GameState, payload: { id: MutationId }): void
 
 /** Las adaptaciones aparecen con el árbol de mutaciones completo. */
 export function adaptationsUnlocked(state: GameState): boolean {
-  return MUTATIONS.every((m) => hasMutation(state, m.id));
+  return isTreeComplete(state);
 }
 
 /** Coste del siguiente rango, o null si ya está en su tope. */

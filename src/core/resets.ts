@@ -35,6 +35,11 @@ export const SPORULATE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
   history: 'custom',
   adaptations: 'life',
   sporeFloor: 'life',
+  // Esporular no cambia de bosque; `earned` sigue sumando en gain().
+  forest: 'life',
+  // La esporulación que llega al nivel de colonizar añade una entrada (systems/journey.ts).
+  chronicle: 'custom',
+  biomeAdaptations: 'life',
 };
 
 /** Copia de `fresh` (una partida nueva recién creada) los campos marcados como «run». */

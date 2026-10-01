@@ -5,7 +5,8 @@
  */
 import { canSporulate, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
 import * as num from '../core/num.ts';
-import { SPORE_SOFTCAP_EXPONENT, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
+import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
+import { sporulateRequirement } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
 import { formatPercent } from '../i18n/format.ts';
@@ -106,8 +107,9 @@ export function createSporulateTab(store: Store): TabView {
     setText(available, tp('sporulate.available', state.spores.available));
     setText(gain, tp('sporulate.gain', sporeGain(state)));
     setText(next, t('sporulate.next', { value: fmt(nutrientsToNextSpore(state)) }));
-    const fraction = num.toNumber(num.div(state.runEarned, SPORULATE_REQUIREMENT));
-    setText(requirement, t('sporulate.requirement', { value: fmt(SPORULATE_REQUIREMENT) }));
+    const required = sporulateRequirement(state);
+    const fraction = num.toNumber(num.div(state.runEarned, required));
+    setText(requirement, t('sporulate.requirement', { value: fmt(required) }));
     setText(
       progressLabel,
       t('sporulate.progress', { percent: formatPercent(Math.min(1, fraction), getLocale(), 0) }),

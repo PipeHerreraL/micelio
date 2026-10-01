@@ -29,6 +29,7 @@ function readyToSporulate(): GameState {
   state.nutrients = 5e7;
   state.runEarned = 1e8;
   state.lifetimeEarned = 1e8;
+  state.forest.earned = 1e8;
   state.owned.hypha = 40;
   state.owned.rhizomorph = 12;
   state.upgrades = ['hypha.u1'];
@@ -97,7 +98,9 @@ describe('historial de partidas', () => {
     const state = readyToSporulate();
     sporulate(state, { now: NOW + 60_000 });
     // E(1e8) = ⌊15 · √1⌋ = 15 esporas; la partida duró 1800 s.
-    expect(state.history).toEqual([{ sporulation: 1, duration: 1800, spores: 15, endedAt: NOW + 60_000 }]);
+    expect(state.history).toEqual([
+      { sporulation: 1, duration: 1800, spores: 15, endedAt: NOW + 60_000, biome: 'natal' },
+    ]);
   });
 
   it('el historial no pasa de su tope y conserva las partidas más recientes', () => {
@@ -106,6 +109,7 @@ describe('historial de partidas', () => {
       // Cada esporulación necesita 1e8 N en la partida y más vida que la anterior.
       state.runEarned = 1e8;
       state.lifetimeEarned = 1e8 * i * i * 4;
+      state.forest.earned = 1e8 * i * i * 4;
       state.stats.runTime = i;
       sporulate(state, { now: NOW + i });
     }

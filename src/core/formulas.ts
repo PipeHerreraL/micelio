@@ -69,17 +69,18 @@ export function previousMilestone(owned: number, thresholds: readonly number[] =
 }
 
 /**
- * E(L) = ⌊k √(L / 1e8)⌋: esporas totales que corresponden a L nutrientes de vida.
- * El épsilon evita que 30.999999 quede en 30 cuando L sale de nutrientsForSpores(31).
+ * E(L) = ⌊k √(L / R)⌋: esporas totales que corresponden a L nutrientes ganados en el bosque,
+ * con R la escala del bosque (1e8 en el natal; ver core/forest.ts). El épsilon evita que
+ * 30.999999 quede en 30 cuando L sale de nutrientsForSpores(31).
  */
-export function sporesFor(lifetime: Num, k: number): number {
-  if (!num.gt(lifetime, 0)) return 0;
-  return Math.floor(k * Math.sqrt(num.toNumber(num.div(lifetime, SPORE_SCALE))) + 1e-9);
+export function sporesFor(earned: Num, k: number, scale: Num = SPORE_SCALE): number {
+  if (!num.gt(earned, 0)) return 0;
+  return Math.floor(k * Math.sqrt(num.toNumber(num.div(earned, scale))) + 1e-9);
 }
 
-/** Inversa de sporesFor: nutrientes de vida necesarios para llegar a `spores` esporas. */
-export function nutrientsForSpores(spores: number, k: number): Num {
-  return num.mul(SPORE_SCALE, (spores / k) ** 2);
+/** Inversa de sporesFor: nutrientes del bosque necesarios para llegar a `spores` esporas. */
+export function nutrientsForSpores(spores: number, k: number, scale: Num = SPORE_SCALE): Num {
+  return num.mul(scale, (spores / k) ** 2);
 }
 
 /**

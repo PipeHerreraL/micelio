@@ -11,13 +11,15 @@ import type { Num } from './num.ts';
 import { computeDerived, derived } from './selectors.ts';
 import { hasMutation, hasUpgrade, type BuyAmount, type GameState } from './state.ts';
 
-/** Suma nutrientes a los tres totales: actuales, de la partida y de la vida. */
+/** Suma nutrientes a los cuatro totales: actuales, de la partida, del bosque y de la vida. */
 export function gain(state: GameState, amount: Num): void {
   if (!num.gt(amount, 0)) return;
   // Con el techo, ninguna suma puede volverse Infinity y estropear el guardado.
   const safe = num.clamp(amount);
   state.nutrients = num.clamp(num.add(state.nutrients, safe));
   state.runEarned = num.clamp(num.add(state.runEarned, safe));
+  // Mismos sumandos que lifetimeEarned: en el natal los dos valen lo mismo, bit a bit.
+  state.forest.earned = num.clamp(num.add(state.forest.earned, safe));
   state.lifetimeEarned = num.clamp(num.add(state.lifetimeEarned, safe));
 }
 

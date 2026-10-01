@@ -3,8 +3,9 @@
  * funciones. Los valores derivados (N/s, valor del clic) no viven aquí: ver selectors.ts.
  */
 import { ADAPTATION_IDS, type AdaptationId } from '../data/adaptations.ts';
+import { BIOME_ADAPTATION_IDS, HOME_BIOME, type BiomeAdaptationId, type BiomeId } from '../data/biomes.ts';
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
-import type { MutationId } from '../data/mutations.ts';
+import { MUTATION_IDS, type MutationId } from '../data/mutations.ts';
 import { RAIN_INTERVAL_MAX, RAIN_INTERVAL_MIN } from '../data/rain.ts';
 import type { Num } from './num.ts';
 import { toSeed } from './rng.ts';
@@ -114,6 +115,44 @@ export interface GameState {
    * que nadie pierda bono al actualizar (decisión del usuario); en partidas nuevas es 0.
    */
   sporeFloor: number;
+  /** El bosque donde vive el linaje (docs/ROADMAP.md, fase 8). */
+  forest: ForestState;
+  /**
+   * Una entrada por bosque cerrado (el Acto I en el natal, la colonización en los demás), en el
+   * orden del viaje: la entrada i es la del tramo i. Tope: MAX_LEG + 1.
+   */
+  chronicle: ChronicleEntry[];
+  /** Rango de cada adaptación de bioma: permanentes y válidas en todos los bosques. */
+  biomeAdaptations: Record<BiomeAdaptationId, number>;
+}
+
+/** El bosque donde vive el linaje. Lo colonizado y lo visitado se deducen de la Crónica. */
+export interface ForestState {
+  biome: BiomeId;
+  /** Tramo del viaje: 0 = natal, 1 = primer destino… Es también el número de dispersiones. */
+  leg: number;
+  /** Nutrientes ganados en este bosque, en todas sus partidas: la L de E = ⌊k √(L / R)⌋. */
+  earned: Num;
+  /** Fecha de llegada (ms); en el natal, el inicio de la vida. */
+  arrivedAt: number;
+  /** stats.sporulations y stats.totalTime al llegar: lo hecho aquí sale por diferencia. */
+  arrivalSporulations: number;
+  arrivalPlayTime: number;
+}
+
+/** Un bosque cerrado: lo que la Crónica recuerda de él. */
+export interface ChronicleEntry {
+  biome: BiomeId;
+  leg: number;
+  arrivedAt: number;
+  /** Fecha de la esporulación que lo colonizó; null en el Acto I (el núcleo lo cierra sin reloj). */
+  colonizedAt: number | null;
+  /** Esporulaciones y segundos jugados en ese bosque hasta cerrarlo. */
+  sporulations: number;
+  playTime: number;
+  /** Al irse con el viento: fecha y nivel de esporas alcanzado. null mientras siga aquí. */
+  leftAt: number | null;
+  levelReached: number | null;
 }
 
 /** Una partida terminada al esporular: lo que la Crónica y las estadísticas recuerdan. */
@@ -126,6 +165,8 @@ export interface RunRecord {
   spores: number;
   /** Marca de tiempo (ms) del final. */
   endedAt: number;
+  /** Bosque donde se jugó la partida. */
+  biome: BiomeId;
 }
 
 export function emptyOwned(): Record<GeneratorId, number> {
@@ -138,6 +179,17 @@ export function emptyAdaptations(): Record<AdaptationId, number> {
   const ranks = {} as Record<AdaptationId, number>;
   for (const id of ADAPTATION_IDS) ranks[id] = 0;
   return ranks;
+}
+
+export function emptyBiomeAdaptations(): Record<BiomeAdaptationId, number> {
+  const ranks = {} as Record<BiomeAdaptationId, number>;
+  for (const id of BIOME_ADAPTATION_IDS) ranks[id] = 0;
+  return ranks;
+}
+
+/** El bosque natal de una vida que empieza en `now`. */
+export function homeForest(now: number): ForestState {
+  return { biome: HOME_BIOME, leg: 0, earned: 0, arrivedAt: now, arrivalSporulations: 0, arrivalPlayTime: 0 };
 }
 
 export function emptyAutobuy(): Record<GeneratorId, boolean> {
@@ -191,11 +243,19 @@ export function createState(seed: number, now: number): GameState {
     history: [],
     adaptations: emptyAdaptations(),
     sporeFloor: 0,
+    forest: homeForest(now),
+    chronicle: [],
+    biomeAdaptations: emptyBiomeAdaptations(),
   };
 }
 
 export function hasMutation(state: GameState, id: MutationId): boolean {
   return state.mutations.includes(id);
+}
+
+/** Árbol de mutaciones completo: abre las Adaptaciones y es la mitad del Acto I. */
+export function isTreeComplete(state: GameState): boolean {
+  return MUTATION_IDS.every((id) => state.mutations.includes(id));
 }
 
 export function hasUpgrade(state: GameState, id: string): boolean {

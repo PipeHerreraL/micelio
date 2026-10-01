@@ -11,6 +11,14 @@ import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { isAchievementId } from '../data/achievements.ts';
 import { isMutationId, type MutationId } from '../data/mutations.ts';
 import { ADAPTATIONS, type AdaptationId } from '../data/adaptations.ts';
+import {
+  BIOME_ADAPTATIONS,
+  HOME_BIOME,
+  MAX_LEG,
+  isBiomeId,
+  type BiomeAdaptationId,
+  type BiomeId,
+} from '../data/biomes.ts';
 import { HISTORY_LIMIT, SPORE_SOFTCAP_BASE } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
 import * as num from '../core/num.ts';
@@ -22,6 +30,8 @@ import {
   type ActiveEffect,
   type AutobuyThreshold,
   type BuyAmount,
+  type ChronicleEntry,
+  type ForestState,
   type GameState,
   type Locale,
   type Notation,
@@ -34,7 +44,7 @@ export const BACKUP_KEY = 'micelio:save:backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface SaveFile {
   version: number;
@@ -82,6 +92,34 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     const adaptations = Object.fromEntries(ADAPTATIONS.map((a) => [a.id, 0]));
     const sporeFloor = level > SPORE_SOFTCAP_BASE ? level : 0;
     return { ...raw, state: { ...state, adaptations, sporeFloor } };
+  },
+  /**
+   * 4 → 5: llega el viaje (fase 8). La partida sigue en el bosque natal, tramo 0, y los
+   * nutrientes del bosque son los de toda la vida: las esporas por ganar, el requisito y la
+   * producción quedan idénticos (decisión del usuario: nadie pierde progreso ni bono al
+   * actualizar). La Crónica empieza vacía: si la partida ya cumple el Acto I, el núcleo lo
+   * cierra en su primer segundo (systems/journey.ts), así la regla no se escribe dos veces.
+   * Todas las partidas del historial se jugaron en el natal.
+   */
+  4: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    if (!state) return raw;
+    const stats = isObject(state.stats) ? state.stats : null;
+    const startedAt = stats && isNonNegative(stats.startedAt) ? stats.startedAt : 0;
+    const history = Array.isArray(state.history)
+      ? state.history.map((r: unknown) => (isObject(r) ? { ...r, biome: HOME_BIOME } : r))
+      : state.history;
+    // Si lifetimeEarned no es válido, el validador rechaza los dos: aquí no se inventa nada.
+    const forest = {
+      biome: HOME_BIOME,
+      leg: 0,
+      earned: state.lifetimeEarned,
+      arrivedAt: startedAt,
+      arrivalSporulations: 0,
+      arrivalPlayTime: 0,
+    };
+    const biomeAdaptations = Object.fromEntries(BIOME_ADAPTATIONS.map((a) => [a.id, 0]));
+    return { ...raw, state: { ...state, history, forest, chronicle: [], biomeAdaptations } };
   },
 };
 
@@ -244,8 +282,14 @@ export function validateState(raw: unknown): GameState | null {
   const history: RunRecord[] = [];
   for (const r of raw.history) {
     if (!isObject(r) || !isCount(r.sporulation) || !isCount(r.spores)) return null;
-    if (!isNonNegative(r.duration) || !isNonNegative(r.endedAt)) return null;
-    history.push({ sporulation: r.sporulation, duration: r.duration, spores: r.spores, endedAt: r.endedAt });
+    if (!isNonNegative(r.duration) || !isNonNegative(r.endedAt) || !isBiomeId(r.biome)) return null;
+    history.push({
+      sporulation: r.sporulation,
+      duration: r.duration,
+      spores: r.spores,
+      endedAt: r.endedAt,
+      biome: r.biome,
+    });
   }
 
   if (!isObject(raw.adaptations)) return null;
@@ -256,6 +300,14 @@ export function validateState(raw: unknown): GameState | null {
     adaptations[def.id] = rank;
   }
   if (!isCount(raw.sporeFloor)) return null;
+
+  const forest = validateForest(raw.forest, stats, lifetimeEarned);
+  if (!forest) return null;
+  const chronicle = validateChronicle(raw.chronicle, forest);
+  if (!chronicle) return null;
+  const visited = new Set<BiomeId>([...chronicle.map((e) => e.biome), forest.biome]);
+  const biomeAdaptations = validateBiomeAdaptations(raw.biomeAdaptations, visited);
+  if (!biomeAdaptations) return null;
 
   return {
     nutrients,
@@ -276,7 +328,106 @@ export function validateState(raw: unknown): GameState | null {
     history,
     adaptations,
     sporeFloor: raw.sporeFloor,
+    forest,
+    chronicle,
+    biomeAdaptations,
   };
+}
+
+/**
+ * El bosque actual. `earned` no puede superar los nutrientes de vida: las dos sumas avanzan con
+ * los mismos sumandos (economy.gain) y el natal empieza con los de vida, así que solo un
+ * guardado manipulado los descuadra.
+ */
+function validateForest(
+  raw: unknown,
+  stats: { sporulations: number; totalTime: number },
+  lifetimeEarned: number,
+): ForestState | null {
+  if (!isObject(raw) || !isBiomeId(raw.biome)) return null;
+  if (!isCount(raw.leg) || raw.leg > MAX_LEG) return null;
+  if ((raw.leg === 0) !== (raw.biome === HOME_BIOME)) return null;
+  const earned = num.parse(raw.earned);
+  if (earned === null || num.gt(earned, lifetimeEarned)) return null;
+  if (!isNonNegative(raw.arrivedAt)) return null;
+  if (!isCount(raw.arrivalSporulations) || raw.arrivalSporulations > stats.sporulations) return null;
+  if (!isNonNegative(raw.arrivalPlayTime) || raw.arrivalPlayTime > stats.totalTime) return null;
+  return {
+    biome: raw.biome,
+    leg: raw.leg,
+    earned,
+    arrivedAt: raw.arrivedAt,
+    arrivalSporulations: raw.arrivalSporulations,
+    arrivalPlayTime: raw.arrivalPlayTime,
+  };
+}
+
+/**
+ * La Crónica: una entrada por tramo cerrado, en orden y sin huecos. Las dos funciones que la
+ * construyen (systems/journey.ts) añaden como mucho una entrada por tramo, así que el tope es
+ * el número de tramos y se comprueba antes de recorrerla.
+ */
+function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_LEG + 1) return null;
+  if (raw.length !== forest.leg && raw.length !== forest.leg + 1) return null;
+  const out: ChronicleEntry[] = [];
+  const seen = new Set<BiomeId>();
+  for (let i = 0; i < raw.length; i += 1) {
+    const e: unknown = raw[i];
+    if (!isObject(e) || !isBiomeId(e.biome) || e.leg !== i) return null;
+    if ((i === 0) !== (e.biome === HOME_BIOME) || seen.has(e.biome)) return null;
+    seen.add(e.biome);
+    if (!isNonNegative(e.arrivedAt) || !isCount(e.sporulations) || !isNonNegative(e.playTime)) return null;
+    // El Acto I se cierra sin reloj (null); los demás bosques, con la fecha de la esporulación.
+    let colonizedAt: number | null = null;
+    if (i === 0) {
+      if (e.colonizedAt !== null) return null;
+    } else {
+      if (!isNonNegative(e.colonizedAt)) return null;
+      colonizedAt = e.colonizedAt;
+    }
+    // Solo los bosques que se dejaron tienen fecha de partida y nivel alcanzado.
+    let leftAt: number | null = null;
+    let levelReached: number | null = null;
+    if (i < forest.leg) {
+      if (!isNonNegative(e.leftAt) || !isCount(e.levelReached)) return null;
+      leftAt = e.leftAt;
+      levelReached = e.levelReached;
+    } else if (e.leftAt !== null || e.levelReached !== null) {
+      return null;
+    }
+    out.push({
+      biome: e.biome,
+      leg: i,
+      arrivedAt: e.arrivedAt,
+      colonizedAt,
+      sporulations: e.sporulations,
+      playTime: e.playTime,
+      leftAt,
+      levelReached,
+    });
+  }
+  // Si el tramo actual ya está cerrado, su entrada es la del bioma actual; si no, no aparece.
+  const last = out[out.length - 1];
+  if (out.length === forest.leg + 1 && last?.biome !== forest.biome) return null;
+  if (out.length === forest.leg && seen.has(forest.biome)) return null;
+  return out;
+}
+
+/** Rangos de bioma: dentro del tope y solo de biomas por los que el linaje ya pasó. */
+function validateBiomeAdaptations(
+  raw: unknown,
+  visited: ReadonlySet<BiomeId>,
+): Record<BiomeAdaptationId, number> | null {
+  if (!isObject(raw)) return null;
+  const ranks = {} as Record<BiomeAdaptationId, number>;
+  for (const def of BIOME_ADAPTATIONS) {
+    const rank = raw[def.id];
+    if (!isCount(rank) || rank > def.max) return null;
+    if (rank > 0 && !visited.has(def.biome)) return null;
+    ranks[def.id] = rank;
+  }
+  return ranks;
 }
 
 // ---------------------------------------------------------------------------------------

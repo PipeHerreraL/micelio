@@ -227,10 +227,10 @@ export const en: Catalog = {
   // Esporular
   'sporulate.title': 'Sporulate',
   'sporulate.intro':
-    'Once it matures, the network releases spores and starts over. Each spore level gives +1% production forever.',
+    'Once it matures, the network releases spores and starts over. Each spore level gives +1% production for as long as your lineage lives in this forest.',
   'sporulate.gain.one': 'Sporulating now would give you {count} spore',
   'sporulate.gain.other': 'Sporulating now would give you {count} spores',
-  'sporulate.next': '{value} more lifetime N until the next spore',
+  'sporulate.next': '{value}\u00a0N more in this forest until the next spore',
   'sporulate.requirement': 'You need {value}\u00a0N earned in this run',
   'sporulate.progress': 'Progress toward sporulating: {percent}',
   'sporulate.level': 'Spore level: {level} (+{percent} production)',

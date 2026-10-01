@@ -101,6 +101,7 @@ describe('adaptaciones', () => {
     // Con Esporas aladas, E(1e14) = ⌊18.75 · √1e6⌋ = 18 750 > nivel 2000: se puede esporular.
     state.runEarned = 1e9;
     state.lifetimeEarned = 1e14;
+    state.forest.earned = 1e14;
     sporulate(state, { now: NOW });
     expect(state.stats.sporulations).toBe(1);
     // 10^(3+2) = 1e5, más los 100 N de Memoria del suelo.
