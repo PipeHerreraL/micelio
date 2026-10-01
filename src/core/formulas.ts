@@ -82,17 +82,31 @@ export function nutrientsForSpores(spores: number, k: number): Num {
   return num.mul(SPORE_SCALE, (spores / k) ** 2);
 }
 
-/** G = (1 + 0.01 S)(1 + a L) Π g_j · E, con 0.01 = SPORE_LEVEL_BONUS. */
+/**
+ * Factor del nivel de esporas S con madurez (docs/ROADMAP.md, fase 7):
+ * S ≤ S0: 1 + 0.01·S, como siempre; S > S0: 1 + 0.01·S0·(S/S0)^β, continuo en S0.
+ */
+export function sporeFactor(level: number, threshold: number, exponent: number): number {
+  if (level <= threshold) return 1 + SPORE_LEVEL_BONUS * level;
+  return 1 + SPORE_LEVEL_BONUS * threshold * (level / threshold) ** exponent;
+}
+
+/** G = (1 + 0.01 S)(1 + a L) Π g_j · E, con el factor de esporas ya calculado (sporeFactor). */
 export function globalMultiplier(
-  sporeLevel: number,
+  sporeBonus: number,
   achievements: number,
   achievementBonus: number,
   globalUpgrades: readonly number[],
   eventMultiplier: number,
 ): Num {
-  let g = (1 + SPORE_LEVEL_BONUS * sporeLevel) * (1 + achievementBonus * achievements);
+  let g = sporeBonus * (1 + achievementBonus * achievements);
   for (const m of globalUpgrades) g *= m;
   return num.from(g * eventMultiplier);
+}
+
+/** Coste del siguiente rango de una adaptación: ⌈base · growth^rango⌉ esporas. */
+export function adaptationCost(baseCost: number, growth: number, rank: number): number {
+  return Math.ceil(baseCost * growth ** rank);
 }
 
 /** V = M + q P: nutrientes por clic. */

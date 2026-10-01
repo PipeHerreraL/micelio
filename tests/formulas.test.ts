@@ -3,6 +3,8 @@ import {
   bulkCost,
   clickValue,
   globalMultiplier,
+  sporeFactor,
+  adaptationCost,
   maxAffordable,
   milestonesReached,
   nextMilestone,
@@ -289,25 +291,51 @@ describe('nutrientsForSpores: inversa de sporesFor', () => {
 
 describe('globalMultiplier: multiplicador global', () => {
   it('sin bonos el multiplicador global es 1', () => {
-    expect(globalMultiplier(0, 0, 0.01, [], 1)).toBeCloseTo(1, 10);
+    expect(globalMultiplier(1, 0, 0.01, [], 1)).toBeCloseTo(1, 10);
   });
 
-  it('cada nivel de esporas suma un 1 % de producción', () => {
-    // 1 + 0.01 · 50 = 1.5
-    expect(globalMultiplier(50, 0, 0.01, [], 1)).toBeCloseTo(1.5, 10);
+  it('el factor de esporas multiplica la producción', () => {
+    // Nivel 50 sin madurez: 1 + 0.01 · 50 = 1.5
+    expect(globalMultiplier(1.5, 0, 0.01, [], 1)).toBeCloseTo(1.5, 10);
   });
 
-  it('nivel de esporas, logros y mejoras globales se multiplican', () => {
+  it('factor de esporas, logros y mejoras globales se multiplican', () => {
     // (1 + 0.1) · (1 + 0.05) · 1.1 · 1.15 = 1.155 · 1.265 = 1.461075
-    expect(globalMultiplier(10, 5, 0.01, [1.1, 1.15], 1)).toBeCloseTo(1.461075, 10);
+    expect(globalMultiplier(1.1, 5, 0.01, [1.1, 1.15], 1)).toBeCloseTo(1.461075, 10);
   });
 
   it('el Aguacero multiplica todo por 5', () => {
     // Solo el evento: 1 · 5 = 5
-    expect(globalMultiplier(0, 0, 0.01, [], 5)).toBeCloseTo(5, 10);
+    expect(globalMultiplier(1, 0, 0.01, [], 5)).toBeCloseTo(5, 10);
     // (1 + 0.2) · (1 + 0.02 · 3) · (1.1 · 1.15 · 1.2 · 1.25) · 5
     // = 1.2 · 1.06 · 1.8975 · 5 = 1.272 · 1.8975 · 5 = 2.41362 · 5 = 12.0681
-    expect(globalMultiplier(20, 3, 0.02, [1.1, 1.15, 1.2, 1.25], 5)).toBeCloseTo(12.0681, 10);
+    expect(globalMultiplier(1.2, 3, 0.02, [1.1, 1.15, 1.2, 1.25], 5)).toBeCloseTo(12.0681, 10);
+  });
+});
+
+describe('sporeFactor: madurez de la red', () => {
+  it('hasta el umbral cada nivel de esporas da un 1 %', () => {
+    // 1 + 0.01 · 800 = 9
+    expect(sporeFactor(800, 1000, 0.5)).toBeCloseTo(9, 10);
+    // Justo en el umbral: 1 + 0.01 · 1000 = 11
+    expect(sporeFactor(1000, 1000, 0.5)).toBeCloseTo(11, 10);
+  });
+
+  it('por encima del umbral cada nivel aporta menos y la curva no salta en el umbral', () => {
+    // 1 + 0.01 · 1000 · (4000 / 1000)^0.5 = 1 + 10 · 2 = 21 (lineal daría 41)
+    expect(sporeFactor(4000, 1000, 0.5)).toBeCloseTo(21, 10);
+    // Un nivel por encima del umbral apenas cambia el factor: continuidad.
+    expect(sporeFactor(1001, 1000, 0.5) - sporeFactor(1000, 1000, 0.5)).toBeLessThan(0.01);
+  });
+});
+
+describe('adaptationCost: coste de cada rango', () => {
+  it('el coste crece con el factor del rango y se redondea hacia arriba', () => {
+    // 100 · 2^0 = 100; 100 · 2^3 = 800; 150 · 2.5^1 = 375; 150 · 2.5^2 = 937.5 → 938
+    expect(adaptationCost(100, 2, 0)).toBe(100);
+    expect(adaptationCost(100, 2, 3)).toBe(800);
+    expect(adaptationCost(150, 2.5, 1)).toBe(375);
+    expect(adaptationCost(150, 2.5, 2)).toBe(938);
   });
 });
 

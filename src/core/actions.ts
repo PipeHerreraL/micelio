@@ -3,6 +3,12 @@
  * desde la interfaz. Cada una valida antes de mutar, así que un payload imposible no deja
  * el estado a medias.
  */
+import {
+  SCLEROTIUM_BASE_EXPONENT,
+  getAdaptation,
+  isAdaptationId,
+  type AdaptationId,
+} from '../data/adaptations.ts';
 import { GENERATORS, getGenerator, isGeneratorId, type GeneratorId } from '../data/generators.ts';
 import {
   INHERITANCE_GENERATORS,
@@ -20,7 +26,7 @@ import { checkAchievements } from '../systems/achievements.ts';
 import { evaporateDrop } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
 import { emit } from './events.ts';
-import { nutrientsForSpores, sporesFor } from './formulas.ts';
+import { adaptationCost, nutrientsForSpores, sporesFor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
 import { resetFields, SPORULATE_RESET } from './resets.ts';
@@ -116,8 +122,13 @@ export function sporulate(state: GameState, payload: { now: number }): void {
   checkAchievements(state);
 }
 
-/** Bonos de inicio de partida de las mutaciones (Memoria del suelo, Herencia). */
+/** Bonos de inicio de partida de las mutaciones (Memoria del suelo, Herencia) y del Esclerocio. */
 export function applyRunStartBonuses(state: GameState): void {
+  const sclerotium = state.adaptations.sclerotium;
+  if (sclerotium > 0) {
+    // Un esclerocio guarda reservas para rebrotar: la partida arranca con 10^(3 + rango) N.
+    state.nutrients = num.add(state.nutrients, 10 ** (SCLEROTIUM_BASE_EXPONENT + sclerotium));
+  }
   if (hasMutation(state, 'soilMemory')) {
     state.nutrients = num.add(state.nutrients, SOIL_MEMORY_NUTRIENTS);
     state.owned.hypha += SOIL_MEMORY_HYPHAE;
@@ -141,6 +152,30 @@ export function buyMutation(state: GameState, payload: { id: MutationId }): void
   state.mutations.push(def.id);
   invalidate(state);
   emit({ type: 'buyMutation', id: def.id });
+}
+
+/** Las adaptaciones aparecen con el árbol de mutaciones completo. */
+export function adaptationsUnlocked(state: GameState): boolean {
+  return MUTATIONS.every((m) => hasMutation(state, m.id));
+}
+
+/** Coste del siguiente rango, o null si ya está en su tope. */
+export function nextAdaptationCost(state: GameState, id: AdaptationId): number | null {
+  const def = getAdaptation(id);
+  const rank = state.adaptations[id];
+  if (def.max !== null && rank >= def.max) return null;
+  return adaptationCost(def.baseCost, def.growth, rank);
+}
+
+/** Compra un rango de una adaptación con esporas disponibles. No baja el nivel. */
+export function buyAdaptation(state: GameState, payload: { id: AdaptationId }): void {
+  if (!isAdaptationId(payload.id) || !adaptationsUnlocked(state)) return;
+  const cost = nextAdaptationCost(state, payload.id);
+  if (cost === null || state.spores.available < cost) return;
+  state.spores.available -= cost;
+  state.adaptations[payload.id] += 1;
+  invalidate(state);
+  emit({ type: 'buyAdaptation', id: payload.id, rank: state.adaptations[payload.id] });
 }
 
 /** Siguiente mutación de la tabla que se podría comprar con sus requisitos cumplidos. */

@@ -33,6 +33,8 @@ export const SPORULATE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
   rngSeed: 'life',
   // Se añade la partida que termina.
   history: 'custom',
+  adaptations: 'life',
+  sporeFloor: 'life',
 };
 
 /** Copia de `fresh` (una partida nueva recién creada) los campos marcados como «run». */

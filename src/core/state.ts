@@ -2,6 +2,7 @@
  * El único estado del juego: un objeto plano, serializable con JSON, sin clases ni
  * funciones. Los valores derivados (N/s, valor del clic) no viven aquí: ver selectors.ts.
  */
+import { ADAPTATION_IDS, type AdaptationId } from '../data/adaptations.ts';
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import type { MutationId } from '../data/mutations.ts';
 import { RAIN_INTERVAL_MAX, RAIN_INTERVAL_MIN } from '../data/rain.ts';
@@ -105,6 +106,14 @@ export interface GameState {
   rngSeed: number;
   /** Partidas terminadas, la más reciente al final (tope en HISTORY_LIMIT). */
   history: RunRecord[];
+  /** Rango de cada adaptación (docs/ROADMAP.md, fase 7). */
+  adaptations: Record<AdaptationId, number>;
+  /**
+   * Nivel hasta el que el bono de esporas sigue siendo lineal aunque supere el umbral de
+   * madurez. Lo fija la migración a las partidas que ya pasaban de ese umbral en la 1.x, para
+   * que nadie pierda bono al actualizar (decisión del usuario); en partidas nuevas es 0.
+   */
+  sporeFloor: number;
 }
 
 /** Una partida terminada al esporular: lo que la Crónica y las estadísticas recuerdan. */
@@ -123,6 +132,12 @@ export function emptyOwned(): Record<GeneratorId, number> {
   const owned = {} as Record<GeneratorId, number>;
   for (const id of GENERATOR_IDS) owned[id] = 0;
   return owned;
+}
+
+export function emptyAdaptations(): Record<AdaptationId, number> {
+  const ranks = {} as Record<AdaptationId, number>;
+  for (const id of ADAPTATION_IDS) ranks[id] = 0;
+  return ranks;
 }
 
 export function emptyAutobuy(): Record<GeneratorId, boolean> {
@@ -174,6 +189,8 @@ export function createState(seed: number, now: number): GameState {
     seen: [],
     rngSeed,
     history: [],
+    adaptations: emptyAdaptations(),
+    sporeFloor: 0,
   };
 }
 

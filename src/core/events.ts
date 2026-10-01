@@ -2,6 +2,7 @@
  * Cola de eventos del núcleo (ARCHITECTURE.md §4.7). El núcleo emite; main.ts vacía la
  * cola en cada frame y la reparte a avisos, sonido y canvas. El simulador la descarta.
  */
+import type { AdaptationId } from '../data/adaptations.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import type { MutationId } from '../data/mutations.ts';
 import type { RainEffectKind } from '../data/rain.ts';
@@ -13,6 +14,7 @@ export type GameEvent =
   | { type: 'buyGenerator'; id: GeneratorId; count: number }
   | { type: 'buyUpgrade'; id: string }
   | { type: 'buyMutation'; id: MutationId }
+  | { type: 'buyAdaptation'; id: AdaptationId; rank: number }
   | { type: 'achievement'; id: string }
   | { type: 'rainSpawn' }
   | { type: 'rainExpired' }

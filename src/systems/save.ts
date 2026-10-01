@@ -10,7 +10,8 @@
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { isAchievementId } from '../data/achievements.ts';
 import { isMutationId, type MutationId } from '../data/mutations.ts';
-import { HISTORY_LIMIT } from '../data/prestige.ts';
+import { ADAPTATIONS, type AdaptationId } from '../data/adaptations.ts';
+import { HISTORY_LIMIT, SPORE_SOFTCAP_BASE } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
 import * as num from '../core/num.ts';
 import {
@@ -33,7 +34,7 @@ export const BACKUP_KEY = 'micelio:save:backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface SaveFile {
   version: number;
@@ -67,6 +68,20 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     const state = isObject(raw.state) ? raw.state : null;
     if (!state) return raw;
     return { ...raw, state: { ...state, history: [] } };
+  },
+  /**
+   * 3 → 4: llegan la madurez de la red y las adaptaciones. Una partida que ya pasaba del
+   * umbral conserva su bono: su nivel actual queda como suelo lineal (sporeFloor), así que la
+   * actualización no le quita producción; solo los niveles nuevos rinden menos.
+   */
+  3: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    if (!state) return raw;
+    const spores = isObject(state.spores) ? state.spores : null;
+    const level = spores && isCount(spores.level) ? spores.level : 0;
+    const adaptations = Object.fromEntries(ADAPTATIONS.map((a) => [a.id, 0]));
+    const sporeFloor = level > SPORE_SOFTCAP_BASE ? level : 0;
+    return { ...raw, state: { ...state, adaptations, sporeFloor } };
   },
 };
 
@@ -233,6 +248,15 @@ export function validateState(raw: unknown): GameState | null {
     history.push({ sporulation: r.sporulation, duration: r.duration, spores: r.spores, endedAt: r.endedAt });
   }
 
+  if (!isObject(raw.adaptations)) return null;
+  const adaptations = {} as Record<AdaptationId, number>;
+  for (const def of ADAPTATIONS) {
+    const rank = raw.adaptations[def.id];
+    if (!isCount(rank) || (def.max !== null && rank > def.max)) return null;
+    adaptations[def.id] = rank;
+  }
+  if (!isCount(raw.sporeFloor)) return null;
+
   return {
     nutrients,
     runEarned,
@@ -250,6 +274,8 @@ export function validateState(raw: unknown): GameState | null {
     seen,
     rngSeed: raw.rngSeed,
     history,
+    adaptations,
+    sporeFloor: raw.sporeFloor,
   };
 }
 

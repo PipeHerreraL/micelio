@@ -5,7 +5,9 @@
  *
  * Ver ARCHITECTURE.md §4.6 para por qué la caché vive fuera del estado.
  */
+import { APICAL_THRESHOLD_GROWTH } from '../data/adaptations.ts';
 import { CLICK_BASE } from '../data/click.ts';
+import { SPORE_SOFTCAP_BASE, SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
 import { GENERATORS, type GeneratorId } from '../data/generators.ts';
 import {
   ACHIEVEMENT_BONUS_BASE,
@@ -17,7 +19,7 @@ import {
 } from '../data/mutations.ts';
 import { DOWNPOUR_MULTIPLIER, STORM_CLICK_MULTIPLIER } from '../data/rain.ts';
 import { getUpgrade } from '../data/upgrades.ts';
-import { clickValue, globalMultiplier, milestonesReached } from './formulas.ts';
+import { clickValue, globalMultiplier, milestonesReached, sporeFactor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
 import { hasMutation, type GameState } from './state.ts';
@@ -55,6 +57,10 @@ export interface Derived {
   achievementBonus: number;
   /** k de la fórmula de esporas. */
   sporeK: number;
+  /** Factor de producción del nivel de esporas, con madurez (1 + 0.01·S hasta el umbral). */
+  sporeFactor: number;
+  /** Umbral de madurez: nivel hasta el que cada nivel da +1 %. */
+  sporeThreshold: number;
 }
 
 const cache = new WeakMap<GameState, Derived>();
@@ -126,8 +132,13 @@ export function computeDerived(state: GameState): Derived {
     if (effect.kind === 'storm') stormMultiplier *= STORM_CLICK_MULTIPLIER;
   }
 
+  const sporeThreshold = Math.max(
+    SPORE_SOFTCAP_BASE * APICAL_THRESHOLD_GROWTH ** state.adaptations.apicalBody,
+    state.sporeFloor,
+  );
+  const sporeBonus = sporeFactor(state.spores.level, sporeThreshold, SPORE_SOFTCAP_EXPONENT);
   const baseGlobal = globalMultiplier(
-    state.spores.level,
+    sporeBonus,
     state.achievements.length,
     achievementBonus,
     globalUpgrades,
@@ -169,5 +180,7 @@ export function computeDerived(state: GameState): Derived {
     costDiscount: hasMutation(state, 'lightChitin') ? LIGHT_CHITIN_DISCOUNT : 0,
     achievementBonus,
     sporeK: hasMutation(state, 'wingedSpores') ? SPORE_K_WINGED : SPORE_K_BASE,
+    sporeFactor: sporeBonus,
+    sporeThreshold,
   };
 }

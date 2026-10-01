@@ -2,6 +2,7 @@
  * Tiempo aplicado de forma analítica (PROMPT.md §11, ARCHITECTURE.md §4.10): progreso
  * offline al cargar y puesta al día al volver de segundo plano. Nunca se repiten ticks.
  */
+import { TORPOR_OFFLINE_HOURS } from '../data/adaptations.ts';
 import { AWAY_ACHIEVEMENT_SECONDS } from '../data/achievements.ts';
 import {
   OFFLINE_CAP_BASE_SECONDS,
@@ -26,7 +27,9 @@ export function offlineEfficiency(state: GameState): number {
 }
 
 export function offlineCapSeconds(state: GameState): number {
-  return hasMutation(state, 'winterSleep') ? OFFLINE_CAP_WINTER_SECONDS : OFFLINE_CAP_BASE_SECONDS;
+  const base = hasMutation(state, 'winterSleep') ? OFFLINE_CAP_WINTER_SECONDS : OFFLINE_CAP_BASE_SECONDS;
+  // Letargo profundo: +6 h de tope por rango.
+  return base + TORPOR_OFFLINE_HOURS * 3600 * state.adaptations.deepTorpor;
 }
 
 export interface ElapsedOptions {

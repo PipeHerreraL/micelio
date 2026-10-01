@@ -16,3 +16,15 @@ export const SPORULATE_TAB_REVEAL = 0.25;
 
 /** Partidas que guarda el historial: bastan para la Crónica y no hinchan el guardado. */
 export const HISTORY_LIMIT = 50;
+
+/**
+ * Madurez de la red (docs/ROADMAP.md, fase 7): hasta este nivel, cada nivel de esporas da +1 %;
+ * por encima, cada nivel aporta menos. 1000 y no 200 (lo que midió el prototipo) para no
+ * recortar las partidas avanzadas de la 1.0: es decisión del usuario.
+ */
+export const SPORE_SOFTCAP_BASE = 1000;
+/**
+ * Exponente por encima del umbral: factor = 1 + 0.01·S0·(S/S0)^β. Lo fija la campaña larga del
+ * simulador (docs/BALANCE.md).
+ */
+export const SPORE_SOFTCAP_EXPONENT = 0.5;

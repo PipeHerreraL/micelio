@@ -13,6 +13,7 @@ import {
   RAIN_INTERVAL_MIN,
   type RainEffectKind,
 } from '../data/rain.ts';
+import { HYDRAULIC_DROP_SECONDS } from '../data/adaptations.ts';
 import { PERFECT_STORM_DURATION, RAIN_SCENT_FREQUENCY } from '../data/mutations.ts';
 import { gain } from '../core/economy.ts';
 import { emit } from '../core/events.ts';
@@ -23,6 +24,11 @@ import { hasMutation, type GameState } from '../core/state.ts';
 
 /** Margen para que la gota no aparezca pegada al borde de la zona de juego. */
 const DROP_MARGIN = 0.1;
+
+/** Segundos que dura la gota, con Redistribución hidráulica (+2 s por rango). */
+export function dropLifetime(state: GameState): number {
+  return DROP_LIFETIME + HYDRAULIC_DROP_SECONDS * state.adaptations.hydraulicLift;
+}
 
 /** Sortea los segundos hasta la próxima gota (÷1.3 con Olfato de lluvia). */
 export function rollRainInterval(state: GameState): number {
@@ -63,7 +69,7 @@ export function updateRain(state: GameState, dt: number): void {
     rain.drop = {
       x: randomRange(state, DROP_MARGIN, 1 - DROP_MARGIN),
       y: randomRange(state, DROP_MARGIN, 1 - DROP_MARGIN),
-      remaining: DROP_LIFETIME,
+      remaining: dropLifetime(state),
     };
     rain.nextIn = 0;
     emit({ type: 'rainSpawn' });
