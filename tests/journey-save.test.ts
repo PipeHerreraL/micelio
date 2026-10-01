@@ -130,7 +130,11 @@ describe('validación del viaje', () => {
   it('una partida en la taiga con su Crónica y sus adaptaciones va y vuelve idéntica', () => {
     const state = inTaiga();
     const result = parseSave(serializeSave(state, SAVED_AT));
-    expect(result).toEqual({ ok: true, save: { version: SAVE_VERSION, savedAt: SAVED_AT, state } });
+    expect(result).toEqual({
+      ok: true,
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state },
+      partnersReset: [],
+    });
   });
 
   it('rechaza un bioma desconocido, un tramo fuera de rango o que no casa con el bioma', () => {

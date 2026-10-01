@@ -22,12 +22,16 @@ import {
 import { HISTORY_LIMIT, SPORE_SOFTCAP_BASE } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
 import * as num from '../core/num.ts';
+import { PARTNER_IDS, emptyPartners, type PartnerId } from '../partners/ids.ts';
+import { PARTNER_CORES, validatePartners, type ValidationMode } from '../partners/registry.ts';
 import {
+  AUTOBUY_MODES,
   AUTOBUY_THRESHOLDS,
   BUY_AMOUNTS,
   LOCALES,
   NOTATIONS,
   type ActiveEffect,
+  type AutobuyMode,
   type AutobuyThreshold,
   type BuyAmount,
   type ChronicleEntry,
@@ -51,10 +55,12 @@ import {
 
 export const SAVE_KEY = 'micelio:save';
 export const BACKUP_KEY = 'micelio:save:backup';
+/** Copia del bloque de un socio que no validó al guardar (el guardado sigue con el último bueno). */
+export const PARTNER_BACKUP_KEY = 'micelio:save:partner-backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface SaveFile {
   version: number;
@@ -130,6 +136,17 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     const biomeAdaptations = Object.fromEntries(BIOME_ADAPTATIONS.map((a) => [a.id, 0]));
     return { ...raw, state: { ...state, history, forest, chronicle: [], biomeAdaptations } };
   },
+  /**
+   * 5 → 6: llegan los socios (fase 9), todos sin llegar. Si la partida ya cumple la regla de
+   * llegada, el núcleo trae al plasmodio en su primer segundo (systems/partners.ts), así la regla no
+   * se escribe dos veces. La autocompra sigue eligiendo por umbral; la Poda abre el otro modo.
+   */
+  5: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    if (!state) return raw;
+    const autobuy = isObject(state.autobuy) ? { ...state.autobuy, mode: 'threshold' } : state.autobuy;
+    return { ...raw, state: { ...state, autobuy, partners: emptyPartners() } };
+  },
 };
 
 /** Lo mínimo de `Storage` que usamos; permite probar sin navegador. */
@@ -151,7 +168,17 @@ const MAX_SEEN = 500;
  * Reconstruye un GameState a partir de datos no confiables. Devuelve null si cualquier
  * campo falta, tiene el tipo equivocado o no es un número finito y no negativo.
  */
-export function validateState(raw: unknown): GameState | null {
+export function validateState(raw: unknown, mode: ValidationMode = 'strict'): GameState | null {
+  return checkState(raw, mode)?.state ?? null;
+}
+
+interface StateCheck {
+  state: GameState;
+  /** Socios que no validaron y vuelven a null (solo en modo lenient). */
+  partnersReset: PartnerId[];
+}
+
+function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   if (!isObject(raw)) return null;
 
   const nutrients = num.parse(raw.nutrients);
@@ -198,13 +225,19 @@ export function validateState(raw: unknown): GameState | null {
   const ab = raw.autobuy;
   if (!isObject(ab) || !isObject(ab.generators) || typeof ab.upgrades !== 'boolean') return null;
   if (!oneOf<AutobuyThreshold>(ab.threshold, AUTOBUY_THRESHOLDS)) return null;
+  if (!oneOf<AutobuyMode>(ab.mode, AUTOBUY_MODES)) return null;
   const autobuyGenerators = {} as Record<GeneratorId, boolean>;
   for (const id of GENERATOR_IDS) {
     const flag = ab.generators[id];
     if (typeof flag !== 'boolean') return null;
     autobuyGenerators[id] = flag;
   }
-  const autobuy = { generators: autobuyGenerators, threshold: ab.threshold, upgrades: ab.upgrades };
+  const autobuy = {
+    generators: autobuyGenerators,
+    threshold: ab.threshold,
+    upgrades: ab.upgrades,
+    mode: ab.mode,
+  };
 
   const s = raw.stats;
   if (!isObject(s)) return null;
@@ -282,7 +315,11 @@ export function validateState(raw: unknown): GameState | null {
   const biomeAdaptations = validateBiomeAdaptations(raw.biomeAdaptations, visited);
   if (!biomeAdaptations) return null;
 
-  return {
+  // Al final: un socio inválido en modo lenient no debe ocultar un error de la red.
+  const partners = validatePartners(raw.partners, mode);
+  if (!partners) return null;
+
+  const state: GameState = {
     nutrients,
     runEarned,
     lifetimeEarned,
@@ -304,7 +341,9 @@ export function validateState(raw: unknown): GameState | null {
     forest,
     chronicle,
     biomeAdaptations,
+    partners: partners.partners,
   };
+  return { state, partnersReset: partners.reset };
 }
 
 /**
@@ -407,7 +446,9 @@ function validateBiomeAdaptations(
 // Formato y migraciones
 
 export type ParseError = 'json' | 'shape' | 'version' | 'migration' | 'invalid';
-export type ParseResult = { ok: true; save: SaveFile } | { ok: false; error: ParseError };
+/** `partnersReset`: socios que no validaron y vuelven a null (solo en modo lenient). */
+export type ParseResult =
+  { ok: true; save: SaveFile; partnersReset: PartnerId[] } | { ok: false; error: ParseError };
 
 /** Aplica en orden las migraciones desde la versión del guardado hasta la actual. */
 export function migrate(
@@ -428,11 +469,15 @@ export function migrate(
   return current;
 }
 
-/** Parsea el JSON de un guardado, lo migra y lo valida. Nunca lanza. */
+/**
+ * Parsea el JSON de un guardado, lo migra y lo valida. Nunca lanza. En modo `lenient` un socio
+ * inválido vuelve a null en lugar de invalidar el guardado (ARCHITECTURE.md §4.29).
+ */
 export function parseSave(
   text: string,
   migrations: Readonly<Record<number, Migration>> = MIGRATIONS,
   target = SAVE_VERSION,
+  mode: ValidationMode = 'strict',
 ): ParseResult {
   let raw: unknown;
   try {
@@ -450,9 +495,13 @@ export function parseSave(
     return { ok: false, error: 'migration' };
   }
   if (!migrated || !isTimestamp(migrated.savedAt)) return { ok: false, error: 'migration' };
-  const state = validateState(migrated.state);
-  if (!state) return { ok: false, error: 'invalid' };
-  return { ok: true, save: { version: target, savedAt: migrated.savedAt, state } };
+  const checked = checkState(migrated.state, mode);
+  if (!checked) return { ok: false, error: 'invalid' };
+  return {
+    ok: true,
+    save: { version: target, savedAt: migrated.savedAt, state: checked.state },
+    partnersReset: checked.partnersReset,
+  };
 }
 
 export function serializeSave(state: GameState, now: number): string {
@@ -465,13 +514,45 @@ export function serializeSave(state: GameState, now: number): string {
 
 export type LoadResult =
   | { kind: 'empty' }
-  | { kind: 'loaded'; save: SaveFile }
+  /** `partnersReset`: socios que no se pudieron recuperar (vuelven a empezar; hay copia y aviso). */
+  | { kind: 'loaded'; save: SaveFile; partnersReset: PartnerId[] }
   | { kind: 'corrupt'; error: ParseError; backedUp: boolean }
   | { kind: 'unavailable' };
 
 /**
+ * Último bloque válido de cada socio (JSON), anotado tras cada carga y cada guardado buenos. Si
+ * un socio deja de validar en memoria, el guardado sigue con este bloque: un desliz del socio no
+ * impide guardar la red (decisión del usuario: ninguna partida pierde progreso).
+ */
+const lastValidPartners = new Map<PartnerId, string>();
+
+function rememberPartners(state: GameState): void {
+  for (const id of PARTNER_IDS) {
+    const block = state.partners[id];
+    if (block === null) lastValidPartners.delete(id);
+    else lastValidPartners.set(id, JSON.stringify(block));
+  }
+}
+
+/** Vuelve a poner en memoria el último bloque válido del socio, o null si no lo hay. */
+function restorePartner(state: GameState, id: PartnerId): void {
+  const text = lastValidPartners.get(id);
+  let restored = null;
+  if (text !== undefined) {
+    try {
+      restored = PARTNER_CORES[id].validate(JSON.parse(text));
+    } catch {
+      restored = null;
+    }
+  }
+  state.partners[id] = restored;
+}
+
+/**
  * Lee el guardado. Si está dañado, lo copia a `micelio:save:backup` para no perderlo y
- * devuelve `corrupt`: quien llama empieza una partida nueva y avisa.
+ * devuelve `corrupt`: quien llama empieza una partida nueva y avisa. Si solo falla un socio, la
+ * partida carga con ese socio desde cero, el texto original va a la copia de respaldo y quien llama
+ * avisa (`partnersReset`).
  */
 export function loadGame(storage: StorageLike | null): LoadResult {
   if (!storage) return { kind: 'unavailable' };
@@ -482,8 +563,18 @@ export function loadGame(storage: StorageLike | null): LoadResult {
     return { kind: 'unavailable' };
   }
   if (text === null) return { kind: 'empty' };
-  const parsed = parseSave(text);
-  if (parsed.ok) return { kind: 'loaded', save: parsed.save };
+  const parsed = parseSave(text, MIGRATIONS, SAVE_VERSION, 'lenient');
+  if (parsed.ok) {
+    if (parsed.partnersReset.length > 0) {
+      try {
+        storage.setItem(BACKUP_KEY, text);
+      } catch {
+        // Sin espacio: el aviso lo dice igual; la red se carga entera.
+      }
+    }
+    rememberPartners(parsed.save.state);
+    return { kind: 'loaded', save: parsed.save, partnersReset: parsed.partnersReset };
+  }
   let backedUp = false;
   try {
     storage.setItem(BACKUP_KEY, text);
@@ -496,20 +587,43 @@ export function loadGame(storage: StorageLike | null): LoadResult {
 }
 
 /**
- * Resultado de guardar: `saved`; `failed` si el almacenamiento falla o está lleno; `invalid`
- * si el estado tiene un valor imposible (un número no finito, un id desconocido). En ese caso
- * no se escribe nada: es mejor conservar el último guardado bueno que pisarlo con uno que la
+ * Resultado de guardar: `saved`; `restored` si se guardó tras devolver un socio inválido a su
+ * último estado válido (quien llama avisa); `failed` si el almacenamiento falla o está lleno;
+ * `invalid` si la red tiene un valor imposible (un número no finito, un id desconocido). En ese
+ * caso no se escribe nada: es mejor conservar el último guardado bueno que pisarlo con uno que la
  * próxima carga mandaría a la copia de respaldo.
  */
-export type SaveOutcome = 'saved' | 'failed' | 'invalid';
+export type SaveOutcome = 'saved' | 'restored' | 'failed' | 'invalid';
 
+/**
+ * Guarda la partida. Un socio que no valida no impide guardar la red: su bloque malo se copia a
+ * `micelio:save:partner-backup`, el estado en memoria vuelve a su último bloque válido (o a null)
+ * y el guardado se escribe con él. Es el único sitio fuera de una acción que escribe en el estado;
+ * los socios no entran en ningún selector, así que no hay caché que invalidar.
+ */
 export function saveGame(storage: StorageLike | null, state: GameState, now: number): SaveOutcome {
   if (!storage) return 'failed';
-  const text = serializeSave(state, now);
-  if (!parseSave(text).ok) return 'invalid';
+  let text = serializeSave(state, now);
+  let outcome: SaveOutcome = 'saved';
+  if (!parseSave(text).ok) {
+    const lenient = parseSave(text, MIGRATIONS, SAVE_VERSION, 'lenient');
+    if (!lenient.ok || lenient.partnersReset.length === 0) return 'invalid';
+    const bad: Partial<Record<PartnerId, unknown>> = {};
+    for (const id of lenient.partnersReset) bad[id] = state.partners[id];
+    try {
+      storage.setItem(PARTNER_BACKUP_KEY, JSON.stringify({ savedAt: now, partners: bad }));
+    } catch {
+      // Sin espacio para la copia: se sigue, la red importa más.
+    }
+    for (const id of lenient.partnersReset) restorePartner(state, id);
+    text = serializeSave(state, now);
+    if (!parseSave(text).ok) return 'invalid';
+    outcome = 'restored';
+  }
+  rememberPartners(state);
   try {
     storage.setItem(SAVE_KEY, text);
-    return 'saved';
+    return outcome;
   } catch {
     return 'failed';
   }
@@ -573,9 +687,14 @@ export function exportSave(state: GameState, now: number): string {
 }
 
 export type ImportError = 'empty' | 'tooLarge' | 'base64' | 'encoding' | ParseError;
-export type ImportResult = { ok: true; save: SaveFile } | { ok: false; error: ImportError };
+export type ImportResult =
+  { ok: true; save: SaveFile; partnersReset: PartnerId[] } | { ok: false; error: ImportError };
 
-/** Decodifica y valida un texto exportado. No toca la partida actual. */
+/**
+ * Decodifica y valida un texto exportado. No toca la partida actual. Indulgente con los socios
+ * (como la carga): un socio inválido vuelve a empezar y la confirmación de importar lo dice, así la
+ * copia de respaldo que deja la carga se puede importar.
+ */
 export function importSave(text: string): ImportResult {
   const trimmed = text.replace(/\s+/g, '');
   if (trimmed.length === 0) return { ok: false, error: 'empty' };
@@ -588,6 +707,8 @@ export function importSave(text: string): ImportResult {
   } catch {
     return { ok: false, error: 'encoding' };
   }
-  const parsed = parseSave(json);
-  return parsed.ok ? { ok: true, save: parsed.save } : { ok: false, error: parsed.error };
+  const parsed = parseSave(json, MIGRATIONS, SAVE_VERSION, 'lenient');
+  return parsed.ok
+    ? { ok: true, save: parsed.save, partnersReset: parsed.partnersReset }
+    : { ok: false, error: parsed.error };
 }

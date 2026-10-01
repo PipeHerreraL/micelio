@@ -40,6 +40,9 @@ export const SPORULATE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
   // La esporulación que llega al nivel de colonizar añade una entrada (systems/journey.ts).
   chronicle: 'custom',
   biomeAdaptations: 'life',
+  // El socio es otro organismo en su propia placa: ni la partida que termina ni el bosque que se
+  // deja lo tocan. Reiniciarlo sería un impuesto a esporular (fase 9).
+  partners: 'life',
 };
 
 /**
@@ -76,6 +79,8 @@ export const DISPERSE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
   // La entrada del bosque que se deja guarda la fecha de partida y el nivel alcanzado.
   chronicle: 'custom',
   biomeAdaptations: 'life',
+  // Como al esporular: el plasmodio no viaja con las esporas ni se queda atrás; vive en su placa.
+  partners: 'life',
 };
 
 /** Copia de `fresh` (una partida nueva recién creada) los campos marcados como «run». */

@@ -359,7 +359,7 @@ function saveNow(): boolean {
     console.error('Micelio: el estado tiene un valor imposible; no se guardó.');
     showStickyNotices();
   }
-  return outcome === 'saved';
+  return outcome === 'saved' || outcome === 'restored';
 }
 
 /** El jugador decidió dejar atrás el guardado dañado: desde ahora se puede pisar. */

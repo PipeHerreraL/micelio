@@ -641,7 +641,11 @@ describe('migraciones', () => {
     };
     const text = JSON.stringify({ version: 2, savedAt: SAVED_AT, state: richState() });
     const result = parseSave(text, migrations, 3);
-    expect(result).toStrictEqual({ ok: true, save: { version: 3, savedAt: SAVED_AT, state: richState() } });
+    expect(result).toStrictEqual({
+      ok: true,
+      save: { version: 3, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
+    });
     expect(calls).toStrictEqual([2]);
   });
 
@@ -655,6 +659,7 @@ describe('migraciones', () => {
     expect(parseSave(text, migrations, 2)).toStrictEqual({
       ok: true,
       save: { version: 2, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
     });
   });
 
@@ -711,6 +716,7 @@ describe('migraciones', () => {
     expect(result).toStrictEqual({
       ok: true,
       save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
     });
   });
 });
@@ -724,6 +730,7 @@ describe('exportar e importar', () => {
     expect(importSave(text)).toStrictEqual({
       ok: true,
       save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
     });
   });
 
@@ -757,6 +764,7 @@ describe('exportar e importar', () => {
     expect(importSave(text)).toStrictEqual({
       ok: true,
       save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
     });
   });
 
@@ -766,6 +774,7 @@ describe('exportar e importar', () => {
     expect(importSave(wrapped)).toStrictEqual({
       ok: true,
       save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
+      partnersReset: [],
     });
   });
 

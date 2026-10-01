@@ -23,9 +23,11 @@ export default tseslint.config(
     },
   },
   {
-    // La lógica del núcleo y los sistemas debe ser determinista: todo el azar
-    // pasa por el generador con semilla de src/core/rng.ts.
-    files: ['src/core/**/*.ts', 'src/systems/**/*.ts', 'src/data/**/*.ts'],
+    // La lógica del núcleo, los sistemas y los socios debe ser determinista: todo el azar
+    // pasa por el generador con semilla de src/core/rng.ts. La vista de un socio dibuja y puede
+    // usar el reloj del navegador.
+    files: ['src/core/**/*.ts', 'src/systems/**/*.ts', 'src/data/**/*.ts', 'src/partners/**/*.ts'],
+    ignores: ['src/partners/**/view/**'],
     rules: {
       'no-restricted-properties': [
         'error',

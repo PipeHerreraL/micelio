@@ -21,7 +21,7 @@ import { SPORE_SCALE, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { RAIN_EFFECTS, type RainEffectDef } from '../data/rain.ts';
 import { adaptationCost } from './formulas.ts';
 import type { Num } from './num.ts';
-import type { GameState } from './state.ts';
+import type { ChronicleEntry, GameState } from './state.ts';
 
 /** R del bosque actual: requisito y escala de esporas, × LEG_SCALE_GROWTH por tramo desde el primer destino. */
 function legScale(state: GameState): number {
@@ -40,8 +40,12 @@ export function sporeScale(state: GameState): Num {
 }
 
 /** El Acto I es la entrada del tramo 0 de la Crónica (systems/journey.ts la escribe). */
-export function isActOneClosed(state: GameState): boolean {
-  return state.chronicle.some((e) => e.leg === 0);
+export function actOneEntry(state: Readonly<GameState>): ChronicleEntry | null {
+  return state.chronicle.find((e) => e.leg === 0) ?? null;
+}
+
+export function isActOneClosed(state: Readonly<GameState>): boolean {
+  return actOneEntry(state) !== null;
 }
 
 /** El bosque actual está cerrado en la Crónica: Acto I en el natal, colonizado en los demás. */

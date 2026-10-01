@@ -7,6 +7,8 @@ import { BIOME_ADAPTATION_IDS, HOME_BIOME, type BiomeAdaptationId, type BiomeId 
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { MUTATION_IDS, type MutationId } from '../data/mutations.ts';
 import { RAIN_INTERVAL_MAX, RAIN_INTERVAL_MIN } from '../data/rain.ts';
+import { emptyPartners } from '../partners/ids.ts';
+import type { PartnersState } from '../partners/registry.ts';
 import type { Num } from './num.ts';
 import { toSeed } from './rng.ts';
 
@@ -27,6 +29,13 @@ export const LOCALES: readonly Locale[] = ['es', 'en'];
 
 export type AutobuyThreshold = 0.1 | 0.5 | 1;
 export const AUTOBUY_THRESHOLDS: readonly AutobuyThreshold[] = [0.1, 0.5, 1];
+
+/**
+ * threshold: compra lo que cueste menos del umbral (la de siempre). payback: lo que antes se
+ * amortiza (Poda, un regalo del plasmodio, fase 9); sin la ventaja se comporta como threshold.
+ */
+export type AutobuyMode = 'threshold' | 'payback';
+export const AUTOBUY_MODES: readonly AutobuyMode[] = ['threshold', 'payback'];
 
 export type TimedEffectKind = 'downpour' | 'storm';
 
@@ -98,6 +107,7 @@ export interface GameState {
     generators: Record<GeneratorId, boolean>;
     threshold: AutobuyThreshold;
     upgrades: boolean;
+    mode: AutobuyMode;
   };
   stats: Stats;
   settings: Settings;
@@ -124,6 +134,11 @@ export interface GameState {
   chronicle: ChronicleEntry[];
   /** Rango de cada adaptación de bioma: permanentes y válidas en todos los bosques. */
   biomeAdaptations: Record<BiomeAdaptationId, number>;
+  /**
+   * Socios (docs/ROADMAP.md, fase 9). null = aún no ha llegado. Cada uno tiene su moneda, su azar
+   * y sus logros; nada de aquí entra en computeDerived ni avanza en tick() (ARCHITECTURE.md §4.29).
+   */
+  partners: PartnersState;
 }
 
 /** El bosque donde vive el linaje. Lo colonizado y lo visitado se deducen de la Crónica. */
@@ -225,7 +240,7 @@ export function createState(seed: number, now: number): GameState {
     effects: [],
     // La primera gota cae a mitad del intervalo: a la vista, sin regalarla.
     rain: { nextIn: (RAIN_INTERVAL_MIN + RAIN_INTERVAL_MAX) / 2, drop: null },
-    autobuy: { generators: emptyAutobuy(), threshold: 0.5, upgrades: false },
+    autobuy: { generators: emptyAutobuy(), threshold: 0.5, upgrades: false, mode: 'threshold' },
     stats: {
       runTime: 0,
       totalTime: 0,
@@ -246,6 +261,7 @@ export function createState(seed: number, now: number): GameState {
     forest: homeForest(now),
     chronicle: [],
     biomeAdaptations: emptyBiomeAdaptations(),
+    partners: emptyPartners(),
   };
 }
 

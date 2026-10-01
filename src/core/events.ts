@@ -6,6 +6,8 @@ import type { AdaptationId } from '../data/adaptations.ts';
 import type { BiomeAdaptationId, BiomeId, DestinationId } from '../data/biomes.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import type { MutationId } from '../data/mutations.ts';
+import type { PartnerId } from '../partners/ids.ts';
+import type { PartnerEvent } from '../partners/registry.ts';
 import type { RainEffectKind } from '../data/rain.ts';
 import type { Num } from './num.ts';
 import type { TimedEffectKind } from './state.ts';
@@ -31,7 +33,11 @@ export type GameEvent =
   /** El linaje viajó; `gained` son las esporas de la partida que terminó (0 si no esporuló). */
   | { type: 'disperse'; from: BiomeId; to: DestinationId; leg: number; gained: number }
   | { type: 'buyBiomeAdaptation'; id: BiomeAdaptationId; rank: number }
-  | { type: 'reveal'; key: string };
+  | { type: 'reveal'; key: string }
+  /** Llegó un socio (systems/partners.ts). */
+  | { type: 'partnerUnlocked'; partner: PartnerId }
+  /** Eventos propios de cada socio (los emite su modelo). */
+  | PartnerEvent;
 
 /**
  * Tope de la cola: si nadie la vacía (el simulador, una pestaña oculta), no crece sin
