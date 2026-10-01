@@ -19,6 +19,7 @@ import {
 } from '../data/mutations.ts';
 import { DOWNPOUR_MULTIPLIER, STORM_CLICK_MULTIPLIER } from '../data/rain.ts';
 import { getUpgrade } from '../data/upgrades.ts';
+import { autoClicksPerSecond, generatorBiomeFactor, lineageFactor } from './forest.ts';
 import { clickValue, globalMultiplier, milestonesReached, sporeFactor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
@@ -35,7 +36,15 @@ export interface Derived {
   milestoneDoublings: Record<GeneratorId, number>;
   /** Multiplicador de sinergia por generador (s_i). */
   synergy: Record<GeneratorId, number>;
-  /** P: producción total en N/s, con el evento activo. */
+  /** Factor del bioma y de las adaptaciones de bioma por generador (β_i; 1 en el natal). */
+  biomeFactor: Record<GeneratorId, number>;
+  /** Linaje: ×2 por bioma colonizado fuera del natal (ρ). */
+  lineage: number;
+  /** Clics automáticos por segundo de las Hormigas cortadoras (n). */
+  autoClicks: number;
+  /** N/s de esos clics automáticos (n · V₀, sin Tormenta); ya incluido en `production`. */
+  workerProduction: Num;
+  /** P: producción total en N/s, con el evento activo y los clics automáticos. */
   production: Num;
   /** P sin el multiplicador del evento (E = 1). */
   productionWithoutEvent: Num;
@@ -132,9 +141,11 @@ export function computeDerived(state: GameState): Derived {
     if (effect.kind === 'storm') stormMultiplier *= STORM_CLICK_MULTIPLIER;
   }
 
+  // El suelo lineal de las partidas 1.x protege el nivel que tenían en el natal; en un bioma
+  // nuevo el nivel empieza en 0 y rige el umbral de siempre (el suelo se conserva en el estado).
   const sporeThreshold = Math.max(
     SPORE_SOFTCAP_BASE * APICAL_THRESHOLD_GROWTH ** state.adaptations.apicalBody,
-    state.sporeFloor,
+    state.forest.leg === 0 ? state.sporeFloor : 0,
   );
   const sporeBonus = sporeFactor(state.spores.level, sporeThreshold, SPORE_SOFTCAP_EXPONENT);
   const baseGlobal = globalMultiplier(
@@ -148,20 +159,40 @@ export function computeDerived(state: GameState): Derived {
 
   const milestoneDoublings = recordOf((id) => milestonesReached(state.owned[id]));
   const synergy = recordOf((id) => 1 + synergyBonus[id]);
+  // Bioma, adaptaciones de bioma y linaje cambian solo al dispersar, comprar o colonizar, que
+  // invalidan (ROADMAP, reglas comunes). En el natal todos valen 1 y el producto es exacto.
+  const biomeFactor = recordOf((id) => generatorBiomeFactor(state, id));
+  const lineage = lineageFactor(state);
 
   const unitProduction = recordOf((id) => {
     const def = GENERATORS.find((g) => g.id === id);
     const base = def ? def.baseProduction : 0;
     const doublings = upgradeDoublings[id] + milestoneDoublings[id];
-    return num.mul(num.mul(num.mul(base, num.pow(2, doublings)), synergy[id]), fullGlobal);
+    const local = num.mul(num.mul(base, num.pow(2, doublings)), synergy[id]);
+    return num.mul(num.mul(local, biomeFactor[id] * lineage), fullGlobal);
   });
   const generatorProduction = recordOf((id) => num.mul(unitProduction[id], state.owned[id]));
 
-  let production = num.ZERO;
-  for (const g of GENERATORS) production = num.add(production, generatorProduction[g.id]);
-  const productionWithoutEvent = num.div(production, eventMultiplier);
+  let generatorsTotal = num.ZERO;
+  for (const g of GENERATORS) generatorsTotal = num.add(generatorsTotal, generatorProduction[g.id]);
 
-  const value = num.mul(clickValue(clickMultiplier, clickPercent, production), stormMultiplier);
+  // Clic sin Tormenta (V₀). Los clics automáticos de las Hormigas cortadoras suman n · V₀ a la
+  // producción, así el N/s visible, el offline y el segundo plano los cobran sin código aparte;
+  // el clic del jugador solo ve a los generadores, para que las obreras no se realimenten.
+  const baseClick = clickValue(clickMultiplier, clickPercent, generatorsTotal);
+  const autoClicks = autoClicksPerSecond(state);
+  const workerProduction = num.mul(baseClick, autoClicks);
+  const production = num.add(generatorsTotal, workerProduction);
+  const generatorsWithoutEvent = num.div(generatorsTotal, eventMultiplier);
+  const productionWithoutEvent =
+    autoClicks > 0
+      ? num.add(
+          generatorsWithoutEvent,
+          num.mul(clickValue(clickMultiplier, clickPercent, generatorsWithoutEvent), autoClicks),
+        )
+      : generatorsWithoutEvent;
+
+  const value = num.mul(baseClick, stormMultiplier);
 
   return {
     unitProduction,
@@ -169,6 +200,10 @@ export function computeDerived(state: GameState): Derived {
     upgradeDoublings,
     milestoneDoublings,
     synergy,
+    biomeFactor,
+    lineage,
+    autoClicks,
+    workerProduction,
     production,
     productionWithoutEvent,
     globalMultiplier: fullGlobal,

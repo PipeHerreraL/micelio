@@ -42,6 +42,42 @@ export const SPORULATE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
   biomeAdaptations: 'life',
 };
 
+/**
+ * Dispersar (docs/ROADMAP.md, fase 8): la partida termina como al esporular y además el linaje
+ * cambia de bosque. Lo que viaja «en las esporas» (mutaciones, adaptaciones, logros) es `life`.
+ */
+export const DISPERSE_RESET: Readonly<Record<keyof GameState, ResetScope>> = {
+  nutrients: 'run',
+  runEarned: 'run',
+  lifetimeEarned: 'life',
+  owned: 'run',
+  upgrades: 'run',
+  // El nivel vuelve a 0 (el territorio no viaja); las disponibles suben con la esporulación,
+  // si la hubo, y pagan el viaje.
+  spores: 'custom',
+  mutations: 'life',
+  achievements: 'life',
+  effects: 'run',
+  // Sin gota, y la espera se sortea con la lluvia del destino.
+  rain: 'custom',
+  autobuy: 'life',
+  // runTime a 0 y runStartedAt a la llegada; las de vida se conservan (Malheur sigue abierto).
+  stats: 'custom',
+  settings: 'life',
+  seen: 'life',
+  rngSeed: 'life',
+  // Anota la partida si terminó esporulando.
+  history: 'custom',
+  adaptations: 'life',
+  // Se conserva: los selectores solo lo usan en el natal (tramo 0).
+  sporeFloor: 'life',
+  // Bioma nuevo, tramo + 1, nutrientes del bosque a 0 y marcas de llegada.
+  forest: 'custom',
+  // La entrada del bosque que se deja guarda la fecha de partida y el nivel alcanzado.
+  chronicle: 'custom',
+  biomeAdaptations: 'life',
+};
+
 /** Copia de `fresh` (una partida nueva recién creada) los campos marcados como «run». */
 export function resetFields(
   state: GameState,

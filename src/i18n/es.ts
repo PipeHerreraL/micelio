@@ -403,6 +403,17 @@ export const es = {
   'ach.secret.patience.desc': 'Pasa 10 minutos con el juego abierto sin hacer clic.',
   'ach.secret.noRush.name': 'Sin prisa',
   'ach.secret.noRush.desc': 'Vuelve después de 8 horas o más.',
+  // Logros de Viento de esporas (fase 8): no se ven hasta el Acto I.
+  'ach.disperse.1.name': 'Pasajero del viento',
+  'ach.disperse.1.desc': 'Dispersa tu linaje por primera vez.',
+  'ach.colonize.taiga.name': 'Raíces boreales',
+  'ach.colonize.taiga.desc': 'Coloniza la taiga.',
+  'ach.colonize.choco.name': 'Trece metros de lluvia',
+  'ach.colonize.choco.desc': 'Coloniza la selva del Chocó.',
+  'ach.adapt.biomeFull.name': 'Aclimatación',
+  'ach.adapt.biomeFull.desc': 'Lleva al máximo las tres adaptaciones de un bioma.',
+  'ach.biomeLevel.1.name': 'Echar raíces',
+  'ach.biomeLevel.1.desc': 'Llega al nivel de esporas {level} en un bioma lejos del natal.',
 
   // Lluvia
   'rain.drop.label': 'Atrapar la gota de lluvia',
@@ -412,6 +423,9 @@ export const es = {
   'rain.caught.downpour': 'Atrapaste la gota: Aguacero, producción ×5 durante {time}.',
   'rain.caught.dew': 'Atrapaste la gota: Rocío, +{value}\u00a0N.',
   'rain.caught.storm': 'Atrapaste la gota: Tormenta eléctrica, clic ×500 durante {time}.',
+  'rain.fell.downpour': 'La gota cayó sola: Aguacero, producción ×5 durante {time}.',
+  'rain.fell.dew': 'La gota cayó sola: Rocío, +{value}\u00a0N.',
+  'rain.fell.storm': 'La gota cayó sola: Tormenta eléctrica, clic ×500 durante {time}.',
   'rain.storm.fact':
     'En Japón se ha experimentado con descargas eléctricas para aumentar la cosecha de setas.',
   'rain.ended.downpour': 'Terminó el Aguacero.',

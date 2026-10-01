@@ -1,0 +1,670 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  buyBiomeAdaptation,
+  canSporulate,
+  disperse,
+  disperseBlock,
+  nutrientsToNextSpore,
+  sporeGain,
+  sporulate,
+} from '../src/core/actions.ts';
+import { drain, type GameEvent } from '../src/core/events.ts';
+import {
+  biomeAdaptationGate,
+  destinations,
+  isActOneClosed,
+  nextBiomeAdaptationCost,
+  sporulateRequirement,
+} from '../src/core/forest.ts';
+import { DISPERSE_RESET, SPORULATE_RESET } from '../src/core/resets.ts';
+import { computeDerived, derived, invalidate } from '../src/core/selectors.ts';
+import { createState, emptyOwned, type GameState } from '../src/core/state.ts';
+import { tick } from '../src/core/tick.ts';
+import { BIOMES, getBiome, getBiomeAdaptation } from '../src/data/biomes.ts';
+import { MUTATION_IDS } from '../src/data/mutations.ts';
+import { RAIN_EFFECTS } from '../src/data/rain.ts';
+import { checkAchievements } from '../src/systems/achievements.ts';
+import { checkActOne, checkColonization } from '../src/systems/journey.ts';
+import { applyOffline } from '../src/systems/offline.ts';
+import { dewAmount, effectDuration, rollRainInterval, updateRain } from '../src/systems/rain.ts';
+
+/**
+ * Viento de esporas en el núcleo (docs/ROADMAP.md, fase 8): Acto I, colonizar, dispersar,
+ * adaptaciones de bioma y reglas de cada bioma. Los estados se construyen por el camino que el
+ * juego permite (cerrar el Acto I y dispersar), con valores calculados a mano.
+ */
+
+const NOW = Date.UTC(2026, 9, 1);
+
+beforeEach(() => {
+  drain();
+});
+
+/** Natal con el Acto I cerrado: árbol completo, una Red planetaria y 2025 esporas disponibles. */
+function actOneState(): GameState {
+  const s = createState(21, NOW);
+  s.mutations = [...MUTATION_IDS];
+  s.achievements = ['own.planetary.1'];
+  s.stats.sporulations = 9;
+  s.stats.totalTime = 11_940;
+  s.spores = { level: 1941, available: 2025 };
+  checkActOne(s);
+  drain();
+  return s;
+}
+
+/**
+ * Recién llegado a un bioma (primer destino), sin logros ni generadores de regalo para que los
+ * N/s de cada prueba salgan limpios.
+ */
+function arrivedIn(to: 'taiga' | 'choco', now = NOW + 1000): GameState {
+  const s = actOneState();
+  disperse(s, { to, now });
+  s.achievements = [];
+  s.owned = emptyOwned();
+  s.nutrients = 0;
+  invalidate(s);
+  drain();
+  return s;
+}
+
+/** Coloniza el bioma actual por la vía del núcleo. */
+function colonize(s: GameState, now = NOW + 5000): void {
+  s.spores.level = Math.max(s.spores.level, 500);
+  checkColonization(s, now);
+  invalidate(s);
+}
+
+describe('consultas del viaje', () => {
+  it('el requisito para esporular es 1e8 en el natal, 1e11 en la taiga y 2e11 en el Chocó como primer destino', () => {
+    expect(sporulateRequirement(actOneState())).toBe(1e8);
+    expect(sporulateRequirement(arrivedIn('taiga'))).toBe(1e11);
+    expect(sporulateRequirement(arrivedIn('choco'))).toBe(2e11);
+  });
+
+  it('como segundo destino el requisito se triplica: taiga 3e11 y Chocó 6e11', () => {
+    const viaChoco = arrivedIn('choco');
+    colonize(viaChoco);
+    disperse(viaChoco, { to: 'taiga', now: NOW + 9000 });
+    expect(sporulateRequirement(viaChoco)).toBe(3e11);
+
+    const viaTaiga = arrivedIn('taiga');
+    colonize(viaTaiga);
+    disperse(viaTaiga, { to: 'choco', now: NOW + 9000 });
+    expect(sporulateRequirement(viaTaiga)).toBe(6e11);
+  });
+
+  it('desde el natal quedan la taiga y el Chocó; desde la taiga, el Chocó; en el tramo 2, ninguno', () => {
+    expect(destinations(actOneState())).toEqual(['taiga', 'choco']);
+    const s = arrivedIn('taiga');
+    expect(destinations(s)).toEqual(['choco']);
+    colonize(s);
+    disperse(s, { to: 'choco', now: NOW + 9000 });
+    expect(destinations(s)).toEqual([]);
+  });
+
+  it('los textos escritos a mano siguen a los datos: la mitad, el doble y un clic por rango', () => {
+    // biome.taiga.rule.rain dice «llueve la mitad» y biome.choco.rule.rain «el doble».
+    expect(getBiome('taiga').rainInterval).toBe(2);
+    expect(getBiome('choco').rainInterval).toBe(0.5);
+    // biome.choco.rule.storm dice «la mitad de veces».
+    const stormNatal = RAIN_EFFECTS.find((e) => e.kind === 'storm')?.chance;
+    const stormChoco = getBiome('choco').rainEffects?.find((e) => e.kind === 'storm')?.chance;
+    expect(stormChoco).toBe((stormNatal ?? 0) / 2);
+    // badapt.leafcutters dice «un clic automático por segundo».
+    const leafcutters = getBiomeAdaptation('leafcutters').effect;
+    expect(leafcutters.kind === 'autoClicks' && leafcutters.perRank).toBe(1);
+    // Solo la taiga cambia la producción de generadores.
+    expect(BIOMES.filter((b) => Object.keys(b.production).length > 0).map((b) => b.id)).toEqual(['taiga']);
+  });
+
+  it('cada rango de una adaptación de bioma pide su nivel local, salvo que el bioma esté colonizado', () => {
+    const s = arrivedIn('taiga');
+    expect(biomeAdaptationGate(s, 'rockEating')).toBeNull();
+    buyBiomeAdaptation(s, { id: 'rockEating' });
+    s.spores.level = 74;
+    expect(biomeAdaptationGate(s, 'rockEating')).toBe('level');
+    s.spores.level = 75;
+    expect(biomeAdaptationGate(s, 'rockEating')).toBeNull();
+    // Del Chocó, sin haberlo visitado.
+    expect(biomeAdaptationGate(s, 'gongylidia')).toBe('unvisited');
+    // Con la taiga colonizada, en el Chocó y con nivel 0, se abren todos los rangos de la taiga.
+    colonize(s);
+    disperse(s, { to: 'choco', now: NOW + 9000 });
+    expect(s.spores.level).toBe(0);
+    expect(biomeAdaptationGate(s, 'rockEating')).toBeNull();
+    s.biomeAdaptations.rockEating = 3;
+    expect(biomeAdaptationGate(s, 'rockEating')).toBe('maxed');
+  });
+});
+
+describe('esporas en un bioma', () => {
+  it('las esporas por ganar miran los nutrientes del bosque, no los de toda la vida', () => {
+    const s = arrivedIn('taiga');
+    s.forest.earned = 4e11;
+    s.lifetimeEarned = 1e15;
+    // E = ⌊18,75 · √(4e11 / 1e11)⌋ = ⌊18,75 · 2⌋ = 37 (Esporas aladas: k = 18,75).
+    expect(sporeGain(s)).toBe(37);
+  });
+
+  it('en la taiga como primer destino hacen falta 1e11 N ganados en la partida', () => {
+    const s = arrivedIn('taiga');
+    s.forest.earned = 4e11;
+    s.runEarned = 9.99e10;
+    expect(canSporulate(s)).toBe(false);
+    s.runEarned = 1e11;
+    expect(canSporulate(s)).toBe(true);
+  });
+
+  it('faltan 1e11 · (38 / 18,75)² − 4e11 N del bosque para la espora 38', () => {
+    const s = arrivedIn('taiga');
+    s.forest.earned = 4e11;
+    expect(nutrientsToNextSpore(s)).toBeCloseTo(10_737_777_777.78, 1);
+  });
+
+  it('esporular en la taiga anota el bioma en el historial', () => {
+    const s = arrivedIn('taiga');
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
+    sporulate(s, { now: NOW + 7000 });
+    expect(s.history.at(-1)).toMatchObject({ spores: 37, biome: 'taiga' });
+    expect(s.forest.biome).toBe('taiga');
+  });
+
+  it('Plántulas conectadas en rango 2 empieza cada partida con 6 Redes micorrícicas', () => {
+    const s = arrivedIn('taiga');
+    s.biomeAdaptations.seedlingNetwork = 2;
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
+    sporulate(s, { now: NOW + 7000 });
+    expect(s.owned.mycorrhiza).toBe(6);
+    // Con el árbol completo, además: Memoria del suelo (10 Hifas) y Herencia (10 de cada uno de
+    // los cuatro primeros), y 100 N.
+    expect(s.owned.hypha).toBe(20);
+    expect(s.owned.mushroom).toBe(10);
+    expect(s.nutrients).toBe(100);
+  });
+});
+
+describe('adaptaciones de bioma', () => {
+  it('se compran con esporas disponibles de un bioma visitado y no bajan el nivel', () => {
+    const s = arrivedIn('taiga');
+    s.spores = { level: 80, available: 1000 };
+    buyBiomeAdaptation(s, { id: 'seedlingNetwork' });
+    expect(s.biomeAdaptations.seedlingNetwork).toBe(1);
+    expect(s.spores).toEqual({ level: 80, available: 850 });
+    // El rango 2 cuesta 150 · 2 = 300 y pide nivel 75.
+    expect(nextBiomeAdaptationCost(s, 'seedlingNetwork')).toBe(300);
+    buyBiomeAdaptation(s, { id: 'seedlingNetwork' });
+    expect(s.spores).toEqual({ level: 80, available: 550 });
+    // Del Chocó, sin visitarlo: nada cambia.
+    buyBiomeAdaptation(s, { id: 'gongylidia' });
+    expect(s.biomeAdaptations.gongylidia).toBe(0);
+    expect(s.spores.available).toBe(550);
+  });
+
+  it('sin esporas o con el rango cerrado por nivel no se compra', () => {
+    const s = arrivedIn('taiga');
+    s.spores = { level: 0, available: 99 };
+    buyBiomeAdaptation(s, { id: 'rockEating' });
+    expect(s.biomeAdaptations.rockEating).toBe(0);
+    s.spores.available = 1000;
+    buyBiomeAdaptation(s, { id: 'rockEating' });
+    buyBiomeAdaptation(s, { id: 'rockEating' });
+    // El rango 2 pide nivel 75 en la taiga.
+    expect(s.biomeAdaptations.rockEating).toBe(1);
+    expect(s.spores.available).toBe(900);
+  });
+
+  it('un id desconocido no hace nada', () => {
+    const s = arrivedIn('taiga');
+    const before = structuredClone(s);
+    buyBiomeAdaptation(s, { id: 'wings' as 'rockEating' });
+    expect(s).toEqual(before);
+  });
+});
+
+describe('lluvia y producción por bioma', () => {
+  it('en la taiga, con Olfato de lluvia, la espera entre gotas va de 184,62 a 461,54 s', () => {
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const s = arrivedIn('taiga');
+      s.rngSeed = seed;
+      const wait = rollRainInterval(s);
+      expect(wait).toBeGreaterThanOrEqual((120 * 2) / 1.3);
+      expect(wait).toBeLessThanOrEqual((300 * 2) / 1.3);
+    }
+  });
+
+  it('en el Chocó, con Olfato de lluvia, la espera va de 46,15 a 115,38 s', () => {
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const s = arrivedIn('choco');
+      s.rngSeed = seed;
+      const wait = rollRainInterval(s);
+      expect(wait).toBeGreaterThanOrEqual((120 * 0.5) / 1.3);
+      expect(wait).toBeLessThanOrEqual((300 * 0.5) / 1.3);
+    }
+  });
+
+  /** 11 Primordios y 1 Rizomorfo: 11 · 9 + 1 = 100 N/s sin multiplicadores. */
+  function withHundredPerSecond(s: GameState): void {
+    s.owned.primordium = 11;
+    s.owned.rhizomorph = 1;
+    invalidate(s);
+  }
+
+  it('el Rocío del Chocó da al menos 300 s de producción', () => {
+    const s = arrivedIn('choco');
+    withHundredPerSecond(s);
+    expect(derived(s).production).toBe(100);
+    // Con 1e6 N gana el Rocío normal: min(1,2e5, 7,2e4) = 7,2e4 > 3e4.
+    s.nutrients = 1e6;
+    expect(dewAmount(s)).toBe(7.2e4);
+    // Con 1e5 N el normal da 1,2e4 y gana el mínimo: 300 · 100 = 3e4.
+    s.nutrients = 1e5;
+    expect(dewAmount(s)).toBe(3e4);
+    // Estera de raíces en rango 2: × 2² = 1,2e5.
+    s.biomeAdaptations.rootMat = 2;
+    expect(dewAmount(s)).toBe(1.2e5);
+  });
+
+  it('en el natal el Rocío es el de siempre: 12 % de las reservas o 12 min de producción', () => {
+    const s = actOneState();
+    s.achievements = [];
+    s.owned = emptyOwned();
+    s.spores.level = 0;
+    withHundredPerSecond(s);
+    s.nutrients = 1e5;
+    expect(dewAmount(s)).toBe(1.2e4);
+  });
+
+  it('con Tormenta perfecta y Trehalosa en rango 2 el Aguacero dura 60 · 1,5 + 20 = 110 s', () => {
+    const s = arrivedIn('taiga');
+    s.biomeAdaptations.trehalose = 2;
+    expect(effectDuration(s, 60, 'downpour')).toBe(110);
+    // La Tormenta no gana los segundos de la Trehalosa.
+    expect(effectDuration(s, 12, 'storm')).toBe(18);
+  });
+
+  it('en el Chocó la gota que nadie atrapa cae sola, aplica su efecto y no cuenta como atrapada', () => {
+    const s = arrivedIn('choco');
+    withHundredPerSecond(s);
+    s.nutrients = 1e5;
+    s.rain = { nextIn: 0, drop: { x: 0.5, y: 0.5, remaining: 0.5 } };
+    const drops = s.stats.drops;
+    updateRain(s, 1);
+    const events = drain();
+    const fell = events.find((e): e is Extract<GameEvent, { type: 'rainFell' }> => e.type === 'rainFell');
+    expect(fell).toBeDefined();
+    expect(events.some((e) => e.type === 'rainExpired')).toBe(false);
+    expect(s.stats.drops).toBe(drops);
+    expect(s.rain.drop).toBeNull();
+    expect(s.rain.nextIn).toBeGreaterThanOrEqual((120 * 0.5) / 1.3);
+    expect(s.rain.nextIn).toBeLessThanOrEqual((300 * 0.5) / 1.3);
+    // El efecto llegó: un Aguacero o una Tormenta activos, o el Rocío en los nutrientes.
+    const landed = s.effects.length === 1 || s.nutrients > 1e5;
+    expect(landed).toBe(true);
+  });
+
+  it('en el natal la gota que nadie atrapa se evapora sin efecto', () => {
+    const s = actOneState();
+    s.rain = { nextIn: 0, drop: { x: 0.5, y: 0.5, remaining: 0.5 } };
+    const nutrients = s.nutrients;
+    updateRain(s, 1);
+    const events = drain();
+    expect(events.map((e) => e.type)).toEqual(['rainExpired']);
+    expect(s.effects).toEqual([]);
+    expect(s.nutrients).toBe(nutrients);
+  });
+
+  it('en la taiga 10 Redes micorrícicas rinden ×5 (90 000 N/s) y 1 Primordio, lo de siempre', () => {
+    const s = arrivedIn('taiga');
+    s.owned.mycorrhiza = 10;
+    s.owned.primordium = 1;
+    invalidate(s);
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(90_000);
+    expect(derived(s).generatorProduction.primordium).toBe(9);
+  });
+
+  it('el natal no cambia ninguna producción', () => {
+    const s = actOneState();
+    s.achievements = [];
+    s.owned = emptyOwned();
+    s.spores.level = 0;
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(18_000);
+    expect(derived(s).biomeFactor.mycorrhiza).toBe(1);
+    expect(derived(s).lineage).toBe(1);
+  });
+
+  it('con la taiga colonizada, en el Chocó, Hongos que comen roca en rango 2 y el linaje dan 56 250 N/s', () => {
+    const s = arrivedIn('taiga');
+    colonize(s);
+    disperse(s, { to: 'choco', now: NOW + 9000 });
+    s.achievements = [];
+    s.biomeAdaptations.rockEating = 2;
+    s.owned.mycorrhiza = 10;
+    s.owned.hypha = 10;
+    invalidate(s);
+    // 1800 · 10 · 1,25² · 2 (linaje) = 56 250; 10 Hifas · 0,1 · 2 = 2.
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(56_250);
+    expect(derived(s).generatorProduction.hypha).toBe(2);
+  });
+
+  it('las Hormigas cortadoras suman clics automáticos a la producción sin realimentar el clic', () => {
+    const s = arrivedIn('choco');
+    s.biomeAdaptations.leafcutters = 2;
+    s.owned.hypha = 10;
+    invalidate(s);
+    // P_gen = 1; V₀ = 1 + 0,03 · 1 = 1,03 (Absorción profunda); P = 1 + 2 · 1,03 = 3,06.
+    expect(derived(s).production).toBeCloseTo(3.06, 12);
+    expect(derived(s).clickValue).toBeCloseTo(1.03, 12);
+    expect(derived(s).workerProduction).toBeCloseTo(2.06, 12);
+  });
+
+  it('el suelo lineal de la 1.x no sube el umbral fuera del natal', () => {
+    const s = arrivedIn('taiga');
+    s.sporeFloor = 4037;
+    invalidate(s);
+    expect(derived(s).sporeThreshold).toBe(1000);
+  });
+
+  it('una hora offline en la taiga cobra con los factores del bioma y suma a los nutrientes del bosque', () => {
+    const s = arrivedIn('taiga');
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    const earned = s.forest.earned;
+    // Sueño invernal (árbol completo): eficiencia 1. 90 000 N/s · 3600 s = 3,24e8.
+    const report = applyOffline(s, NOW + 10_000, NOW + 10_000 + 3_600_000);
+    expect(report.gained).toBe(3.24e8);
+    expect(s.forest.earned - earned).toBe(3.24e8);
+  });
+
+  it('la caché queda al día tras dispersar, comprar una adaptación de bioma y colonizar', () => {
+    const s = actOneState();
+    s.owned.mycorrhiza = 10;
+    expect(derived(s).production).toBeGreaterThan(0);
+    disperse(s, { to: 'taiga', now: NOW + 1000 });
+    expect(derived(s)).toEqual(computeDerived(s));
+    // Una sola Red micorrícica (9000 N/s en la taiga) y sus logros ya otorgados: comprar no
+    // otorga ningún logro nuevo, así que nada más invalida la caché por casualidad.
+    s.owned = emptyOwned();
+    s.owned.mycorrhiza = 1;
+    invalidate(s);
+    checkAchievements(s);
+    derived(s);
+    buyBiomeAdaptation(s, { id: 'rockEating' });
+    expect(s.achievements).not.toContain('production.3');
+    expect(s.biomeAdaptations.rockEating).toBe(1);
+    expect(derived(s)).toEqual(computeDerived(s));
+    // Colonizar por la vía real (esporular) cambia el linaje: la caché no puede quedar vieja.
+    const fresh = arrivedIn('choco');
+    fresh.spores.level = 499;
+    fresh.forest.earned = 1e16;
+    fresh.lifetimeEarned = 1e17;
+    fresh.runEarned = 2e11;
+    fresh.owned.hypha = 10;
+    invalidate(fresh);
+    const before = derived(fresh).lineage;
+    sporulate(fresh, { now: NOW + 8000 });
+    expect(before).toBe(1);
+    expect(derived(fresh)).toEqual(computeDerived(fresh));
+    expect(derived(fresh).lineage).toBe(2);
+  });
+});
+
+describe('Acto I', () => {
+  function readyForActOne(): GameState {
+    const s = createState(31, NOW);
+    s.mutations = [...MUTATION_IDS];
+    s.achievements = ['own.planetary.1'];
+    s.stats.sporulations = 9;
+    s.stats.totalTime = 11_940;
+    return s;
+  }
+
+  it('con el árbol completo y una Red planetaria, el primer segundo de juego lo cierra', () => {
+    const s = readyForActOne();
+    tick(s, { dt: 1 });
+    expect(s.chronicle).toEqual([
+      {
+        biome: 'natal',
+        leg: 0,
+        arrivedAt: NOW,
+        colonizedAt: null,
+        sporulations: 9,
+        playTime: 11_941,
+        leftAt: null,
+        levelReached: null,
+      },
+    ]);
+    expect(drain().some((e) => e.type === 'actOneClosed')).toBe(true);
+  });
+
+  it('con 11 mutaciones o sin haber tenido una Red planetaria no se cierra', () => {
+    const missing = readyForActOne();
+    missing.mutations = missing.mutations.filter((m) => m !== 'inheritance');
+    tick(missing, { dt: 1 });
+    expect(isActOneClosed(missing)).toBe(false);
+    const noPlanetary = readyForActOne();
+    noPlanetary.achievements = [];
+    tick(noPlanetary, { dt: 1 });
+    expect(isActOneClosed(noPlanetary)).toBe(false);
+  });
+
+  it('comprobarlo dos veces no duplica la entrada', () => {
+    const s = readyForActOne();
+    expect(checkActOne(s)).toBe(true);
+    expect(checkActOne(s)).toBe(false);
+    expect(s.chronicle).toHaveLength(1);
+  });
+
+  it('una partida 1.x que vuelve de offline lo cierra al aplicar el tiempo', () => {
+    const s = readyForActOne();
+    applyOffline(s, NOW, NOW + 600_000);
+    expect(isActOneClosed(s)).toBe(true);
+  });
+
+  it('el nivel 500 en el natal no coloniza nada', () => {
+    const s = actOneState();
+    s.spores.level = 600;
+    expect(checkColonization(s, NOW)).toBe(false);
+    expect(s.chronicle).toHaveLength(1);
+  });
+});
+
+describe('colonizar', () => {
+  /** En la taiga con 9 esporulaciones y 12 000 s a la llegada, nivel 290 y 14 partidas hechas. */
+  function nearColony(earned: number): GameState {
+    const s = arrivedIn('taiga');
+    s.forest.arrivalSporulations = 9;
+    s.forest.arrivalPlayTime = 12_000;
+    s.stats.sporulations = 14;
+    s.stats.totalTime = 20_000;
+    s.spores = { level: 290, available: 50 };
+    s.forest.earned = earned;
+    s.lifetimeEarned = 1e15;
+    s.runEarned = 1e11;
+    return s;
+  }
+
+  it('la esporulación que lleva el nivel local a 525 coloniza la taiga', () => {
+    const s = nearColony(7.84e13);
+    // E = ⌊18,75 · √(7,84e13 / 1e11)⌋ = 18,75 · 28 = 525.
+    sporulate(s, { now: NOW + 30_000 });
+    expect(s.spores.level).toBe(525);
+    expect(s.chronicle[1]).toEqual({
+      biome: 'taiga',
+      leg: 1,
+      arrivedAt: NOW + 1000,
+      colonizedAt: NOW + 30_000,
+      sporulations: 6,
+      playTime: 8000,
+      leftAt: null,
+      levelReached: null,
+    });
+    expect(s.achievements).toContain('colonize.taiga');
+    const types = drain().map((e) => e.type);
+    expect(types.indexOf('colonized')).toBeLessThan(types.indexOf('sporulate'));
+  });
+
+  it('con 7e13 N del bosque el nivel queda en 496 y no coloniza', () => {
+    const s = nearColony(7e13);
+    sporulate(s, { now: NOW + 30_000 });
+    expect(s.spores.level).toBe(496);
+    expect(s.chronicle).toHaveLength(1);
+  });
+});
+
+describe('dispersar', () => {
+  it('no se puede antes del Acto I, sin 300 esporas, sin colonizar o sin destinos', () => {
+    const early = createState(41, NOW);
+    early.spores.available = 5000;
+    expect(disperseBlock(early)).toBe('actOne');
+
+    const poor = actOneState();
+    poor.spores.available = 299;
+    expect(disperseBlock(poor)).toBe('spores');
+
+    const taiga = arrivedIn('taiga');
+    expect(disperseBlock(taiga)).toBe('colonize');
+
+    colonize(taiga);
+    disperse(taiga, { to: 'choco', now: NOW + 9000 });
+    colonize(taiga);
+    expect(disperseBlock(taiga)).toBe('noDestination');
+  });
+
+  it('no viaja al natal, al bosque actual, a uno visitado, a un id desconocido ni con una fecha imposible', () => {
+    const s = arrivedIn('taiga');
+    colonize(s);
+    const before = structuredClone(s);
+    for (const to of ['natal', 'taiga', 'luna']) {
+      disperse(s, { to: to as 'choco', now: NOW + 9000 });
+    }
+    disperse(s, { to: 'choco', now: Number.NaN });
+    disperse(s, { to: 'choco', now: -1 });
+    expect(s).toEqual(before);
+  });
+
+  it('dispersar a la taiga sin esporular: nivel 0, 300 esporas menos y lo demás viaja', () => {
+    const s = actOneState();
+    s.adaptations.apicalBody = 2;
+    s.sporeFloor = 4037;
+    s.history = [{ sporulation: 9, duration: 600, spores: 900, endedAt: NOW - 1, biome: 'natal' }];
+    s.stats.totalTime = 12_000;
+    // Faltaban 5 s para la gota del natal: al llegar se sortea la espera de la taiga.
+    s.rain.nextIn = 5;
+    disperse(s, { to: 'taiga', now: NOW + 1000 });
+    expect(s.spores).toEqual({ level: 0, available: 1725 });
+    expect(s.forest).toEqual({
+      biome: 'taiga',
+      leg: 1,
+      earned: 0,
+      arrivedAt: NOW + 1000,
+      arrivalSporulations: 9,
+      arrivalPlayTime: 12_000,
+    });
+    expect(s.chronicle[0]).toMatchObject({ leftAt: NOW + 1000, levelReached: 1941 });
+    expect(s.mutations).toEqual([...MUTATION_IDS]);
+    expect(s.adaptations.apicalBody).toBe(2);
+    expect(s.sporeFloor).toBe(4037);
+    expect(s.history).toHaveLength(1);
+    expect(s.achievements).toEqual(expect.arrayContaining(['own.planetary.1', 'disperse.1']));
+    // La lluvia ya es la de la taiga: entre 184,62 y 461,54 s con Olfato de lluvia.
+    expect(s.rain.drop).toBeNull();
+    expect(s.rain.nextIn).toBeGreaterThanOrEqual((120 * 2) / 1.3);
+    expect(s.rain.nextIn).toBeLessThanOrEqual((300 * 2) / 1.3);
+  });
+
+  it('si la partida puede esporular, termina esporulando y esas esporas pagan el viaje', () => {
+    const s = actOneState();
+    // E = ⌊18,75 · √(4,5e11 / 1e8)⌋ = 1257; con nivel 1007, gana 250.
+    s.spores = { level: 1007, available: 100 };
+    s.forest.earned = 4.5e11;
+    s.lifetimeEarned = 4.5e11;
+    s.runEarned = 2e8;
+    s.stats.runTime = 1500;
+    drain();
+    disperse(s, { to: 'choco', now: NOW + 2000 });
+    expect(s.spores).toEqual({ level: 0, available: 50 });
+    expect(s.history.at(-1)).toEqual({
+      sporulation: 10,
+      duration: 1500,
+      spores: 250,
+      endedAt: NOW + 2000,
+      biome: 'natal',
+    });
+    expect(s.chronicle[0]).toMatchObject({ levelReached: 1257 });
+    const events = drain();
+    expect(events.find((e) => e.type === 'disperse')).toEqual({
+      type: 'disperse',
+      from: 'natal',
+      to: 'choco',
+      leg: 1,
+      gained: 250,
+    });
+    expect(events.some((e) => e.type === 'sporulate')).toBe(false);
+  });
+});
+
+describe('tablas de reinicio', () => {
+  it('cada clave del estado está clasificada para esporular y para dispersar', () => {
+    const keys = Object.keys(createState(1, NOW)).sort();
+    expect(Object.keys(SPORULATE_RESET).sort()).toEqual(keys);
+    expect(Object.keys(DISPERSE_RESET).sort()).toEqual(keys);
+  });
+
+  it('dispersar deja cada campo «run» como en una partida nueva más los bonos de inicio', () => {
+    const s = actOneState();
+    s.nutrients = 5e9;
+    s.runEarned = 7e9;
+    s.owned.planetary = 2;
+    s.upgrades = ['hypha.u1'];
+    s.effects = [{ kind: 'downpour', remaining: 20, duration: 60 }];
+    disperse(s, { to: 'taiga', now: NOW + 1000 });
+    // Memoria del suelo: 100 N y 10 Hifas; Herencia: 10 de los cuatro primeros generadores.
+    expect(s.nutrients).toBe(100);
+    expect(s.runEarned).toBe(0);
+    expect(s.owned).toEqual({
+      hypha: 20,
+      rhizomorph: 10,
+      primordium: 10,
+      mushroom: 10,
+      fairyRing: 0,
+      mycorrhiza: 0,
+      motherTree: 0,
+      ancientForest: 0,
+      malheur: 0,
+      planetary: 0,
+    });
+    expect(s.upgrades).toEqual([]);
+    expect(s.effects).toEqual([]);
+    expect(s.stats.runTime).toBe(0);
+    expect(s.stats.runStartedAt).toBe(NOW + 1000);
+  });
+
+  it('dispersar conserva tal cual cada campo «life»', () => {
+    const s = actOneState();
+    s.seen = ['tab.generators'];
+    s.settings.volume = 0.8;
+    s.autobuy.generators.hypha = true;
+    const before = structuredClone(s);
+    disperse(s, { to: 'taiga', now: NOW + 1000 });
+    for (const key of Object.keys(DISPERSE_RESET) as (keyof GameState)[]) {
+      // La semilla del azar avanza al sortear la lluvia del destino, como al esporular con gota.
+      if (DISPERSE_RESET[key] !== 'life' || key === 'rngSeed') continue;
+      if (key === 'achievements') expect(s.achievements).toEqual(expect.arrayContaining(before.achievements));
+      else expect(s[key], key).toEqual(before[key]);
+    }
+  });
+
+  it('esporular en la taiga no cambia de bosque', () => {
+    const s = arrivedIn('taiga');
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
+    const forest = { ...s.forest };
+    sporulate(s, { now: NOW + 7000 });
+    expect(s.forest).toEqual({ ...forest, earned: forest.earned });
+  });
+});

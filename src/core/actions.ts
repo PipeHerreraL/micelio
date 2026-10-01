@@ -9,6 +9,13 @@ import {
   isAdaptationId,
   type AdaptationId,
 } from '../data/adaptations.ts';
+import {
+  DISPERSE_COST,
+  isBiomeAdaptationId,
+  isDestinationId,
+  type BiomeAdaptationId,
+  type DestinationId,
+} from '../data/biomes.ts';
 import { GENERATORS, getGenerator, isGeneratorId, type GeneratorId } from '../data/generators.ts';
 import {
   INHERITANCE_GENERATORS,
@@ -23,14 +30,24 @@ import {
 import { HISTORY_LIMIT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
-import { evaporateDrop } from '../systems/rain.ts';
+import { checkColonization } from '../systems/journey.ts';
+import { evaporateDrop, rollRainInterval } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
 import { emit } from './events.ts';
-import { sporeScale, sporulateRequirement } from './forest.ts';
+import {
+  biomeAdaptationGate,
+  destinations,
+  isActOneClosed,
+  isForestColonized,
+  nextBiomeAdaptationCost,
+  sporeScale,
+  sporulateRequirement,
+  startUnits,
+} from './forest.ts';
 import { adaptationCost, nutrientsForSpores, sporesFor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
-import { resetFields, SPORULATE_RESET } from './resets.ts';
+import { DISPERSE_RESET, resetFields, SPORULATE_RESET } from './resets.ts';
 import { derived, invalidate } from './selectors.ts';
 import {
   createState,
@@ -98,13 +115,15 @@ export function canSporulate(state: GameState): boolean {
   return num.gte(state.runEarned, sporulateRequirement(state)) && sporeGain(state) > 0;
 }
 
+function isValidTime(now: number): boolean {
+  return Number.isFinite(now) && now >= 0;
+}
+
 /**
- * Esporular: suma esporas al nivel y a las disponibles y reinicia la partida. Se conservan
- * nivel, esporas, mutaciones, logros, estadísticas de vida, ajustes y autocompra.
+ * Suma las esporas de una partida que termina al nivel y a las disponibles y la anota en el
+ * historial. La usan esporular y dispersar (que esporula si puede), así las cuentas son una.
  */
-export function sporulate(state: GameState, payload: { now: number }): void {
-  if (!canSporulate(state)) return;
-  const gained = sporeGain(state);
+function recordSporulation(state: GameState, gained: number, now: number): void {
   state.spores.level += gained;
   state.spores.available += gained;
   state.stats.sporulations += 1;
@@ -112,26 +131,122 @@ export function sporulate(state: GameState, payload: { now: number }): void {
     sporulation: state.stats.sporulations,
     duration: state.stats.runTime,
     spores: gained,
-    endedAt: payload.now,
+    endedAt: now,
     biome: state.forest.biome,
   });
   if (state.history.length > HISTORY_LIMIT) state.history.splice(0, state.history.length - HISTORY_LIMIT);
+}
 
+/**
+ * Empieza una partida nueva: los campos «run» de la tabla y lo que la tabla marca a mano.
+ * `newSky`: la espera de la lluvia se sortea siempre (al dispersar, con la lluvia del destino);
+ * si no, solo se sortea si había gota, como al esporular desde la 1.0 (el azar del natal no cambia).
+ */
+function startRun(state: GameState, now: number, table: typeof SPORULATE_RESET, newSky: boolean): void {
   // Los campos «run» de la tabla vuelven al valor de una partida nueva (src/core/resets.ts).
-  resetFields(state, createState(0, payload.now), SPORULATE_RESET);
+  resetFields(state, createState(0, now), table);
   // La gota visible se evapora y la cuenta atrás vuelve a sortearse: con solo quitarla,
-  // nextIn seguía en 0 y caía otra gota en el siguiente tick.
-  evaporateDrop(state);
+  // nextIn seguía en 0 y caía otra gota en el siguiente tick (BUG-JOURNAL #2).
+  if (newSky) {
+    state.rain.drop = null;
+    state.rain.nextIn = rollRainInterval(state);
+  } else {
+    evaporateDrop(state);
+  }
   state.stats.runTime = 0;
-  state.stats.runStartedAt = payload.now;
+  state.stats.runStartedAt = now;
   applyRunStartBonuses(state);
+}
+
+/**
+ * Esporular: suma esporas al nivel y a las disponibles y reinicia la partida. Se conservan
+ * nivel, esporas, mutaciones, logros, estadísticas de vida, ajustes y autocompra. Si el nivel
+ * local llega al de colonizar, el bioma queda colonizado (systems/journey.ts).
+ */
+export function sporulate(state: GameState, payload: { now: number }): void {
+  if (!canSporulate(state) || !isValidTime(payload.now)) return;
+  const gained = sporeGain(state);
+  recordSporulation(state, gained, payload.now);
+  checkColonization(state, payload.now);
+  startRun(state, payload.now, SPORULATE_RESET, false);
 
   invalidate(state);
   emit({ type: 'sporulate', gained, level: state.spores.level });
   checkAchievements(state);
 }
 
-/** Bonos de inicio de partida de las mutaciones (Memoria del suelo, Herencia) y del Esclerocio. */
+/** Por qué no se puede dispersar, en este orden de prioridad (null = se puede). */
+export type DisperseBlock = 'actOne' | 'noDestination' | 'colonize' | 'spores';
+
+/** Esporas con que se pagaría el viaje: las disponibles más lo que daría esporular ahora. */
+export function disperseFunds(state: GameState): number {
+  return state.spores.available + (canSporulate(state) ? sporeGain(state) : 0);
+}
+
+export function disperseBlock(state: GameState): DisperseBlock | null {
+  if (!isActOneClosed(state)) return 'actOne';
+  if (destinations(state).length === 0) return 'noDestination';
+  if (!isForestColonized(state)) return 'colonize';
+  if (disperseFunds(state) < DISPERSE_COST) return 'spores';
+  return null;
+}
+
+/**
+ * Dispersar: el linaje viaja a otro bioma. Si la partida puede esporular, termina esporulando
+ * (mismas cuentas que `sporulate`) y esas esporas ayudan a pagar el viaje. El nivel vuelve a 0
+ * (el territorio no viaja); las esporas que quedan, las mutaciones y las adaptaciones viajan en
+ * las esporas. Todo se valida antes de mutar.
+ */
+export function disperse(state: GameState, payload: { to: DestinationId; now: number }): void {
+  const to = payload.to;
+  if (!isDestinationId(to) || !isValidTime(payload.now)) return;
+  if (disperseBlock(state) !== null || !destinations(state).includes(to)) return;
+  const now = payload.now;
+  const from = state.forest.biome;
+  const gained = canSporulate(state) ? sporeGain(state) : 0;
+  if (gained > 0) recordSporulation(state, gained, now);
+
+  // La entrada del bosque que se deja recuerda cuándo se fue y hasta dónde llegó.
+  const entry = state.chronicle.find((e) => e.leg === state.forest.leg);
+  if (entry) {
+    entry.leftAt = now;
+    entry.levelReached = state.spores.level;
+  }
+  state.spores.available -= DISPERSE_COST;
+  state.spores.level = 0;
+  state.forest = {
+    biome: to,
+    leg: state.forest.leg + 1,
+    earned: 0,
+    arrivedAt: now,
+    arrivalSporulations: state.stats.sporulations,
+    arrivalPlayTime: state.stats.totalTime,
+  };
+  // Con el bosque ya cambiado: la espera de la lluvia se sortea con la del destino.
+  startRun(state, now, DISPERSE_RESET, true);
+
+  invalidate(state);
+  emit({ type: 'disperse', from, to, leg: state.forest.leg, gained });
+  checkAchievements(state);
+}
+
+/** Compra un rango de una adaptación de bioma con esporas disponibles. No baja el nivel. */
+export function buyBiomeAdaptation(state: GameState, payload: { id: BiomeAdaptationId }): void {
+  const id = payload.id;
+  if (!isBiomeAdaptationId(id) || biomeAdaptationGate(state, id) !== null) return;
+  const cost = nextBiomeAdaptationCost(state, id);
+  if (cost === null || state.spores.available < cost) return;
+  state.spores.available -= cost;
+  state.biomeAdaptations[id] += 1;
+  invalidate(state);
+  emit({ type: 'buyBiomeAdaptation', id, rank: state.biomeAdaptations[id] });
+  checkAchievements(state);
+}
+
+/**
+ * Bonos de inicio de partida: Esclerocio, Memoria del suelo, Herencia y, de las adaptaciones
+ * de bioma, Plántulas conectadas.
+ */
 export function applyRunStartBonuses(state: GameState): void {
   const sclerotium = state.adaptations.sclerotium;
   if (sclerotium > 0) {
@@ -145,6 +260,7 @@ export function applyRunStartBonuses(state: GameState): void {
   if (hasMutation(state, 'inheritance')) {
     for (const id of INHERITANCE_GENERATORS) state.owned[id] += INHERITANCE_UNITS;
   }
+  for (const gift of startUnits(state)) state.owned[gift.id] += gift.count;
 }
 
 export function isMutationAvailable(state: GameState, id: MutationId): boolean {

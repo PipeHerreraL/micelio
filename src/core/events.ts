@@ -3,6 +3,7 @@
  * cola en cada frame y la reparte a avisos, sonido y canvas. El simulador la descarta.
  */
 import type { AdaptationId } from '../data/adaptations.ts';
+import type { BiomeAdaptationId, BiomeId, DestinationId } from '../data/biomes.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import type { MutationId } from '../data/mutations.ts';
 import type { RainEffectKind } from '../data/rain.ts';
@@ -19,8 +20,17 @@ export type GameEvent =
   | { type: 'rainSpawn' }
   | { type: 'rainExpired' }
   | { type: 'rainCaught'; effect: RainEffectKind; amount: Num; duration: number }
+  /** Una gota del Chocó que nadie atrapó cayó sola y aplicó su efecto. */
+  | { type: 'rainFell'; effect: RainEffectKind; amount: Num; duration: number }
   | { type: 'effectEnd'; kind: TimedEffectKind }
   | { type: 'sporulate'; gained: number; level: number }
+  /** Se cerró el Acto I (systems/journey.ts). */
+  | { type: 'actOneClosed' }
+  /** Se colonizó un bioma; `factor` es el linaje tras colonizarlo. */
+  | { type: 'colonized'; biome: DestinationId; leg: number; factor: number }
+  /** El linaje viajó; `gained` son las esporas de la partida que terminó (0 si no esporuló). */
+  | { type: 'disperse'; from: BiomeId; to: DestinationId; leg: number; gained: number }
+  | { type: 'buyBiomeAdaptation'; id: BiomeAdaptationId; rank: number }
   | { type: 'reveal'; key: string };
 
 /**

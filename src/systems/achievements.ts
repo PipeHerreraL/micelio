@@ -3,7 +3,9 @@
  * cada uno suma al multiplicador global, así que otorgar uno invalida la caché.
  */
 import { ACHIEVEMENTS, type AchievementDef } from '../data/achievements.ts';
+import { BIOME_ADAPTATIONS, DESTINATION_IDS } from '../data/biomes.ts';
 import { emit } from '../core/events.ts';
+import { isColonized } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { derived, invalidate } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
@@ -28,6 +30,16 @@ function isMet(state: GameState, def: AchievementDef): boolean {
     case 'away':
       // Lo otorga el sistema offline al volver, con el hueco real.
       return false;
+    case 'dispersals':
+      return state.forest.leg >= c.count;
+    case 'colonized':
+      return isColonized(state, c.biome);
+    case 'biomeAdaptationsMaxed':
+      return DESTINATION_IDS.some((biome) =>
+        BIOME_ADAPTATIONS.every((a) => a.biome !== biome || state.biomeAdaptations[a.id] >= a.max),
+      );
+    case 'biomeLevel':
+      return state.forest.leg >= 1 && state.spores.level >= c.level;
   }
 }
 

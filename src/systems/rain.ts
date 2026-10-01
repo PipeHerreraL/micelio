@@ -8,7 +8,6 @@ import {
   DEW_FRACTION,
   DEW_PRODUCTION_SECONDS,
   DROP_LIFETIME,
-  RAIN_EFFECTS,
   RAIN_INTERVAL_MAX,
   RAIN_INTERVAL_MIN,
   type RainEffectKind,
@@ -17,9 +16,18 @@ import { HYDRAULIC_DROP_SECONDS } from '../data/adaptations.ts';
 import { PERFECT_STORM_DURATION, RAIN_SCENT_FREQUENCY } from '../data/mutations.ts';
 import { gain } from '../core/economy.ts';
 import { emit } from '../core/events.ts';
+import {
+  dewFloorSeconds,
+  dewMultiplier,
+  downpourBonusSeconds,
+  dropFallsAlone,
+  rainEffectsFor,
+  rainIntervalFactor,
+} from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { nextRandom, randomRange } from '../core/rng.ts';
 import { derived, invalidate } from '../core/selectors.ts';
+import type { Num } from '../core/num.ts';
 import { hasMutation, type GameState } from '../core/state.ts';
 
 /** Margen para que la gota no aparezca pegada al borde de la zona de juego. */
@@ -30,26 +38,47 @@ export function dropLifetime(state: GameState): number {
   return DROP_LIFETIME + HYDRAULIC_DROP_SECONDS * state.adaptations.hydraulicLift;
 }
 
-/** Sortea los segundos hasta la próxima gota (÷1.3 con Olfato de lluvia). */
+/**
+ * Sortea los segundos hasta la próxima gota: ×2 en la taiga, ×0,5 en el Chocó y ÷1,3 con
+ * Olfato de lluvia. En el natal el factor es 1 y la cuenta queda idéntica a la de antes.
+ */
 export function rollRainInterval(state: GameState): number {
   const frequency = hasMutation(state, 'rainScent') ? RAIN_SCENT_FREQUENCY : 1;
-  return randomRange(state, RAIN_INTERVAL_MIN, RAIN_INTERVAL_MAX) / frequency;
+  return (randomRange(state, RAIN_INTERVAL_MIN, RAIN_INTERVAL_MAX) * rainIntervalFactor(state)) / frequency;
 }
 
-/** Duración de un efecto de lluvia, con Tormenta perfecta (+50 %) si se tiene. */
-export function effectDuration(state: GameState, base: number): number {
-  return hasMutation(state, 'perfectStorm') ? base * PERFECT_STORM_DURATION : base;
+/**
+ * Duración de un efecto de lluvia, con Tormenta perfecta (+50 %) si se tiene y, en el
+ * Aguacero, los segundos de Trehalosa.
+ */
+export function effectDuration(state: GameState, base: number, kind: RainEffectKind = 'storm'): number {
+  const scaled = hasMutation(state, 'perfectStorm') ? base * PERFECT_STORM_DURATION : base;
+  return kind === 'downpour' ? scaled + downpourBonusSeconds(state) : scaled;
 }
 
-/** Sortea qué efecto sale al atrapar una gota. */
+/** Sortea qué efecto sale de una gota, con la tabla del bioma. */
 export function rollRainEffect(state: GameState): RainEffectKind {
   const roll = nextRandom(state);
   let acc = 0;
-  for (const def of RAIN_EFFECTS) {
+  for (const def of rainEffectsFor(state)) {
     acc += def.chance;
     if (roll < acc) return def.kind;
   }
   return 'downpour';
+}
+
+/**
+ * Nutrientes del Rocío: el menor entre el 12 % de las reservas y 12 min de producción, con el
+ * mínimo de producción del bioma (300 s en el Chocó) y × la Estera de raíces. En el natal el
+ * mínimo es 0 y el factor 1, así que da lo de siempre. La producción es la del momento, con el
+ * Aguacero si está activo: así se midió el Chocó (ARCHITECTURE.md §4.8).
+ */
+export function dewAmount(state: GameState): Num {
+  const production = derived(state).production;
+  const fromStock = num.mul(state.nutrients, DEW_FRACTION);
+  const fromProduction = num.mul(production, DEW_PRODUCTION_SECONDS);
+  const floor = num.mul(production, dewFloorSeconds(state));
+  return num.mul(num.max(num.min(fromStock, fromProduction), floor), dewMultiplier(state));
 }
 
 /** Avanza la lluvia `dt` segundos de juego en vivo. */
@@ -60,7 +89,15 @@ export function updateRain(state: GameState, dt: number): void {
     if (rain.drop.remaining <= 0) {
       rain.drop = null;
       rain.nextIn = rollRainInterval(state);
-      emit({ type: 'rainExpired' });
+      // En el Chocó la gota que nadie atrapa cae sola y su efecto llega igual. Solo aquí, con el
+      // juego abierto: evaporateDrop (offline, segundo plano, esporular) no aplica nada, o una
+      // partida nueva empezaría con un Aguacero heredado.
+      if (dropFallsAlone(state)) {
+        const outcome = applyDropEffect(state);
+        emit({ type: 'rainFell', ...outcome });
+      } else {
+        emit({ type: 'rainExpired' });
+      }
     }
     return;
   }
@@ -83,27 +120,24 @@ export function evaporateDrop(state: GameState): void {
   state.rain.nextIn = rollRainInterval(state);
 }
 
-/** Acción: atrapar la gota visible. */
-export function catchDrop(state: GameState, _payload: Record<string, never> = {}): void {
-  if (!state.rain.drop) return;
-  state.rain.drop = null;
-  state.rain.nextIn = rollRainInterval(state);
-  state.stats.drops += 1;
+export interface DropOutcome {
+  effect: RainEffectKind;
+  /** Nutrientes ganados (solo el Rocío). */
+  amount: Num;
+  /** Duración del efecto (0 en el Rocío). */
+  duration: number;
+}
 
+/** Sortea y aplica el efecto de una gota, atrapada o caída sola. */
+export function applyDropEffect(state: GameState): DropOutcome {
   const kind = rollRainEffect(state);
-  const def = RAIN_EFFECTS.find((e) => e.kind === kind);
-  const baseDuration = def ? def.duration : 0;
-
   if (kind === 'dew') {
-    const fromStock = num.mul(state.nutrients, DEW_FRACTION);
-    const fromProduction = num.mul(derived(state).production, DEW_PRODUCTION_SECONDS);
-    const amount = num.min(fromStock, fromProduction);
+    const amount = dewAmount(state);
     gain(state, amount);
-    emit({ type: 'rainCaught', effect: kind, amount, duration: 0 });
-    return;
+    return { effect: kind, amount, duration: 0 };
   }
-
-  const duration = effectDuration(state, baseDuration);
+  const def = rainEffectsFor(state).find((e) => e.kind === kind);
+  const duration = effectDuration(state, def ? def.duration : 0, kind);
   // Un efecto igual activo se renueva en lugar de apilarse.
   const existing = state.effects.find((e) => e.kind === kind);
   if (existing) {
@@ -113,5 +147,15 @@ export function catchDrop(state: GameState, _payload: Record<string, never> = {}
     state.effects.push({ kind, remaining: duration, duration });
   }
   invalidate(state);
-  emit({ type: 'rainCaught', effect: kind, amount: num.ZERO, duration });
+  return { effect: kind, amount: num.ZERO, duration };
+}
+
+/** Acción: atrapar la gota visible. */
+export function catchDrop(state: GameState, _payload: Record<string, never> = {}): void {
+  if (!state.rain.drop) return;
+  state.rain.drop = null;
+  state.rain.nextIn = rollRainInterval(state);
+  state.stats.drops += 1;
+  const outcome = applyDropEffect(state);
+  emit({ type: 'rainCaught', ...outcome });
 }

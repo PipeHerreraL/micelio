@@ -4,6 +4,7 @@
  */
 import { runAutobuy } from '../systems/autobuy.ts';
 import { checkAchievements } from '../systems/achievements.ts';
+import { checkActOne } from '../systems/journey.ts';
 import { updateRain } from '../systems/rain.ts';
 import { gain } from './economy.ts';
 import { emit } from './events.ts';
@@ -47,9 +48,10 @@ export function tick(state: GameState, payload: { dt: number }): void {
   state.stats.totalTime += dt;
   state.stats.idleClickTime += dt;
 
-  // Una vez por segundo de juego: autocompra y logros.
+  // Una vez por segundo de juego: autocompra, logros y el cierre del Acto I.
   if (Math.floor(state.stats.totalTime) !== previousSecond) {
     runAutobuy(state);
     checkAchievements(state);
+    checkActOne(state);
   }
 }

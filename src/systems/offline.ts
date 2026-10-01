@@ -16,6 +16,7 @@ import type { Num } from '../core/num.ts';
 import { derived, invalidate } from '../core/selectors.ts';
 import { hasMutation, type GameState } from '../core/state.ts';
 import { checkAchievements, grantAchievement } from './achievements.ts';
+import { checkActOne } from './journey.ts';
 import { runAutobuy } from './autobuy.ts';
 import { evaporateDrop } from './rain.ts';
 
@@ -49,8 +50,9 @@ export function applyElapsed(state: GameState, seconds: number, options: Elapsed
   if (!(seconds > 0) || !Number.isFinite(seconds)) return num.ZERO;
 
   const withEvent = derived(state).production;
-  const eventMultiplier = derived(state).eventMultiplier;
-  const withoutEvent = num.div(withEvent, eventMultiplier);
+  // Del selector y no dividiendo: los clics automáticos no se multiplican igual que los
+  // generadores (ARCHITECTURE.md §4.10).
+  const withoutEvent = derived(state).productionWithoutEvent;
   const downpour = state.effects.find((e) => e.kind === 'downpour');
   const boosted = downpour ? Math.min(downpour.remaining, seconds) : 0;
 
@@ -70,6 +72,7 @@ export function applyElapsed(state: GameState, seconds: number, options: Elapsed
 
   runAutobuy(state);
   checkAchievements(state);
+  checkActOne(state);
   return produced;
 }
 

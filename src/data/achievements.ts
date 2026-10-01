@@ -4,6 +4,7 @@
  * la descripción se arma con plantillas según la condición, salvo los secretos, que
  * tienen la suya (`ach.<id>.desc`).
  */
+import type { DestinationId } from './biomes.ts';
 import { GENERATORS, type GeneratorId } from './generators.ts';
 
 export type AchievementCondition =
@@ -16,12 +17,24 @@ export type AchievementCondition =
   /** Segundos de juego abierto (en primer plano) sin hacer clic. */
   | { kind: 'idle'; seconds: number }
   /** Segundos fuera del juego entre dos sesiones (lo otorga el sistema offline). */
-  | { kind: 'away'; seconds: number };
+  | { kind: 'away'; seconds: number }
+  /** Viento de esporas (fase 8): dispersiones hechas. */
+  | { kind: 'dispersals'; count: number }
+  | { kind: 'colonized'; biome: DestinationId }
+  /** Algún bioma con sus tres adaptaciones al máximo. */
+  | { kind: 'biomeAdaptationsMaxed' }
+  /** Nivel de esporas local en un bioma lejos del natal. */
+  | { kind: 'biomeLevel'; level: number };
 
 export interface AchievementDef {
   id: string;
   condition: AchievementCondition;
   secret?: boolean;
+  /**
+   * 'actOne': no se lista ni se cuenta hasta cerrar el Acto I. Verlos desde el minuto uno
+   * destriparía el final del Acto I.
+   */
+  reveal?: 'actOne';
 }
 
 export const OWNED_ACHIEVEMENT_COUNTS: readonly number[] = [1, 50, 100];
@@ -34,6 +47,11 @@ export const SPORULATION_ACHIEVEMENTS: readonly number[] = [1, 5, 10];
 export const IDLE_ACHIEVEMENT_SECONDS = 600;
 /** Sin prisa: volver tras 8 horas. */
 export const AWAY_ACHIEVEMENT_SECONDS = 8 * 3600;
+/**
+ * Echar raíces: nivel local 1000 lejos del natal, una partida o dos después de colonizar. Es una
+ * meta larga para cuando ya no quedan destinos.
+ */
+export const BIOME_LEVEL_ACHIEVEMENT = 1000;
 
 function build(): AchievementDef[] {
   const list: AchievementDef[] = [];
@@ -66,6 +84,16 @@ function build(): AchievementDef[] {
     id: 'secret.noRush',
     condition: { kind: 'away', seconds: AWAY_ACHIEVEMENT_SECONDS },
     secret: true,
+  });
+  // Viento de esporas (fase 8). Ninguno se cumple sin dispersar, así que el natal no cambia.
+  list.push({ id: 'disperse.1', condition: { kind: 'dispersals', count: 1 }, reveal: 'actOne' });
+  list.push({ id: 'colonize.taiga', condition: { kind: 'colonized', biome: 'taiga' }, reveal: 'actOne' });
+  list.push({ id: 'colonize.choco', condition: { kind: 'colonized', biome: 'choco' }, reveal: 'actOne' });
+  list.push({ id: 'adapt.biomeFull', condition: { kind: 'biomeAdaptationsMaxed' }, reveal: 'actOne' });
+  list.push({
+    id: 'biomeLevel.1',
+    condition: { kind: 'biomeLevel', level: BIOME_LEVEL_ACHIEVEMENT },
+    reveal: 'actOne',
   });
   return list;
 }

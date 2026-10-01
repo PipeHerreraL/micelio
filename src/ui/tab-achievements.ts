@@ -2,10 +2,12 @@
  * Pestaña Logros: todos los logros, conseguidos o por conseguir, con su condición. Los
  * secretos no dicen nada hasta conseguirse (PROMPT.md §11).
  */
+import { isActOneClosed } from '../core/forest.ts';
 import { derived } from '../core/selectors.ts';
+import type { GameState } from '../core/state.ts';
 import { ACHIEVEMENTS, type AchievementDef } from '../data/achievements.ts';
 import { formatPercent } from '../i18n/format.ts';
-import { fmt, getLocale, t, tp, type MessageKey, type PluralKey } from '../i18n/index.ts';
+import { fmt, formatCount, getLocale, t, tp, type MessageKey, type PluralKey } from '../i18n/index.ts';
 import { h, setText } from './dom.ts';
 import { createHint } from './hint.ts';
 import { uiIcon } from './icons.ts';
@@ -30,8 +32,23 @@ export function achievementDescription(def: AchievementDef): string {
       return tp('achDesc.sporulations', c.count);
     case 'idle':
     case 'away':
+    case 'dispersals':
+    case 'colonized':
+    case 'biomeAdaptationsMaxed':
       return t(`ach.${def.id}.desc` as MessageKey);
+    case 'biomeLevel':
+      return t(`ach.${def.id}.desc` as MessageKey, { level: formatCount(c.level) });
   }
+}
+
+/**
+ * Logros que se listan y se cuentan: los de Viento de esporas esperan al cierre del Acto I.
+ * Uno ya conseguido se ve siempre (no puede pasar antes del Acto I, pero un guardado importado
+ * no debe esconder lo que tiene).
+ */
+export function visibleAchievements(state: GameState): readonly AchievementDef[] {
+  const open = isActOneClosed(state);
+  return ACHIEVEMENTS.filter((def) => !def.reveal || open || state.achievements.includes(def.id));
 }
 
 export function achievementName(def: AchievementDef): string {
@@ -48,11 +65,11 @@ export function createAchievementsTab(store: Store): TabView {
     progress,
     list,
   ]);
-  let builtFor = -1;
+  let builtFor = '';
 
-  function build(owned: ReadonlySet<string>): void {
+  function build(defs: readonly AchievementDef[], owned: ReadonlySet<string>): void {
     list.replaceChildren(
-      ...ACHIEVEMENTS.map((def) => {
+      ...defs.map((def) => {
         const done = owned.has(def.id);
         const hidden = def.secret === true && !done;
         return h('li', { class: `ach${done ? ' is-done' : ''}${hidden ? ' is-secret' : ''}` }, [
@@ -79,15 +96,18 @@ export function createAchievementsTab(store: Store): TabView {
   function update(): void {
     const state = store.state;
     const count = state.achievements.length;
-    if (count !== builtFor) {
-      builtFor = count;
-      build(new Set(state.achievements));
+    const visible = visibleAchievements(state);
+    // Se rehace al ganar un logro o al aparecer los del Acto I, no en cada refresco.
+    const key = `${count}/${visible.length}`;
+    if (key !== builtFor) {
+      builtFor = key;
+      build(visible, new Set(state.achievements));
     }
     setText(
       progress,
       t('achievements.progress', {
         count,
-        total: ACHIEVEMENTS.length,
+        total: visible.length,
         percent: formatPercent(count * derived(state).achievementBonus, getLocale(), 0),
       }),
     );
