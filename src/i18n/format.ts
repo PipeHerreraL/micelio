@@ -249,7 +249,10 @@ export function formatFactor(value: number, locale: string): string {
 
 /** Día sin hora («3 de octubre de 2026»): la Crónica fecha bosques, no minutos. */
 export function formatDay(timestamp: number, locale: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone }).format(new Date(timestamp));
+  const date = new Date(timestamp);
+  // Una fecha imposible (el validador ya las rechaza) no debe tumbar una vista: Intl lanza.
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone }).format(date);
 }
 
 /** Fecha y hora en el idioma activo. */

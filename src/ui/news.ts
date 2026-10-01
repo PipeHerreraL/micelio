@@ -7,6 +7,7 @@ import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { BIOME_NEWS_SHARE, NEWS, NEWS_INTERVAL, type NewsDef } from '../data/news.ts';
 import { t, type MessageKey } from '../i18n/index.ts';
+import { biomeText } from './biome-text.ts';
 import { h, restartAnimation, setText } from './dom.ts';
 
 function unlocked(state: GameState, def: NewsDef): boolean {
@@ -61,7 +62,7 @@ export function createNewsTicker(): NewsTicker {
       if (!pick) return;
       recent.push(pick.id);
       if (recent.length > Math.min(8, pool.length - 1)) recent.shift();
-      setText(text, t(`news.${pick.id}` as MessageKey));
+      setText(text, biomeText(state, `news.${pick.id}` as MessageKey));
       restartAnimation(text, 'is-fresh');
     },
   };

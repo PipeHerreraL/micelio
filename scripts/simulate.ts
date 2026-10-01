@@ -374,8 +374,11 @@ interface BiomeLeg {
 
 interface WindResult {
   legs: BiomeLeg[];
+  /** Partidas jugadas tras colonizar un bioma solo para juntar las 300 esporas del viaje. */
+  waits: number[];
   /** Partidas tras colonizar el último bioma (informativas: es el final de esta versión). */
   after: number[];
+  /** Esporas sin gastar y ganadas en toda la campaña, al colonizar el último bioma. */
   unspent: number;
   earnedSpores: number;
   maxValue: number;
@@ -388,7 +391,12 @@ interface WindResult {
  */
 const BIOME_RUN_CAP = 30;
 const RATE_RUN_CAP = 200;
-/** Partidas que se juegan tras el último bioma (para el techo y la tabla informativa). */
+/**
+ * Partidas que se juegan tras el último bioma (para el techo y la tabla informativa). Cuatro y
+ * no ocho: sin destinos, la regla de §17 pide duplicar el nivel en cada partida y desde la
+ * quinta cada una dura horas (en el orden Chocó→taiga, 2 h 15 min la quinta y 11 h 50 min la
+ * octava, prototipo): el informe ya muestra que ahí empieza el muro.
+ */
 const AFTER_RUNS = 4;
 
 /** El guardado sigue siendo válido tras cada paso del viaje (ARCHITECTURE.md §4.26). */
@@ -438,7 +446,10 @@ function natalToActOne(seed: number, policy: SporulatePolicy): NatalJourney {
     const run = play();
     if (run.sporesGained === 0) break;
     buyMutationsInOrder(state);
-    buyAdaptations(state, isActOneClosed(state) ? DISPERSE_COST : 0);
+    // Tras la partida que cierra el Acto I, solo mutaciones: las esporas que sobran viajan y se
+    // gastan al llegar en las adaptaciones del bioma (comprar Cuerpo apical aquí, que no sirve
+    // en un bioma nuevo, dejaba al bot llegando sin esporas y falseaba el balance del viaje).
+    if (!isActOneClosed(state)) buyAdaptations(state);
   }
   let waitRuns = 0;
   while (disperseBlock(state) === 'spores' && waitRuns < 10) {
@@ -489,7 +500,10 @@ function windCampaign(
   let maxValue = natal.maxValue;
   let earnedSpores = natal.earnedSpores;
   let invalidSaves = natal.invalidSaves;
+  let unspent = 0;
+  let earnedAtEnd = 0;
   const legs: BiomeLeg[] = [];
+  const waits: number[] = [];
   const track = (run: RunRecord, at: number): void => {
     maxValue = Math.max(maxValue, run.maxValue);
     earnedSpores += run.sporesGained;
@@ -521,12 +535,11 @@ function windCampaign(
       cumulative: elapsed,
     });
     if (!a.colonized) break;
-    // Si no alcanza para el viaje, partidas de espera (las cuenta la métrica del viaje).
-    for (
-      let wait = 0;
-      destinations(state).length > 0 && disperseBlock(state) === 'spores' && wait < 10;
-      wait += 1
-    ) {
+    unspent = state.spores.available;
+    earnedAtEnd = earnedSpores;
+    // Si no alcanza para el viaje, partidas de espera (las cuenta la métrica de espera).
+    let wait = 0;
+    for (; destinations(state).length > 0 && disperseBlock(state) === 'spores' && wait < 10; wait += 1) {
       const run = playRun(state, {
         profile: PROFILES.active,
         stopWhen: 'campaign',
@@ -538,6 +551,7 @@ function windCampaign(
       track(run, elapsed);
       shopBetweenRuns(state);
     }
+    if (destinations(state).length > 0) waits.push(wait);
   }
   const after: number[] = [];
   for (
@@ -558,7 +572,7 @@ function windCampaign(
     if (run.sporesGained === 0) break;
     shopBetweenRuns(state);
   }
-  return { legs, after, unspent: state.spores.available, earnedSpores, maxValue, invalidSaves };
+  return { legs, waits, after, unspent, earnedSpores: earnedAtEnd, maxValue, invalidSaves };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -770,9 +784,9 @@ metrics.push({
   pass: (m) => m >= 2.5 * 3600 && m <= 3.5 * 3600,
 });
 metrics.push({
-  name: 'Viento: partidas de espera entre el Acto I y el primer Dispersar',
+  name: 'Viento: partidas de espera para pagar un viaje (tras el Acto I o tras colonizar)',
   target: '≤ 1',
-  values: natals.map((n) => n.waitRuns),
+  values: winds.flat().map((w, i) => Math.max(natals[i % natals.length]?.waitRuns ?? 0, ...w.waits)),
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m <= 1,
 });
@@ -825,7 +839,7 @@ ORDERS.forEach((order, o) => {
   });
 });
 metrics.push({
-  name: 'Viento: esporas sin gastar al terminar, sobre las ganadas en toda la campaña',
+  name: 'Viento: esporas sin gastar al colonizar el último bioma, sobre las ganadas en toda la campaña',
   target: '< 50 %',
   values: winds.flat().map((w) => (w.earnedSpores > 0 ? w.unspent / w.earnedSpores : null)),
   format: (v) => (v === null ? '—' : `${Math.round(v * 100)} %`),

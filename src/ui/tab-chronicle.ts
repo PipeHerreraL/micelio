@@ -25,6 +25,11 @@ interface LiveParts {
   here: HTMLElement | null;
 }
 
+/** Total de adaptaciones de un bioma (tres en esta versión; sale de los datos). */
+function adaptationsOf(biome: BiomeId): number {
+  return BIOME_ADAPTATIONS.filter((a) => a.biome === biome).length;
+}
+
 const day = (timestamp: number): string => formatDay(timestamp, getLocale());
 const duration = (seconds: number): string => formatDuration(seconds, getLocale());
 
@@ -46,6 +51,9 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
   ]);
   let builtFor = '';
   let live: LiveParts = { level: null, progress: null, bar: null, here: null };
+  // Una línea por bioma colonizado: se puede seguir aprendiendo después de colonizarlo, también
+  // desde otro bioma, y la lista no se rehace al comprar.
+  let learned: { biome: BiomeId; node: HTMLElement }[] = [];
   // Los listeners de los botones de releer se rehacen con la lista.
   let entryDisposer = new Disposer();
 
@@ -66,14 +74,25 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     lines: Node[],
     buttons: Node[],
   ): HTMLElement {
-    return h('li', { class: `chronicle__entry${current ? ' is-current' : ''}` }, [
-      h('h3', { class: 'chronicle__title' }, [
-        soilSwatch(biome),
-        h('span', { text: t('chronicle.entry', { name: biomeName(biome), status: t(status) }) }),
-      ]),
-      ...lines,
-      ...(buttons.length > 0 ? [h('div', { class: 'chronicle__actions' }, buttons)] : []),
-    ]);
+    return h(
+      'li',
+      {
+        class: `chronicle__entry${current ? ' is-current' : ''}`,
+        attrs: current ? { 'aria-current': 'location' } : {},
+      },
+      [
+        h('h3', { class: 'chronicle__title' }, [
+          soilSwatch(biome),
+          h('span', { text: t('chronicle.entry', { name: biomeName(biome), status: t(status) }) }),
+          // El borde de micelio marca el bosque actual; para el lector, con texto.
+          ...(current && status !== 'chronicle.status.current'
+            ? [h('span', { class: 'visually-hidden', text: ` ${t('chronicle.current')}` })]
+            : []),
+        ]),
+        ...lines,
+        ...(buttons.length > 0 ? [h('div', { class: 'chronicle__actions' }, buttons)] : []),
+      ],
+    );
   }
 
   function natalEntry(state: GameState, entry: ChronicleEntry): HTMLElement {
@@ -96,6 +115,14 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
       }),
     ];
     return entryRoot('natal', 'chronicle.status.actOne', here, lines, buttons);
+  }
+
+  function learnedLine(state: GameState, biome: DestinationId): HTMLElement {
+    const node = h('p', {
+      text: t('chronicle.adaptations', { count: learnedHere(state, biome), total: adaptationsOf(biome) }),
+    });
+    learned.push({ biome, node });
+    return node;
   }
 
   function arriveButton(biome: DestinationId): HTMLButtonElement {
@@ -123,7 +150,7 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
         }),
       }),
       level,
-      h('p', { text: t('chronicle.adaptations', { count: learnedHere(state, biome), total: 3 }) }),
+      learnedLine(state, biome),
       h(
         'ul',
         { class: 'chronicle__rules' },
@@ -165,6 +192,7 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     entryDisposer.dispose();
     entryDisposer = new Disposer();
     live = { level: null, progress: null, bar: null, here: null };
+    learned = [];
     const items: HTMLElement[] = [];
     for (const entry of state.chronicle) {
       if (entry.biome === 'natal') items.push(natalEntry(state, entry));
@@ -197,6 +225,12 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
         );
       }
       if (live.level) setText(live.level, t('chronicle.level', { level: formatCount(state.spores.level) }));
+      for (const { biome, node } of learned) {
+        setText(
+          node,
+          t('chronicle.adaptations', { count: learnedHere(state, biome), total: adaptationsOf(biome) }),
+        );
+      }
       if (live.progress) setText(live.progress, forestProgressText(store));
       if (live.bar) setProgress(live.bar, Math.min(1, state.spores.level / COLONIZE_LEVEL));
       if (live.here) {

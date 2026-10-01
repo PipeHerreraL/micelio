@@ -373,7 +373,7 @@ export const en: Catalog = {
   'wind.confirm.noGain': "This run can't sporulate yet: its nutrients won't turn into spores.",
   'wind.confirm.cost.one': 'The journey costs {cost} spores; you will have {count} spore left.',
   'wind.confirm.cost.other': 'The journey costs {cost} spores; you will have {count} spores left.',
-  'wind.confirm.bonus': 'Spore level bonus: +{current} now, +0% on arrival.',
+  'wind.confirm.bonus': 'Spore level bonus you leave behind: +{current}; on arrival, +0%.',
   'wind.confirm.lose':
     "You will lose: this biome's spore level and everything in the run (nutrients, generators, upgrades, milestones and active effects).",
   'wind.confirm.keep':
@@ -442,12 +442,13 @@ export const en: Catalog = {
   'chronicle.here.one': 'Here: {count} run and {time} of play',
   'chronicle.here.other': 'Here: {count} runs and {time} of play',
   'chronicle.level': 'Spore level reached: {level}',
-  'chronicle.adaptations': 'Adaptations learned here: {count} of {total}',
+  'chronicle.adaptations': 'Adaptations from this biome: {count} of {total}',
+  'chronicle.current': 'Your lineage lives here.',
   'chronicle.reread.act1': 'Reread: End of Act I',
   'chronicle.reread.arrive': 'Reread the arrival',
-  'chronicle.reread.arrive.label': 'Reread the arrival plate: {name}',
+  'chronicle.reread.arrive.label': 'Reread the arrival: {name}',
   'chronicle.reread.colonize': 'Reread the colonization',
-  'chronicle.reread.colonize.label': 'Reread the colonization plate: {name}',
+  'chronicle.reread.colonize.label': 'Reread the colonization: {name}',
   'hint.chronicle': 'Plates you close can be reread here.',
   // Adaptaciones de bioma
   'adapt.group.network': 'From the network',
@@ -463,7 +464,7 @@ export const en: Catalog = {
   'badapt.rockEating.effect': 'Mycorrhizal networks and mother trees ×{factor}.',
   'badapt.seedlingNetwork.name': 'Connected seedlings',
   'badapt.seedlingNetwork.desc':
-    'Seedlings sprouting near old trees have been found linked to their mycorrhizal network (Beiler and colleagues, 2010); how much it helps them is debated. Each run starts with {count} more mycorrhizal networks per rank.',
+    'In a Douglas-fir forest, young and old trees carried the same individual fungus on their roots, suggesting the network links them (Beiler and colleagues, 2010); whether that link lasts and how much it helps is debated. Each run starts with {count} more mycorrhizal networks per rank.',
   'badapt.seedlingNetwork.effect': 'Each run starts with {count} more mycorrhizal networks.',
   'badapt.trehalose.name': 'Trehalose',
   'badapt.trehalose.desc':
@@ -494,6 +495,8 @@ export const en: Catalog = {
   'upg.motherTree.u4.name.choco': 'Memory of the tree',
   'upg.motherTree.u4.flavor.choco': 'Centuries of roots know where the soil stays above water.',
   'upg.autumnLitter.name.choco': 'Year-round leaf litter',
+  'news.motherTree.choco':
+    'An emergent tree has visitors. Some believe it feeds the young trees in its shade; science is still debating it.',
   'dev.actOne': 'Close Act I',
   'dev.colonize': 'Colonize this biome',
   // Noticias de los biomas y del viento

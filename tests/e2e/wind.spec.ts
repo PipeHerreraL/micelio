@@ -187,7 +187,7 @@ test('con la taiga y el Chocó colonizados no queda ningún destino y lo dice', 
   await expect(page.locator('.chronicle__title')).toHaveText([
     'Bosque natal · Acto I',
     'Taiga · colonizado',
-    'Selva del Chocó · colonizado',
+    'Selva del Chocó · colonizado Aquí vive tu linaje.',
   ]);
 });
 

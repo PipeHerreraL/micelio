@@ -49,7 +49,7 @@ export function biomeTag(state: GameState, id: GeneratorId): string | null {
 
 /**
  * Texto con sustitución por bioma: `${key}.${bioma}` si existe. En la selva baja no hay abetos
- * ni otoño, así que el Chocó cambia cinco textos (ARCHITECTURE.md §4.28); el resto es el mismo.
+ * ni otoño, así que el Chocó cambia seis textos (ARCHITECTURE.md §4.28); el resto es el mismo.
  */
 export function biomeText(state: GameState, key: MessageKey): string {
   const local = `${key}.${state.forest.biome}`;

@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
-import { disperse, markSeen } from '../src/core/actions.ts';
+import { buyBiomeAdaptation, disperse, markSeen } from '../src/core/actions.ts';
 import { drain } from '../src/core/events.ts';
 import { invalidate } from '../src/core/selectors.ts';
 import { createState, type GameState } from '../src/core/state.ts';
@@ -136,8 +136,26 @@ describe('Crónica', () => {
     checkColonization(state, NOW + 5000);
     tab.update();
     const titles = Array.from(tab.root.querySelectorAll('.chronicle__title')).map((el) => el.textContent);
-    expect(titles).toEqual(['Bosque natal · Acto I', 'Taiga · colonizado']);
+    // El bosque actual lo dice también con texto (oculto a la vista: el borde lo marca).
+    expect(titles).toEqual(['Bosque natal · Acto I', 'Taiga · colonizado Aquí vive tu linaje.']);
+    expect(tab.root.querySelector('[aria-current="location"]')?.textContent).toContain('Taiga');
     expect(document.activeElement).toBe(panel);
+  });
+});
+
+describe('Crónica y adaptaciones aprendidas después de colonizar', () => {
+  it('la línea de adaptaciones del bioma se actualiza al comprar una, sin rehacer la lista', () => {
+    const state = inTaiga();
+    state.spores.level = 520;
+    checkColonization(state, NOW + 5000);
+    const store = createStore(state);
+    const tab = createChronicleTab(store, nav);
+    mount(tab.root);
+    tab.update();
+    expect(tab.root.textContent).toContain('Adaptaciones de este bioma: 0 de 3');
+    store.dispatch(buyBiomeAdaptation, { id: 'rockEating' });
+    tab.update();
+    expect(tab.root.textContent).toContain('Adaptaciones de este bioma: 1 de 3');
   });
 });
 

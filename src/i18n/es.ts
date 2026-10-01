@@ -378,7 +378,7 @@ export const es = {
   'wind.confirm.noGain': 'Esta partida aún no puede esporular: sus nutrientes no darán esporas.',
   'wind.confirm.cost.one': 'El viaje cuesta {cost} esporas; te quedará {count} disponible.',
   'wind.confirm.cost.other': 'El viaje cuesta {cost} esporas; te quedarán {count} disponibles.',
-  'wind.confirm.bonus': 'Bono del nivel de esporas: +{current} ahora, +0 % al llegar.',
+  'wind.confirm.bonus': 'Bono del nivel de esporas que dejas: +{current}; al llegar, +0 %.',
   'wind.confirm.lose':
     'Se pierden: el nivel de esporas de este bioma y todo lo de la partida (nutrientes, generadores, mejoras, hitos y efectos activos).',
   'wind.confirm.keep':
@@ -447,12 +447,13 @@ export const es = {
   'chronicle.here.one': 'Aquí: {count} partida y {time} de juego',
   'chronicle.here.other': 'Aquí: {count} partidas y {time} de juego',
   'chronicle.level': 'Nivel de esporas alcanzado: {level}',
-  'chronicle.adaptations': 'Adaptaciones aprendidas aquí: {count} de {total}',
+  'chronicle.adaptations': 'Adaptaciones de este bioma: {count} de {total}',
+  'chronicle.current': 'Aquí vive tu linaje.',
   'chronicle.reread.act1': 'Releer: Fin del Acto I',
   'chronicle.reread.arrive': 'Releer la llegada',
-  'chronicle.reread.arrive.label': 'Releer la lámina de llegada: {name}',
+  'chronicle.reread.arrive.label': 'Releer la llegada: {name}',
   'chronicle.reread.colonize': 'Releer la colonización',
-  'chronicle.reread.colonize.label': 'Releer la lámina de colonización: {name}',
+  'chronicle.reread.colonize.label': 'Releer la colonización: {name}',
   'hint.chronicle': 'Las láminas que cierres se pueden releer aquí.',
   // Adaptaciones de bioma
   'adapt.group.network': 'De la red',
@@ -468,7 +469,7 @@ export const es = {
   'badapt.rockEating.effect': 'Red micorrícica y Árbol madre ×{factor}.',
   'badapt.seedlingNetwork.name': 'Plántulas conectadas',
   'badapt.seedlingNetwork.desc':
-    'Se ha visto que las plántulas que brotan junto a árboles viejos se conectan a su red micorrícica (Beiler y colegas, 2010); cuánto las ayuda se discute. Cada partida empieza con {count} Redes micorrícicas más por rango.',
+    'En un bosque de abetos de Douglas, árboles jóvenes y viejos llevaban en sus raíces el mismo individuo de hongo, lo que sugiere que la red los une (Beiler y colegas, 2010); si esa unión dura y cuánto ayuda se discute. Cada partida empieza con {count} Redes micorrícicas más por rango.',
   'badapt.seedlingNetwork.effect': 'Cada partida empieza con {count} Redes micorrícicas más.',
   'badapt.trehalose.name': 'Trehalosa',
   'badapt.trehalose.desc':
@@ -499,6 +500,8 @@ export const es = {
   'upg.motherTree.u4.name.choco': 'Memoria del árbol',
   'upg.motherTree.u4.flavor.choco': 'Siglos de raíces saben dónde no se encharca el suelo.',
   'upg.autumnLitter.name.choco': 'Hojarasca de todo el año',
+  'news.motherTree.choco':
+    'Un árbol emergente recibe visitas. Hay quien cree que alimenta a los árboles jóvenes de su sombra; la ciencia aún lo discute.',
   'dev.actOne': 'Cerrar el Acto I',
   'dev.colonize': 'Colonizar este bioma',
   // Noticias de los biomas y del viento

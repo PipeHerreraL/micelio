@@ -154,6 +154,17 @@ function isCount(value: unknown): value is number {
   return isNonNegative(value) && Number.isInteger(value);
 }
 
+/**
+ * Mayor marca de tiempo que admite Date (8,64e15 ms, el año 275760). Date.now() nunca llega,
+ * así que solo un guardado editado la pasa; sin este tope, la Crónica fallaba al formatear la
+ * fecha (Intl lanza RangeError) y una pestaña quedaba vacía o el bucle se paraba.
+ */
+const MAX_TIMESTAMP = 8.64e15;
+
+function isTimestamp(value: unknown): value is number {
+  return isNonNegative(value) && value <= MAX_TIMESTAMP;
+}
+
 function uniqueList<T extends string>(value: unknown, isValid: (v: unknown) => v is T): T[] | null {
   if (!Array.isArray(value)) return null;
   const out: T[] = [];
@@ -229,22 +240,16 @@ export function validateState(raw: unknown): GameState | null {
 
   const s = raw.stats;
   if (!isObject(s)) return null;
-  const statNumbers = [
-    'runTime',
-    'totalTime',
-    'startedAt',
-    'runStartedAt',
-    'maxNps',
-    'idleClickTime',
-  ] as const;
+  const statNumbers = ['runTime', 'totalTime', 'maxNps', 'idleClickTime'] as const;
   for (const key of statNumbers) if (!isNonNegative(s[key])) return null;
+  if (!isTimestamp(s.startedAt) || !isTimestamp(s.runStartedAt)) return null;
   const statCounts = ['clicks', 'drops', 'sporulations'] as const;
   for (const key of statCounts) if (!isCount(s[key])) return null;
   const stats = {
     runTime: s.runTime as number,
     totalTime: s.totalTime as number,
-    startedAt: s.startedAt as number,
-    runStartedAt: s.runStartedAt as number,
+    startedAt: s.startedAt,
+    runStartedAt: s.runStartedAt,
     maxNps: s.maxNps as number,
     clicks: s.clicks as number,
     drops: s.drops as number,
@@ -282,7 +287,7 @@ export function validateState(raw: unknown): GameState | null {
   const history: RunRecord[] = [];
   for (const r of raw.history) {
     if (!isObject(r) || !isCount(r.sporulation) || !isCount(r.spores)) return null;
-    if (!isNonNegative(r.duration) || !isNonNegative(r.endedAt) || !isBiomeId(r.biome)) return null;
+    if (!isNonNegative(r.duration) || !isTimestamp(r.endedAt) || !isBiomeId(r.biome)) return null;
     history.push({
       sporulation: r.sporulation,
       duration: r.duration,
@@ -349,7 +354,7 @@ function validateForest(
   if ((raw.leg === 0) !== (raw.biome === HOME_BIOME)) return null;
   const earned = num.parse(raw.earned);
   if (earned === null || num.gt(earned, lifetimeEarned)) return null;
-  if (!isNonNegative(raw.arrivedAt)) return null;
+  if (!isTimestamp(raw.arrivedAt)) return null;
   if (!isCount(raw.arrivalSporulations) || raw.arrivalSporulations > stats.sporulations) return null;
   if (!isNonNegative(raw.arrivalPlayTime) || raw.arrivalPlayTime > stats.totalTime) return null;
   return {
@@ -377,20 +382,20 @@ function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] 
     if (!isObject(e) || !isBiomeId(e.biome) || e.leg !== i) return null;
     if ((i === 0) !== (e.biome === HOME_BIOME) || seen.has(e.biome)) return null;
     seen.add(e.biome);
-    if (!isNonNegative(e.arrivedAt) || !isCount(e.sporulations) || !isNonNegative(e.playTime)) return null;
+    if (!isTimestamp(e.arrivedAt) || !isCount(e.sporulations) || !isNonNegative(e.playTime)) return null;
     // El Acto I se cierra sin reloj (null); los demás bosques, con la fecha de la esporulación.
     let colonizedAt: number | null = null;
     if (i === 0) {
       if (e.colonizedAt !== null) return null;
     } else {
-      if (!isNonNegative(e.colonizedAt)) return null;
+      if (!isTimestamp(e.colonizedAt)) return null;
       colonizedAt = e.colonizedAt;
     }
     // Solo los bosques que se dejaron tienen fecha de partida y nivel alcanzado.
     let leftAt: number | null = null;
     let levelReached: number | null = null;
     if (i < forest.leg) {
-      if (!isNonNegative(e.leftAt) || !isCount(e.levelReached)) return null;
+      if (!isTimestamp(e.leftAt) || !isCount(e.levelReached)) return null;
       leftAt = e.leftAt;
       levelReached = e.levelReached;
     } else if (e.leftAt !== null || e.levelReached !== null) {
@@ -467,8 +472,7 @@ export function parseSave(
   } catch {
     return { ok: false, error: 'json' };
   }
-  if (!isObject(raw) || !isNonNegative(raw.savedAt) || !('state' in raw))
-    return { ok: false, error: 'shape' };
+  if (!isObject(raw) || !isTimestamp(raw.savedAt) || !('state' in raw)) return { ok: false, error: 'shape' };
   if (!isCount(raw.version) || raw.version < 1 || raw.version > target)
     return { ok: false, error: 'version' };
   let migrated: RawObject | null;
@@ -477,7 +481,7 @@ export function parseSave(
   } catch {
     return { ok: false, error: 'migration' };
   }
-  if (!migrated || !isNonNegative(migrated.savedAt)) return { ok: false, error: 'migration' };
+  if (!migrated || !isTimestamp(migrated.savedAt)) return { ok: false, error: 'migration' };
   const state = validateState(migrated.state);
   if (!state) return { ok: false, error: 'invalid' };
   return { ok: true, save: { version: target, savedAt: migrated.savedAt, state } };

@@ -76,22 +76,22 @@ function colonize(s: GameState, now = NOW + 5000): void {
 }
 
 describe('consultas del viaje', () => {
-  it('el requisito para esporular es 1e8 en el natal, 7e10 en la taiga y 1,2e11 en el Chocó como primer destino', () => {
+  it('el requisito para esporular es 1e8 en el natal, 1e11 en la taiga y 2e11 en el Chocó como primer destino', () => {
     expect(sporulateRequirement(actOneState())).toBe(1e8);
-    expect(sporulateRequirement(arrivedIn('taiga'))).toBe(7e10);
-    expect(sporulateRequirement(arrivedIn('choco'))).toBe(1.2e11);
+    expect(sporulateRequirement(arrivedIn('taiga'))).toBe(1e11);
+    expect(sporulateRequirement(arrivedIn('choco'))).toBe(2e11);
   });
 
-  it('como segundo destino el requisito crece ×4,5: taiga 3,15e11 y Chocó 5,4e11', () => {
+  it('como segundo destino el requisito crece ×3,5: taiga 3,5e11 y Chocó 7e11', () => {
     const viaChoco = arrivedIn('choco');
     colonize(viaChoco);
     disperse(viaChoco, { to: 'taiga', now: NOW + 9000 });
-    expect(sporulateRequirement(viaChoco)).toBe(3.15e11);
+    expect(sporulateRequirement(viaChoco)).toBe(3.5e11);
 
     const viaTaiga = arrivedIn('taiga');
     colonize(viaTaiga);
     disperse(viaTaiga, { to: 'choco', now: NOW + 9000 });
-    expect(sporulateRequirement(viaTaiga)).toBe(5.4e11);
+    expect(sporulateRequirement(viaTaiga)).toBe(7e11);
   });
 
   it('desde el natal quedan la taiga y el Chocó; desde la taiga, el Chocó; en el tramo 2, ninguno', () => {
@@ -141,31 +141,31 @@ describe('consultas del viaje', () => {
 describe('esporas en un bioma', () => {
   it('las esporas por ganar miran los nutrientes del bosque, no los de toda la vida', () => {
     const s = arrivedIn('taiga');
-    s.forest.earned = 2.8e11;
+    s.forest.earned = 4e11;
     s.lifetimeEarned = 1e15;
-    // E = ⌊18,75 · √(2,8e11 / 7e10)⌋ = ⌊18,75 · 2⌋ = 37 (Esporas aladas: k = 18,75).
+    // E = ⌊18,75 · √(4e11 / 1e11)⌋ = ⌊18,75 · 2⌋ = 37 (Esporas aladas: k = 18,75).
     expect(sporeGain(s)).toBe(37);
   });
 
-  it('en la taiga como primer destino hacen falta 7e10 N ganados en la partida', () => {
+  it('en la taiga como primer destino hacen falta 1e11 N ganados en la partida', () => {
     const s = arrivedIn('taiga');
-    s.forest.earned = 2.8e11;
-    s.runEarned = 6.99e10;
+    s.forest.earned = 4e11;
+    s.runEarned = 9.99e10;
     expect(canSporulate(s)).toBe(false);
-    s.runEarned = 7e10;
+    s.runEarned = 1e11;
     expect(canSporulate(s)).toBe(true);
   });
 
-  it('faltan 7e10 · (38 / 18,75)² − 2,8e11 N del bosque para la espora 38', () => {
+  it('faltan 1e11 · (38 / 18,75)² − 4e11 N del bosque para la espora 38', () => {
     const s = arrivedIn('taiga');
-    s.forest.earned = 2.8e11;
-    expect(nutrientsToNextSpore(s)).toBeCloseTo(7_516_444_444.44, 1);
+    s.forest.earned = 4e11;
+    expect(nutrientsToNextSpore(s)).toBeCloseTo(10_737_777_777.78, 1);
   });
 
   it('esporular en la taiga anota el bioma en el historial', () => {
     const s = arrivedIn('taiga');
-    s.forest.earned = 2.8e11;
-    s.runEarned = 7e10;
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
     sporulate(s, { now: NOW + 7000 });
     expect(s.history.at(-1)).toMatchObject({ spores: 37, biome: 'taiga' });
     expect(s.forest.biome).toBe('taiga');
@@ -174,8 +174,8 @@ describe('esporas en un bioma', () => {
   it('Plántulas conectadas en rango 2 empieza cada partida con 6 Redes micorrícicas', () => {
     const s = arrivedIn('taiga');
     s.biomeAdaptations.seedlingNetwork = 2;
-    s.forest.earned = 2.8e11;
-    s.runEarned = 7e10;
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
     sporulate(s, { now: NOW + 7000 });
     expect(s.owned.mycorrhiza).toBe(6);
     // Con el árbol completo, además: Memoria del suelo (10 Hifas) y Herencia (10 de cada uno de
@@ -484,13 +484,13 @@ describe('colonizar', () => {
     s.spores = { level: 290, available: 50 };
     s.forest.earned = earned;
     s.lifetimeEarned = 1e15;
-    s.runEarned = 7e10;
+    s.runEarned = 1e11;
     return s;
   }
 
   it('la esporulación que lleva el nivel local a 525 coloniza la taiga', () => {
-    const s = nearColony(5.488e13);
-    // E = ⌊18,75 · √(5,488e13 / 7e10)⌋ = 18,75 · 28 = 525.
+    const s = nearColony(7.84e13);
+    // E = ⌊18,75 · √(7,84e13 / 1e11)⌋ = 18,75 · 28 = 525.
     sporulate(s, { now: NOW + 30_000 });
     expect(s.spores.level).toBe(525);
     expect(s.chronicle[1]).toEqual({
@@ -508,8 +508,8 @@ describe('colonizar', () => {
     expect(types.indexOf('colonized')).toBeLessThan(types.indexOf('sporulate'));
   });
 
-  it('con 4,9e13 N del bosque el nivel queda en 496 y no coloniza', () => {
-    const s = nearColony(4.9e13);
+  it('con 7e13 N del bosque el nivel queda en 496 y no coloniza', () => {
+    const s = nearColony(7e13);
     sporulate(s, { now: NOW + 30_000 });
     expect(s.spores.level).toBe(496);
     expect(s.chronicle).toHaveLength(1);
@@ -661,8 +661,8 @@ describe('tablas de reinicio', () => {
 
   it('esporular en la taiga no cambia de bosque', () => {
     const s = arrivedIn('taiga');
-    s.forest.earned = 2.8e11;
-    s.runEarned = 7e10;
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
     const forest = { ...s.forest };
     sporulate(s, { now: NOW + 7000 });
     expect(s.forest).toEqual({ ...forest, earned: forest.earned });

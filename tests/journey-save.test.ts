@@ -220,3 +220,14 @@ describe('validación del viaje', () => {
     }
   });
 });
+
+describe('fechas imposibles', () => {
+  it('rechaza fechas del viaje que Date no puede representar', () => {
+    expect(loads((s) => Object.assign(s.chronicle[0] ?? {}, { arrivedAt: 1e16 }))).toBe(false);
+    expect(loads((s) => Object.assign(s.chronicle[0] ?? {}, { leftAt: 9e15 }))).toBe(false);
+    expect(loads((s) => (s.forest.arrivedAt = 1e300))).toBe(false);
+    expect(loads((s) => (s.stats.startedAt = 1e16))).toBe(false);
+    // El último día que Date sabe escribir sigue valiendo.
+    expect(loads((s) => Object.assign(s.chronicle[0] ?? {}, { leftAt: 8.64e15 }))).toBe(true);
+  });
+});

@@ -5,9 +5,9 @@
  * se cierra, y entonces queda en `seen`).
  */
 import { markSeen } from '../core/actions.ts';
-import { destinations, isActOneClosed, isColonized, lineageFactor } from '../core/forest.ts';
+import { destinations, isActOneClosed, isColonized } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
-import { COLONIZE_LEVEL, type DestinationId } from '../data/biomes.ts';
+import { COLONIZE_LEVEL, LINEAGE_FACTOR, type DestinationId } from '../data/biomes.ts';
 import { formatFactor } from '../i18n/format.ts';
 import { formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
 import { biomeRules } from './biome-text.ts';
@@ -137,13 +137,17 @@ export function openChapter(
       kicker = t('chapter.colonize.kicker');
       title = t(`chapter.${b}.colonize.title` as MessageKey);
       biome = b;
+      // El linaje que dio esta colonización, no el de hoy: solo se sale de un bosque colonizado,
+      // así que al cerrar el tramo n hay n biomas colonizados (×2 cada uno). Al releer no se
+      // habla del viento de ahora: la lámina cuenta aquel momento.
+      const leg = state.chronicle.find((e) => e.biome === b)?.leg ?? state.forest.leg;
       body.push(
         t(`chapter.${b}.colonize.line1` as MessageKey),
         t(`chapter.${b}.colonize.line2` as MessageKey),
-        t('chapter.lineage', { factor: formatFactor(lineageFactor(state), getLocale()) }),
+        t('chapter.lineage', { factor: formatFactor(LINEAGE_FACTOR ** leg, getLocale()) }),
       );
-      const more = destinations(state).length > 0;
-      body.push(more ? t('chapter.next') : t('wind.none'));
+      const more = !options.reread && destinations(state).length > 0;
+      if (!options.reread) body.push(more ? t('chapter.next') : t('wind.none'));
       actions.push({ label: t('chapter.close'), kind: more ? 'quiet' : 'primary', autofocus: true });
       if (more) {
         actions.push({

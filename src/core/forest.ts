@@ -23,7 +23,7 @@ import { adaptationCost } from './formulas.ts';
 import type { Num } from './num.ts';
 import type { GameState } from './state.ts';
 
-/** R del bosque actual: requisito y escala de esporas, ×3 por tramo desde el primer destino. */
+/** R del bosque actual: requisito y escala de esporas, × LEG_SCALE_GROWTH por tramo desde el primer destino. */
 function legScale(state: GameState): number {
   const { biome, leg } = state.forest;
   return getBiome(biome).scale * LEG_SCALE_GROWTH ** Math.max(0, leg - 1);

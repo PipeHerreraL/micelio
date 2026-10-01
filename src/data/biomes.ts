@@ -3,8 +3,9 @@
  * bioma. Solo datos; el texto vive en src/i18n (`biome.<id>.*`, `badapt.<id>.*`).
  *
  * Los valores salen del prototipo de balance de la fase 8 (9 semillas, perfil activo, regla de
- * PROMPT.md §17) y los confirma `npm run sim`; las cifras de cada comentario son de esa
- * medición (docs/BALANCE.md).
+ * PROMPT.md §17) y `npm run sim` confirma sus 21 objetivos del viaje (docs/BALANCE.md). Las
+ * cifras de los comentarios son de ese prototipo salvo donde se dice «simulador»: explican por
+ * qué se eligió cada valor frente a sus alternativas, que el simulador no vuelve a medir.
  */
 import type { GeneratorId } from './generators.ts';
 import { SPORE_SCALE } from './prestige.ts';
@@ -63,7 +64,7 @@ export const BIOMES: readonly BiomeDef[] = [
     // 3,71 h (prototipo). Espera entre gotas ×2: con ×1,5 el pasivo tardaba 2,64 veces lo que el
     // activo. Escala: ver LEG_SCALE_GROWTH.
     id: 'taiga',
-    scale: 7e10,
+    scale: 1e11,
     production: { mycorrhiza: 5, motherTree: 5 },
     rainInterval: 2,
     rainEffects: null,
@@ -77,7 +78,7 @@ export const BIOMES: readonly BiomeDef[] = [
     // el mínimo de 300 s de producción es lo que lo hace notar. Sin la gota que cae sola, el
     // pasivo tardaba 5,88 veces lo que el activo.
     id: 'choco',
-    scale: 1.2e11,
+    scale: 2e11,
     production: {},
     rainInterval: 0.5,
     rainEffects: CHOCO_RAIN_EFFECTS,
@@ -87,14 +88,12 @@ export const BIOMES: readonly BiomeDef[] = [
 ];
 
 /**
- * R crece ×4,5 del primer destino al segundo: taiga 7e10 y luego 3,15e11; Chocó 1,2e11 y luego
- * 5,4e11. El prototipo usaba 1e11 y 2e11 con ×3; en el juego (con las obreras dentro de la
- * producción y la lluvia del destino desde la llegada) el primer destino quedaba largo:
- * partidas de 34 min de mediana y la taiga colonizada en 3,6 h. Con estos valores, 32–33 min
- * y 3,2 h en el primero y 22–27 min y 2,2–2,9 h en el segundo (npm run sim, docs/BALANCE.md).
- * Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h.
+ * R crece ×3,5 del primer destino al segundo: taiga 1e11 y luego 3,5e11; Chocó 2e11 y luego
+ * 7e11. Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en 1,90 h, por
+ * debajo del objetivo de 2 h; con ×3,5, en 2,06 h, y la taiga segunda en 2,48 h (simulador).
+ * Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h (prototipo).
  */
-export const LEG_SCALE_GROWTH = 4.5;
+export const LEG_SCALE_GROWTH = 3.5;
 /** Nivel local de esporas que coloniza un bioma (ROADMAP). Con 300, el Chocó segundo bajaba de 2 h. */
 export const COLONIZE_LEVEL = 500;
 /**

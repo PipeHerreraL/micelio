@@ -1552,7 +1552,12 @@ export function createNetworkView(
   function finishSoilChange(): void {
     bgBiome = soilBiome;
     if (ready) {
-      paintBackground(bg, bgBiome);
+      // La capa ya tiene el suelo nuevo pintado, opaco y del mismo tamaño que el fondo: copiarla
+      // da los mismos píxeles que volver a pintarlo y cuesta una sola copia.
+      bg.setTransform(1, 0, 0, 1, 0, 0);
+      bg.globalCompositeOperation = 'source-over';
+      bg.globalAlpha = 1;
+      bg.drawImage(layerCanvas, 0, 0);
       layer.clearRect(0, 0, W, H);
     }
     phase = PHASE_WAIT;
@@ -1574,6 +1579,9 @@ export function createNetworkView(
       if (reducedMotion) {
         startReducedFade(now);
       } else {
+        // Desde la opacidad que tenga la red: si se dispersa durante el fundido de entrada de
+        // una esporulación, subir a 1 de golpe se veía como un parpadeo.
+        fadeFromAlpha = layerAlpha;
         phase = PHASE_GLOW;
         phaseStart = now;
       }
@@ -1582,7 +1590,7 @@ export function createNetworkView(
     switch (phase) {
       case PHASE_GLOW: {
         const p = clamp01(elapsed / SPORE_GLOW_MS);
-        layerAlpha = 1;
+        layerAlpha = fadeFromAlpha + (1 - fadeFromAlpha) * smooth(p);
         sporeLift = smooth(p) * SPORE_LIFT;
         if (p >= 1) {
           spawnSpores(windy);
