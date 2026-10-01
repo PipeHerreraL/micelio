@@ -15,6 +15,7 @@ describe('revelación progresiva', () => {
       'upgrades',
       'sporulate',
       'mutations',
+      'chronicle',
       'achievements',
       'stats',
       'settings',

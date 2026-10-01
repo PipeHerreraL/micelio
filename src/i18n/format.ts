@@ -233,6 +233,25 @@ export function formatDuration(seconds: number, locale: string): string {
   return parts.join(' ');
 }
 
+/**
+ * Factor sin el signo «×», con hasta dos decimales y la coma del idioma: 1,25; 0,5; 5. El «×»
+ * lo pone el texto, para que cada idioma decida dónde va.
+ */
+export function formatFactor(value: number, locale: string): string {
+  const key = `${locale}|factor`;
+  let f = formatters.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat(locale, { maximumFractionDigits: 2, useGrouping: true });
+    formatters.set(key, f);
+  }
+  return f.format(value);
+}
+
+/** Día sin hora («3 de octubre de 2026»): la Crónica fecha bosques, no minutos. */
+export function formatDay(timestamp: number, locale: string, timeZone?: string): string {
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone }).format(new Date(timestamp));
+}
+
 /** Fecha y hora en el idioma activo. */
 export function formatDate(timestamp: number, locale: string): string {
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(

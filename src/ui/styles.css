@@ -2072,6 +2072,351 @@ button {
   }
 }
 
+/* ------------------------------------------------------------------------------------ */
+/* Viento de esporas (fase 8): suelos por bioma, cartela, sección Viento, láminas y Crónica */
+
+/*
+ * Muestras de suelo y acento por bioma. Los colores repiten las franjas de
+ * src/render/palettes.ts (humus, horizonte medio y profundo); si cambian allí, cambian aquí.
+ * La interfaz no cambia de tokens: el bioma solo tiñe el suelo y el filete de la cartela.
+ */
+[data-biome='natal'] {
+  --soil-1: #261c15;
+  --soil-2: #4a3424;
+  --soil-3: #8c5a35;
+  --biome-accent: #8c5a35;
+}
+
+[data-biome='taiga'] {
+  --soil-1: #1c1612;
+  --soil-2: #5e5a54;
+  --soil-3: #6b3a1e;
+  /* 5,07:1 sobre el velo de la cartela. */
+  --biome-accent: #8a877f;
+}
+
+[data-biome='choco'] {
+  --soil-1: #2a1912;
+  --soil-2: #5a2617;
+  --soil-3: #86391f;
+  /* 3,67:1: es un filete, no texto. */
+  --biome-accent: #b5523a;
+}
+
+/* Suelo de respaldo antes de que pinte el canvas (el natal sigue con el de .stage__soil). */
+.stage[data-biome='taiga'] .stage__soil {
+  background: linear-gradient(
+    to bottom,
+    #241d16 0%,
+    #2a2219 7%,
+    #1c1612 7.5%,
+    #1c1612 25%,
+    #5e5a54 25.5%,
+    #5e5a54 47%,
+    #3a2216 47.5%,
+    #6b3a1e 75%,
+    #6e604e 100%
+  );
+}
+
+.stage[data-biome='choco'] .stage__soil {
+  background: linear-gradient(
+    to bottom,
+    #231a13 0%,
+    #2a1c14 7%,
+    #2a1912 7.5%,
+    #2a1912 16%,
+    #5a2617 16.5%,
+    #5a2617 40%,
+    #6e2e1b 40.5%,
+    #86391f 75%,
+    #8f4a26 100%
+  );
+}
+
+.soil-swatch {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  width: 0.9rem;
+  height: 1.1rem;
+  border-radius: 2px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.soil-swatch > span {
+  flex: 1;
+  background: var(--soil-1);
+}
+
+.soil-swatch > span:nth-child(2) {
+  background: var(--soil-2);
+}
+
+.soil-swatch > span:nth-child(3) {
+  background: var(--soil-3);
+}
+
+.bar--thin {
+  width: 100%;
+  max-width: 14rem;
+  height: 3px;
+}
+
+/* Cartela del escenario: decorativa (la información está también en Esporular y la Crónica). */
+.caption {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 2;
+  max-width: 60%;
+  padding: 0.4rem 0.7rem;
+  border-left: 3px solid var(--biome-accent);
+  border-radius: var(--radius);
+  background: rgb(27 20 15 / 82%);
+  pointer-events: none;
+}
+
+.caption__place {
+  font-family: var(--font-title);
+  font-style: italic;
+  font-size: 1.05rem;
+}
+
+.caption__progress {
+  font-size: 0.85rem;
+  color: var(--micelio-tenue);
+}
+
+.caption__bar {
+  margin-top: 0.3rem;
+}
+
+.caption__compact {
+  display: none;
+  font-size: 0.85rem;
+}
+
+/* Tableta: el núcleo va centrado sobre el escenario; la cartela termina donde empieza, como el
+   contador del otro lado (ver .layout__hud). */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .caption {
+    max-width: calc(50% - clamp(60px, 7.5vw, 84px) - 1rem);
+  }
+}
+
+/* Móvil: una línea compacta a la vista; las dos líneas completas quedan para el lector. */
+@media (max-width: 767.98px) {
+  .caption {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.55rem;
+  }
+
+  .caption__compact {
+    display: block;
+  }
+
+  .caption__lines {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Sección Viento de esporas (pestaña Esporular). */
+.wind {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--filete);
+}
+
+.wind__title:focus-visible,
+.badapt__title:focus-visible {
+  outline: 2px solid var(--rebozuelo);
+  outline-offset: 3px;
+}
+
+.wind__here {
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+}
+
+.wind__progress,
+.chronicle__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.wind__lineage,
+.chronicle__lineage {
+  margin-bottom: 0.75rem;
+}
+
+.wind__cost {
+  margin-bottom: 0.5rem;
+}
+
+.wind__heading {
+  margin: 1rem 0 0.25rem;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+.wind__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wind__dest {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--filete);
+}
+
+.wind__place {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.wind__name {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+}
+
+.wind__style,
+.wind__why,
+.adapt__why {
+  color: var(--micelio-tenue);
+  font-size: 0.9rem;
+}
+
+.wind__rules,
+.chronicle__rules,
+.modal__rules {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.wind__go {
+  justify-self: start;
+  gap: 0.5rem;
+}
+
+.wind__end {
+  margin-top: 0.75rem;
+  color: var(--micelio-tenue);
+  max-width: 60ch;
+}
+
+@media (max-width: 767.98px) {
+  .wind__go,
+  .chronicle__reread {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+/* Adaptaciones de bioma (pestaña Mutaciones). */
+.badapt__group {
+  margin-bottom: 1.25rem;
+}
+
+.badapt__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0.25rem;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 1.1rem;
+}
+
+/* Láminas del viaje y confirmación de dispersar. */
+.modal__soil {
+  display: flex;
+  width: auto;
+  height: 6px;
+  margin: -1.5rem -1.5rem 1rem;
+  border-radius: 10px 10px 0 0;
+}
+
+.modal__kicker {
+  margin-bottom: 0.2rem;
+  font-family: var(--font-title);
+  font-style: italic;
+  color: var(--micelio-tenue);
+}
+
+.modal--chapter .modal__body {
+  gap: 0.75rem;
+  line-height: 1.55;
+}
+
+.modal__quote {
+  font-family: var(--font-title);
+  font-style: italic;
+  font-size: 1.15rem;
+}
+
+.modal__subtitle {
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+}
+
+/* Crónica. */
+.chronicle {
+  display: grid;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chronicle__entry {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 0 0.9rem;
+  border-top: 1px solid var(--filete);
+}
+
+/* El bosque actual se distingue con un filete de micelio: el rebozuelo queda para las acciones. */
+.chronicle__entry.is-current {
+  padding-inline: 0.75rem;
+  border: 1px solid var(--micelio);
+  border-radius: var(--radius);
+}
+
+.chronicle__title {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.25rem;
+}
+
+.chronicle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.chronicle__reread {
+  min-height: var(--tap);
+}
+
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {

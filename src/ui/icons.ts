@@ -73,6 +73,8 @@ export type UiIcon =
   | 'achievements'
   | 'stats'
   | 'settings'
+  | 'chronicle'
+  | 'wind'
   | 'close'
   | 'drop'
   | 'spore'
@@ -82,6 +84,13 @@ export type UiIcon =
   | 'synergy';
 
 const UI_SHAPES: Record<UiIcon, readonly Shape[]> = {
+  // Crónica: un perfil de suelo con dos horizontes, como las muestras de la Crónica.
+  chronicle: [
+    { d: 'M4 3h16v18H4z' },
+    { d: 'M4 9c2.7-1.5 5.3 1.5 8 0s5.3-1.5 8 0' },
+    { d: 'M4 15c2.7 1.5 5.3-1.5 8 0s5.3 1.5 8 0' },
+  ],
+  wind: [{ d: 'M3 8h11a3 3 0 1 0-3-3' }, { d: 'M3 12h15a3 3 0 1 1-3 3' }, { d: 'M3 16h7' }],
   generators: [{ d: 'M4 20c3-3 4-6 6-9s5-6 10-7' }, { d: 'M10 11c1.5 1 4 1.5 6 4' }],
   upgrades: [{ d: 'M12 20V9' }, { d: 'M12 9c0-3 2-5 5-5 0 3-2 5-5 5zM12 13c0-3-2-5-5-5 0 3 2 5 5 5z' }],
   sporulate: [

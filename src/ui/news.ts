@@ -5,7 +5,7 @@
  */
 import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
-import { NEWS, NEWS_INTERVAL, type NewsDef } from '../data/news.ts';
+import { BIOME_NEWS_SHARE, NEWS, NEWS_INTERVAL, type NewsDef } from '../data/news.ts';
 import { t, type MessageKey } from '../i18n/index.ts';
 import { h, restartAnimation, setText } from './dom.ts';
 
@@ -22,6 +22,14 @@ function unlocked(state: GameState, def: NewsDef): boolean {
       return state.stats.sporulations >= c.count;
     case 'drops':
       return state.stats.drops >= c.count;
+    case 'biome':
+      return (
+        state.forest.biome === c.biome &&
+        state.spores.level >= (c.level ?? 0) &&
+        (c.owned === undefined || state.owned[c.owned.id] >= c.owned.count)
+      );
+    case 'dispersals':
+      return state.forest.leg >= c.count;
   }
 }
 
@@ -43,9 +51,12 @@ export function createNewsTicker(): NewsTicker {
       if (now < nextAt) return;
       nextAt = now + NEWS_INTERVAL * 1000;
       const pool = NEWS.filter((n) => unlocked(state, n));
-      // Al azar entre las desbloqueadas, evitando repetir las últimas que se vieron.
+      // Al azar entre las desbloqueadas, evitando repetir las últimas que se vieron. En un bioma,
+      // la mitad de las veces sale una de las suyas (las del natal son muchas más).
       const fresh = pool.filter((n) => !recent.includes(n.id));
-      const candidates = fresh.length > 0 ? fresh : pool;
+      const local = fresh.filter((n) => n.when.kind === 'biome');
+      const candidates =
+        local.length > 0 && Math.random() < BIOME_NEWS_SHARE ? local : fresh.length > 0 ? fresh : pool;
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       if (!pick) return;
       recent.push(pick.id);

@@ -7,6 +7,8 @@ import { fmt, formatCount, getLocale, numberTooltip, t, tp, type MessageKey } fr
 import type { GameState } from '../core/state.ts';
 import { Disposer, h, setHidden, setText } from './dom.ts';
 import { focusableWhileTooltip } from './hud.ts';
+import { isActOneClosed } from '../core/forest.ts';
+import { biomeName } from './biome-text.ts';
 import { visibleAchievements } from './tab-achievements.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
@@ -20,6 +22,8 @@ interface StatRow {
   value: (state: GameState) => string;
   /** Cantidad cruda para el tooltip de los números grandes. */
   raw?: (state: GameState) => number;
+  /** Solo se muestra cuando se cumple (las del viaje esperan al Acto I). */
+  when?: (state: GameState) => boolean;
 }
 
 const ROWS: readonly StatRow[] = [
@@ -34,6 +38,8 @@ const ROWS: readonly StatRow[] = [
   { label: 'stats.drops', value: (s) => formatCount(s.stats.drops) },
   { label: 'stats.sporulations', value: (s) => formatCount(s.stats.sporulations) },
   { label: 'stats.sporeLevel', value: (s) => formatCount(s.spores.level) },
+  { label: 'stats.biome', value: (s) => biomeName(s.forest.biome), when: isActOneClosed },
+  { label: 'stats.dispersals', value: (s) => formatCount(s.forest.leg), when: isActOneClosed },
   {
     label: 'stats.achievements',
     value: (s) => `${formatCount(s.achievements.length)} / ${formatCount(visibleAchievements(s).length)}`,
@@ -46,17 +52,20 @@ const ROWS: readonly StatRow[] = [
 export function createStatsTab(store: Store): TabView {
   const disposer = new Disposer();
   const values: HTMLElement[] = [];
+  const labels: HTMLElement[] = [];
   const list = h(
     'dl',
     { class: 'stats' },
     ROWS.flatMap((row) => {
       const value = h('dd', { class: 'stats__value tabular' });
+      const label = h('dt', { class: 'stats__label', text: t(row.label) });
       values.push(value);
+      labels.push(label);
       if (row.raw) {
         const raw = row.raw;
         attachTooltip(value, () => numberTooltip(raw(store.state)), disposer);
       }
-      return [h('dt', { class: 'stats__label', text: t(row.label) }), value];
+      return [label, value];
     }),
   );
   // Últimas partidas: se rehace solo cuando termina una (cambia la longitud del historial).
@@ -66,15 +75,15 @@ export function createStatsTab(store: Store): TabView {
   const buildHistory = (state: GameState): void => {
     const recent = state.history.slice(-HISTORY_SHOWN).reverse();
     historyList.replaceChildren(
-      ...recent.map((run) =>
-        h('li', {
-          class: 'history__row tabular',
-          text: tp('stats.history.row', run.spores, {
-            n: formatCount(run.sporulation),
-            time: formatDuration(run.duration, getLocale()),
-          }),
-        }),
-      ),
+      ...recent.map((run) => {
+        const params = { n: formatCount(run.sporulation), time: formatDuration(run.duration, getLocale()) };
+        // Fuera del natal la fila dice en qué bioma se jugó.
+        const text =
+          run.biome === 'natal'
+            ? tp('stats.history.row', run.spores, params)
+            : tp('stats.history.rowIn', run.spores, { ...params, biome: biomeName(run.biome) });
+        return h('li', { class: 'history__row tabular', text });
+      }),
     );
     setHidden(historyEmpty, recent.length > 0);
   };
@@ -93,6 +102,11 @@ export function createStatsTab(store: Store): TabView {
       ROWS.forEach((row, i) => {
         const node = values[i];
         if (!node) return;
+        const shown = row.when?.(store.state) ?? true;
+        setHidden(node, !shown);
+        const label = labels[i];
+        if (label) setHidden(label, !shown);
+        if (!shown) return;
         setText(node, row.value(store.state));
         if (row.raw) focusableWhileTooltip(node, numberTooltip(row.raw(store.state)) !== null);
       });

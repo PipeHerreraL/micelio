@@ -42,6 +42,7 @@ export const es = {
   'tab.sporulate': 'Esporular',
   'tab.mutations': 'Mutaciones',
   'tab.achievements': 'Logros',
+  'tab.chronicle': 'Crónica',
   'tab.stats': 'Estadísticas',
   'tab.settings': 'Ajustes',
   'tab.newBadge': 'novedad',
@@ -249,7 +250,7 @@ export const es = {
   'sporulate.confirm.bonus': 'Bono de producción: +{current} ahora, +{next} después.',
   'sporulate.confirm.lose': 'Se pierden: nutrientes, generadores, mejoras, hitos y efectos activos.',
   'sporulate.confirm.keep':
-    'Se conservan: nivel y esporas, mutaciones, logros, estadísticas de vida y ajustes.',
+    'Se conservan: nivel y esporas, mutaciones, adaptaciones, logros, estadísticas de vida y ajustes.',
   'sporulate.confirm.yes': 'Esporular',
   'sporulate.confirm.no': 'Seguir creciendo',
   'sporulate.done.one': 'Esporulaste: +{count} espora',
@@ -324,6 +325,235 @@ export const es = {
     'Algunos hongos brillan en la madera podrida. Solo cambia cómo se ve: los pulsos de la red brillan más.',
   'adapt.foxfire.effect': 'Los pulsos brillan más.',
   'hint.adaptations': 'Árbol completo. Las esporas que sobren ahora se invierten en adaptaciones.',
+
+  // Viento de esporas (fase 8): biomas, reglas y cartela
+  'biome.natal.name': 'Bosque natal',
+  'biome.natal.soil': 'suelo pardo',
+  'biome.natal.here': 'Tu linaje vive en el bosque natal.',
+  'biome.taiga.name': 'Taiga',
+  'biome.taiga.soil': 'podzol',
+  'biome.taiga.here': 'Tu linaje vive en la taiga.',
+  'biome.taiga.go': 'Dispersar hacia la taiga',
+  'biome.taiga.style': 'Para quien deja crecer: los árboles trabajan solos.',
+  'biome.taiga.tag': '×{factor} en la taiga',
+  'biome.taiga.rule.trees': 'La Red micorrícica y el Árbol madre rinden ×{factor}.',
+  'biome.taiga.rule.rain': 'Llueve la mitad: entre gota y gota pasa el doble de tiempo.',
+  'biome.choco.name': 'Selva del Chocó',
+  'biome.choco.soil': 'ultisol',
+  'biome.choco.here': 'Tu linaje vive en la selva del Chocó.',
+  'biome.choco.go': 'Dispersar hacia la selva del Chocó',
+  'biome.choco.style': 'Para quien está atento: la lluvia premia a quien la atrapa.',
+  'biome.choco.rule.rain': 'Llueve el doble: entre gota y gota pasa la mitad de tiempo.',
+  'biome.choco.rule.fall':
+    'Mientras el juego está abierto, las gotas que no atrapas caen solas antes de evaporarse, y su efecto llega igual.',
+  'biome.choco.rule.dew': 'El Rocío da al menos {time} de producción.',
+  'biome.choco.rule.storm':
+    'Cada gota trae Tormenta eléctrica la mitad de veces: por hora, las mismas tormentas que en el bosque natal.',
+  'biome.progress': 'Colonización: nivel\u00a0{level} de\u00a0{goal}',
+  'biome.colonized': 'Bioma colonizado · nivel {level}',
+  'biome.actOne': 'Acto I cumplido · nivel {level}',
+  'caption.place': '{name} · {soil}',
+  'caption.compact': '{name} · {level}/{goal}',
+  'caption.compactDone': '{name} · nivel {level}',
+  // Viento de esporas: la sección de Esporular y su confirmación
+  'wind.title': 'Viento de esporas',
+  'wind.intro':
+    'Dispersar lleva tu linaje a otro bioma, con otras reglas. Allí el nivel de esporas empieza en 0; las esporas disponibles, las mutaciones y las adaptaciones viajan contigo.',
+  'wind.lineage.one': 'Linaje: tu producción es ×{factor} en todos los biomas, por {count} bioma colonizado.',
+  'wind.lineage.other':
+    'Linaje: tu producción es ×{factor} en todos los biomas, por {count} biomas colonizados.',
+  'wind.cost.one': 'El viaje cuesta {count} espora.',
+  'wind.cost.other': 'El viaje cuesta {count} esporas.',
+  'wind.destinations': 'Destinos',
+  'wind.needColonize': 'Antes hay que colonizar este bioma: nivel {goal}.',
+  'wind.needSpores.one': 'Falta {count} espora para el viaje.',
+  'wind.needSpores.other': 'Faltan {count} esporas para el viaje.',
+  'wind.last': 'Este es el último bioma de esta versión de Micelio: colonízalo para cerrar el viaje.',
+  'wind.none':
+    'No quedan biomas nuevos adonde viajar en esta versión de Micelio. Tu red puede seguir creciendo aquí, sin prisa.',
+  'wind.confirm.title': '¿Dispersar tu linaje?',
+  'wind.confirm.destination': 'Destino: {name}, {soil}.',
+  'wind.confirm.gain.one': 'Esta partida termina esporulando: ganarás {count} espora.',
+  'wind.confirm.gain.other': 'Esta partida termina esporulando: ganarás {count} esporas.',
+  'wind.confirm.noGain': 'Esta partida aún no puede esporular: sus nutrientes no darán esporas.',
+  'wind.confirm.cost.one': 'El viaje cuesta {cost} esporas; te quedará {count} disponible.',
+  'wind.confirm.cost.other': 'El viaje cuesta {cost} esporas; te quedarán {count} disponibles.',
+  'wind.confirm.bonus': 'Bono del nivel de esporas: +{current} ahora, +0 % al llegar.',
+  'wind.confirm.lose':
+    'Se pierden: el nivel de esporas de este bioma y todo lo de la partida (nutrientes, generadores, mejoras, hitos y efectos activos).',
+  'wind.confirm.keep':
+    'Viajan contigo: esporas disponibles, mutaciones, adaptaciones, linaje, logros, autocompra, estadísticas de vida y ajustes.',
+  'wind.confirm.oneWay':
+    'En esta versión no se puede volver a un bioma que dejaste. Quedará escrito en la Crónica.',
+  'wind.confirm.yes': 'Dispersar',
+  'wind.confirm.no': 'Quedarme aquí',
+  'wind.leaving': 'El viento se lleva tu linaje. Destino: {name}.',
+  'wind.gained.one': 'Esporulaste antes de partir: +{count} espora.',
+  'wind.gained.other': 'Esporulaste antes de partir: +{count} esporas.',
+  'wind.colonized': 'Bioma colonizado: {name}. Tu linaje produce ×{factor} en todos los biomas.',
+  'actOne.announce': 'Fin del Acto I. El viento de esporas ya puede llevarte a otros biomas.',
+  'hint.wind':
+    'Dispersar no tiene prisa: puedes quedarte aquí lo que quieras. En un bioma nuevo, las partidas vuelven a durar lo que al principio, con reglas nuevas.',
+  // Láminas del viaje
+  'chapter.close': 'Seguir creciendo',
+  'chapter.toWind': 'Ver el viento',
+  'chapter.begin': 'Empezar a crecer',
+  'chapter.toAdaptations': 'Ver las adaptaciones',
+  'chapter.rules': 'Reglas de este bioma',
+  'chapter.goal': 'Tu nivel de esporas empieza en 0. Llega al nivel {goal} para colonizar este bioma.',
+  'chapter.adaptHint':
+    'En Mutaciones puedes aprender tres adaptaciones de este bioma; lo que aprendas viaja contigo.',
+  'chapter.lineage': 'Desde ahora tu linaje produce ×{factor} en todos los biomas.',
+  'chapter.next': 'El viento sigue soplando. Cuando quieras, puede llevarte más lejos.',
+  'chapter.act1.kicker': 'Fin del Acto I',
+  'chapter.act1.title': 'El bosque completo',
+  'chapter.act1.line1': 'Doce mutaciones y una red que late bajo cada pradera y cada bosque.',
+  'chapter.act1.line2': 'Ya no se sabe dónde termina el bosque y dónde empiezas tú.',
+  'chapter.act1.line3':
+    'Pero un bosque completo no tiene adónde crecer. Las setas maduran todas a la vez y el viento empieza a soplar.',
+  'chapter.act1.line4': 'Las esporas llevan lo que eres. El suelo se queda: ese habrá que ganarlo otra vez.',
+  'chapter.act2.kicker': 'Acto II · Viento de esporas',
+  'chapter.colonize.kicker': 'Bioma colonizado',
+  'chapter.taiga.arrive.title': 'La taiga',
+  'chapter.taiga.arrive.line1':
+    'El viento te deja en el norte, entre píceas, pinos y abedules. Bajo la hojarasca de acículas, el suelo guarda una franja gris como la ceniza: un podzol.',
+  'chapter.taiga.arrive.line2': 'Aquí casi todos los árboles viven con hongos, y llueve poco.',
+  'chapter.choco.arrive.title': 'La selva del Chocó',
+  'chapter.choco.arrive.line1':
+    'El viento cruza montañas y baja hacia el Pacífico. Aquí llueve casi todos los días, y el suelo, lavado durante milenios, es rojo de hierro.',
+  'chapter.choco.arrive.line2': 'Una hoja que cae dura poco: la selva la recicla en meses.',
+  'chapter.taiga.colonize.title': 'Bajo la ceniza',
+  'chapter.taiga.colonize.line1':
+    'En la franja gris del podzol, tus hifas abren túneles en la roca para dar de comer a las píceas, como se cree que hacen las de verdad.',
+  'chapter.taiga.colonize.line2': 'La taiga ya forma parte de tu linaje.',
+  'chapter.choco.colonize.title': 'Lo que la lluvia no se lleva',
+  'chapter.choco.colonize.line1':
+    'La lluvia intenta llevarse cada nutriente hacia el río. Tu red lo atrapa antes, entre las raíces de la superficie.',
+  'chapter.choco.colonize.line2': 'El Chocó ya forma parte de tu linaje.',
+  // Crónica
+  'chronicle.title': 'Crónica',
+  'chronicle.intro': 'Cada bioma que habita tu linaje queda escrito aquí.',
+  'chronicle.entry': '{name} · {status}',
+  'chronicle.status.actOne': 'Acto I',
+  'chronicle.status.colonized': 'colonizado',
+  'chronicle.status.current': 'en curso',
+  'chronicle.since': 'Desde el {date}',
+  'chronicle.arrived': 'Llegada: {date}',
+  'chronicle.left': 'Se fue con el viento el {date}',
+  'chronicle.actOne.one': 'Acto I en {count} partida y {time} de juego',
+  'chronicle.actOne.other': 'Acto I en {count} partidas y {time} de juego',
+  'chronicle.colonizedIn.one': 'Colonizado el {date}, en {count} partida y {time} de juego',
+  'chronicle.colonizedIn.other': 'Colonizado el {date}, en {count} partidas y {time} de juego',
+  'chronicle.here.one': 'Aquí: {count} partida y {time} de juego',
+  'chronicle.here.other': 'Aquí: {count} partidas y {time} de juego',
+  'chronicle.level': 'Nivel de esporas alcanzado: {level}',
+  'chronicle.adaptations': 'Adaptaciones aprendidas aquí: {count} de {total}',
+  'chronicle.reread.act1': 'Releer: Fin del Acto I',
+  'chronicle.reread.arrive': 'Releer la llegada',
+  'chronicle.reread.arrive.label': 'Releer la lámina de llegada: {name}',
+  'chronicle.reread.colonize': 'Releer la colonización',
+  'chronicle.reread.colonize.label': 'Releer la lámina de colonización: {name}',
+  'hint.chronicle': 'Las láminas que cierres se pueden releer aquí.',
+  // Adaptaciones de bioma
+  'adapt.group.network': 'De la red',
+  'badapt.group.taiga': 'Aprendidas en la taiga',
+  'badapt.group.choco': 'Aprendidas en la selva del Chocó',
+  'badapt.needLevel.taiga': 'El siguiente rango se abre en el nivel {level} de la taiga, o al colonizarla.',
+  'badapt.needLevel.choco':
+    'El siguiente rango se abre en el nivel {level} de la selva del Chocó, o al colonizarla.',
+  'hint.biomeAdaptations': 'Lo que tu linaje aprende en un bioma viaja con él a todos los demás.',
+  'badapt.rockEating.name': 'Hongos que comen roca',
+  'badapt.rockEating.desc':
+    'En el horizonte gris de los podzoles se han hallado granos de feldespato con túneles de pocas micras; se cree que los abren hifas micorrícicas para sacar minerales para sus árboles (Jongmans y colegas, 1997). La Red micorrícica y el Árbol madre rinden ×{factor} por rango.',
+  'badapt.rockEating.effect': 'Red micorrícica y Árbol madre ×{factor}.',
+  'badapt.seedlingNetwork.name': 'Plántulas conectadas',
+  'badapt.seedlingNetwork.desc':
+    'Se ha visto que las plántulas que brotan junto a árboles viejos se conectan a su red micorrícica (Beiler y colegas, 2010); cuánto las ayuda se discute. Cada partida empieza con {count} Redes micorrícicas más por rango.',
+  'badapt.seedlingNetwork.effect': 'Cada partida empieza con {count} Redes micorrícicas más.',
+  'badapt.trehalose.name': 'Trehalosa',
+  'badapt.trehalose.desc':
+    'Muchos hongos acumulan trehalosa, un azúcar que protege sus células del frío y de la sequía. Tu red la guarda para que cada aguacero le dure más: el Aguacero dura {time} más por rango.',
+  'badapt.trehalose.effect': 'El Aguacero dura {time} más.',
+  'badapt.gongylidia.name': 'Gongilidios',
+  'badapt.gongylidia.desc':
+    'El hongo que cultivan las hormigas cortadoras, Leucoagaricus gongylophorus, hincha las puntas de sus hifas con nutrientes para alimentarlas: son los gongilidios. Tus anillos aprenden a engordar igual: el Anillo de hadas rinde ×{factor} por rango.',
+  'badapt.gongylidia.effect': 'Anillo de hadas ×{factor}.',
+  'badapt.leafcutters.name': 'Hormigas cortadoras',
+  'badapt.leafcutters.desc':
+    'Las hormigas cortadoras llevan trozos de hoja a su hongo y lo cuidan día y noche. Cada rango suma un clic automático por segundo; la Tormenta eléctrica no lo multiplica.',
+  'badapt.leafcutters.effect.one': '{count} clic automático por segundo.',
+  'badapt.leafcutters.effect.other': '{count} clics automáticos por segundo.',
+  'badapt.rootMat.name': 'Estera de raíces',
+  'badapt.rootMat.desc':
+    'En suelos tropicales pobres, una alfombra de raíces finas y hongos atrapa los nutrientes antes de que la lluvia los lave; en un experimento en la Amazonía retuvo más del 99,9 % (Stark y Jordan, 1978). El Rocío rinde ×{factor} por rango.',
+  'badapt.rootMat.effect': 'Rocío ×{factor}.',
+  // Estadísticas del viaje
+  'stats.biome': 'Bioma actual',
+  'stats.dispersals': 'Dispersiones',
+  'stats.history.rowIn.one': 'Partida {n} ({biome}): {time}, +{count} espora',
+  'stats.history.rowIn.other': 'Partida {n} ({biome}): {time}, +{count} esporas',
+  // Textos que cambian en el Chocó: en la selva baja no hay abetos ni otoño
+  'gen.motherTree.flavor.choco':
+    'Un árbol emergente que asoma sobre el dosel. Si comparte azúcar por la red, en la selva se ha estudiado todavía menos.',
+  'upg.motherTree.u3.flavor.choco': 'Bajo un árbol viejo crecen los jóvenes, esperando que se abra un claro.',
+  'upg.motherTree.u4.name.choco': 'Memoria del árbol',
+  'upg.motherTree.u4.flavor.choco': 'Siglos de raíces saben dónde no se encharca el suelo.',
+  'upg.autumnLitter.name.choco': 'Hojarasca de todo el año',
+  'dev.actOne': 'Cerrar el Acto I',
+  'dev.colonize': 'Colonizar este bioma',
+  // Noticias de los biomas y del viento
+  'news.taiga.arrival': 'Llegan esporas desconocidas a la taiga. Las píceas no preguntan de dónde.',
+  'news.taiga.podzol':
+    'Podzol viene del ruso: «bajo la ceniza». Nadie quemó nada: el gris sale del agua que lava el suelo durante siglos.',
+  'news.taiga.circumpolar':
+    'La taiga rodea el planeta por el norte: Escandinavia, Rusia, Alaska y Canadá. La red ha empezado por una esquina.',
+  'news.taiga.ecto':
+    'Píceas, pinos, alerces y abedules: casi todos los árboles de la taiga viven con hongos ectomicorrícicos. Aquí nadie crece solo.',
+  'news.taiga.carbon':
+    'Un estudio en islas boreales de Suecia estimó que entre el 50 y el 70 % del carbono del suelo venía de las raíces y de sus hongos. La red guarda más de lo que enseña.',
+  'news.taiga.rockEating':
+    'En el horizonte gris del podzol hay granos de feldespato con túneles finísimos. Se cree que los abren hifas en busca de minerales; los geólogos lo llaman meteorización, y la red, almuerzo.',
+  'news.taiga.amanita':
+    'La Amanita muscaria, la del sombrero rojo con motas blancas, vive asociada a abedules y píceas. Su fama de cuento no la vuelve comestible: es tóxica.',
+  'news.taiga.snowMold':
+    'Bajo la nieve, cerca de cero grados, algunos mohos de las nieves siguen creciendo, entre otras cosas, gracias a proteínas anticongelantes. No todos hibernan.',
+  'news.taiga.morels':
+    'Tras un incendio en el bosque boreal, las colmenillas pueden brotar por cientos. Ningún guardabosques lo recomienda como método.',
+  'news.taiga.lichen':
+    'El liquen de los renos crece unos pocos milímetros al año. Un reno se come décadas de liquen en una tarde, y el liquen no guarda rencor.',
+  'news.taiga.chaga':
+    'En los abedules del norte asoma el chaga, un hongo que parece un trozo de carbón quemado. El abedul no está de acuerdo con la descripción.',
+  'news.taiga.permafrost':
+    'En partes de Siberia, la taiga crece sobre suelo helado todo el año. Las raíces viven en la capa de arriba, la única que se deshiela en verano.',
+  'news.choco.arrival':
+    'Llegan esporas a la selva del Chocó. Aquí nadie pregunta si va a llover, sino cuándo.',
+  'news.choco.forecast': 'Pronóstico para hoy en el Chocó: lluvia. Para mañana: también.',
+  'news.choco.lloro':
+    'En Lloró, en el Chocó, se estima que caen unos 13.000 mm de lluvia al año. Le disputa el récord mundial a un pueblo de la India.',
+  'news.choco.endemic':
+    'Del Darién, en Panamá, al noroeste de Ecuador, el Chocó biogeográfico guarda miles de especies que no viven en ningún otro lugar. De los hongos, casi nadie ha hecho la cuenta.',
+  'news.choco.leafcutter':
+    'Las hormigas cortadoras no comen hojas: las mastican para cultivar un hongo, y se comen el hongo. Agricultura con seis patas.',
+  'news.choco.farmers':
+    'Según estimaciones genéticas, las hormigas cultivan hongos desde hace unos 55 a 60 millones de años; los humanos, desde hace unos doce mil. Ellas no presumen.',
+  'news.choco.arbuscular':
+    'La mayoría de los árboles de la selva vive con micorrizas arbusculares. Según los fósiles, esa alianza tiene más de 400 millones de años: es más antigua que los propios árboles.',
+  'news.choco.litter':
+    'En la selva, una hoja caída puede desaparecer en pocos meses; en la taiga tarda años. Aquí la hojarasca no tiene tiempo de amontonarse.',
+  'news.choco.rootMat':
+    'En suelos tropicales pobres, una alfombra de raíces y hongos atrapa los nutrientes antes de que la lluvia los lave. En un experimento en la Amazonía retuvo más del 99,9 %.',
+  'news.choco.splash':
+    'Los hongos nido de pájaro usan cada gota de lluvia como catapulta: el golpe lanza fuera de la copa sus paquetes de esporas. En el Chocó no les falta munición.',
+  'news.choco.plastic':
+    'Un hongo de la Amazonía de Ecuador, Pestalotiopsis microspora, puede crecer comiendo poliuretano en el laboratorio. La red, de momento, prefiere hojas.',
+  'news.choco.glow':
+    'Algunas setas tropicales brillan de noche con luz verde. En una especie de Brasil se vio que la luz atrae insectos, que podrían ayudar a repartir sus esporas.',
+  'news.wind.rust':
+    'Se ha documentado que esporas de la roya del trigo cruzaron con el viento de Australia a Nueva Zelanda: unos dos mil kilómetros sin equipaje.',
+  'news.wind.buller':
+    'Muchas setas lanzan cada espora con una gotita que se fusiona en microsegundos, la gota de Buller. El despegue alcanza miles de veces la gravedad.',
+  'news.wind.altitude':
+    'Se han recogido esporas de hongos a kilómetros de altura en la atmósfera. El viento lleva pasajeros que no salen en los mapas.',
 
   // Autocompra
   'autobuy.title': 'Autocompra',
@@ -487,6 +717,7 @@ export const es = {
   'settings.import.confirm.title': '¿Reemplazar tu partida?',
   'settings.import.confirm.lifetime': 'Nutrientes de toda la vida: {value}',
   'settings.import.confirm.level': 'Nivel de esporas: {level}',
+  'settings.import.confirm.biome': 'Bioma: {name}',
   'settings.import.confirm.date': 'Guardada el {date}',
   'settings.import.confirm.warning': 'Tu partida actual se perderá.',
   'settings.import.confirm.yes': 'Reemplazar partida',

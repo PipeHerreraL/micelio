@@ -15,6 +15,7 @@ import { generatorIcon, uiIcon } from './icons.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 import { attachTooltip } from './tooltip.ts';
+import { biomeText } from './biome-text.ts';
 
 const nameKey = (id: string): MessageKey => `upg.${id}.name` as MessageKey;
 const flavorKey = (id: string): MessageKey => `upg.${id}.flavor` as MessageKey;
@@ -122,14 +123,14 @@ export function createUpgradesTab(store: Store): TabView {
           class: 'upg',
           attrs: {
             type: 'button',
-            'aria-label': t('upg.buy', { name: t(nameKey(def.id)) }),
+            'aria-label': t('upg.buy', { name: biomeText(store.state, nameKey(def.id)) }),
             'aria-describedby': `${base}-effect ${base}-gain ${base}-price`,
           },
         },
         [
           h('span', { class: 'upg__icon', attrs: { 'aria-hidden': 'true' } }, [iconFor(def)]),
           h('span', { class: 'upg__body' }, [
-            h('span', { class: 'upg__name', text: t(nameKey(def.id)) }),
+            h('span', { class: 'upg__name', text: biomeText(store.state, nameKey(def.id)) }),
             h('span', { class: 'upg__effect', id: `${base}-effect`, text: upgradeEffectText(def) }),
             gain,
           ]),
@@ -143,10 +144,10 @@ export function createUpgradesTab(store: Store): TabView {
       attachTooltip(
         button,
         () => [
-          t(nameKey(def.id)),
+          biomeText(store.state, nameKey(def.id)),
           upgradeEffectText(def),
           gainText(store.state, def),
-          t(flavorKey(def.id)),
+          biomeText(store.state, flavorKey(def.id)),
           ...numberDetails(def.cost, previewUpgrade(store.state, def.id).production),
         ],
         cardDisposer,

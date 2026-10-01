@@ -4,7 +4,7 @@
  * El sonido solo acompaña lo que ya se ve en pantalla (§16); nunca es la única pista.
  */
 
-export type SoundCue = 'plop' | 'chime' | 'chord' | 'drip' | 'spore';
+export type SoundCue = 'plop' | 'chime' | 'chord' | 'drip' | 'spore' | 'wind';
 
 export interface SoundEngine {
   /**
@@ -40,6 +40,7 @@ const MIN_GAP_MS: Record<SoundCue, number> = {
   chord: 400,
   drip: 120,
   spore: 1500,
+  wind: 3000,
 };
 
 // Respaldo por si coinciden muchos sonidos largos (acordes, esporulación): más voces no
@@ -256,7 +257,24 @@ const spore: CueBuilder = (v, out, t, noise) => {
   for (const freq of SPORE_NOTES) tone(v, low, 'triangle', freq, t, end + 0.05);
 };
 
-const CUES: Record<SoundCue, CueBuilder> = { plop, chime, chord, drip, spore };
+/**
+ * Ráfaga de dispersar (fase 8): solo ruido, sin notas, con el filtro abriéndose de grave a medio.
+ * Crece despacio durante el brillo de la red y llega a su máximo con la ráfaga de esporas (~1 s
+ * después del evento, ver render/network.ts), así suena a viento que se lleva algo y no a golpe.
+ */
+const wind: CueBuilder = (v, out, t, noise) => {
+  const top = t + 1.1;
+  const end = t + 2.4;
+  const air = gainNode(v, out);
+  swell(air.gain, t, top, 0.14, end);
+  const band = filterNode(v, air, 'bandpass', 300, 0.8);
+  band.frequency.setValueAtTime(300, t);
+  band.frequency.exponentialRampToValueAtTime(900, top);
+  band.frequency.exponentialRampToValueAtTime(450, end);
+  noiseSource(v, band, noise, t, end + 0.05);
+};
+
+const CUES: Record<SoundCue, CueBuilder> = { plop, chime, chord, drip, spore, wind };
 
 export function createSoundEngine(): SoundEngine {
   let ctx: AudioContext | null = null;
@@ -276,6 +294,7 @@ export function createSoundEngine(): SoundEngine {
     chord: -Infinity,
     drip: -Infinity,
     spore: -Infinity,
+    wind: -Infinity,
   };
 
   function level(): number {

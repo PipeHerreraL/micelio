@@ -4,6 +4,8 @@
  */
 import type { Page } from '@playwright/test';
 import { createState, type GameState } from '../../src/core/state.ts';
+import { MUTATION_IDS } from '../../src/data/mutations.ts';
+import { checkActOne } from '../../src/systems/journey.ts';
 import { SAVE_KEY, SAVE_VERSION } from '../../src/systems/save.ts';
 
 /** Partida nueva con los cambios de `mutate`, lista para sembrarla en localStorage. */
@@ -38,6 +40,37 @@ export async function savedState(page: Page): Promise<GameState> {
     if (!raw) throw new Error('No hay guardado');
     return (JSON.parse(raw) as { state: GameState }).state;
   }, SAVE_KEY);
+}
+
+/**
+ * Partida con el Acto I cerrado (árbol completo y una Red planetaria) y su lámina ya vista:
+ * Viento de esporas y la Crónica a la vista desde el primer refresco.
+ */
+export function windState(mutate: (state: GameState) => void = () => undefined, now = Date.now()): GameState {
+  return stateWith((s) => {
+    s.mutations = [...MUTATION_IDS];
+    s.achievements = ['own.planetary.1'];
+    s.owned.hypha = 10;
+    s.stats.sporulations = 9;
+    s.stats.totalTime = 12_000;
+    s.spores = { level: 1941, available: 2025 };
+    checkActOne(s);
+    s.seen.push('chapter.act1', 'hint.wind', 'hint.chronicle');
+    mutate(s);
+  }, now);
+}
+
+/** Siembra un texto de guardado tal cual (por ejemplo, de una versión anterior). */
+export async function seedRawSave(page: Page, text: string): Promise<void> {
+  await page.addInitScript(
+    ([key, value]) => {
+      if (!sessionStorage.getItem('micelio:e2e-seeded')) {
+        localStorage.setItem(key, value);
+        sessionStorage.setItem('micelio:e2e-seeded', '1');
+      }
+    },
+    [SAVE_KEY, text] as const,
+  );
 }
 
 export function isMobile(projectName: string): boolean {

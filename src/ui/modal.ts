@@ -27,6 +27,10 @@ export interface ModalOptions {
   onClose?: () => void;
   /** Clase extra para variar el aspecto (por ejemplo, el de esporular). */
   variant?: string;
+  /** Antetítulo de las láminas («Fin del Acto I»). */
+  kicker?: string;
+  /** Bioma cuya franja de suelo se dibuja arriba (decorativa). */
+  biome?: string;
 }
 
 let dialog: HTMLDialogElement | null = null;
@@ -89,6 +93,8 @@ export function openModal(options: ModalOptions): void {
   closeCallback = options.onClose;
   unsettled = true;
   node.className = options.variant ? `modal ${options.variant}` : 'modal';
+  if (options.biome) node.dataset.biome = options.biome;
+  else delete node.dataset.biome;
 
   // Un Enter sostenido repite keydown y cada repetición activaría el botón con foco: sin
   // este freno, mantener Enter sobre «Esporular» confirmaría el reinicio sin leer el resumen.
@@ -121,6 +127,16 @@ export function openModal(options: ModalOptions): void {
   node.replaceChildren(
     h('div', { class: 'modal__frame' }, [
       closeButton,
+      ...(options.biome
+        ? [
+            h('span', { class: 'soil-swatch modal__soil', attrs: { 'aria-hidden': 'true' } }, [
+              h('span'),
+              h('span'),
+              h('span'),
+            ]),
+          ]
+        : []),
+      ...(options.kicker ? [h('p', { class: 'modal__kicker', text: options.kicker })] : []),
       h('h2', { class: 'modal__title', id: 'modal-title', text: options.title }),
       h(
         'div',

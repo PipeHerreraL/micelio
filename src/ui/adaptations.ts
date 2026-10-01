@@ -19,6 +19,7 @@ import { formatDuration } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { offlineCapSeconds } from '../systems/offline.ts';
 import { Disposer, h, setAttr, setHidden, setText, toggleClass } from './dom.ts';
+import { createBiomeAdaptations } from './biome-adaptations.ts';
 import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
 
@@ -70,10 +71,19 @@ export function createAdaptations(store: Store): AdaptationsView {
   const disposer = new Disposer();
   const hint = createHint(store, 'hint.adaptations', t('hint.adaptations'));
   const list = h('ul', { class: 'adapt-list' });
+  // Las de bioma (fase 8) van antes que las de la red, con su propio encabezado por bioma.
+  const biomeGroups = createBiomeAdaptations(store);
+  const networkHeading = h('h4', {
+    class: 'badapt__title',
+    text: t('adapt.group.network'),
+    attrs: { hidden: true },
+  });
   const root = h('section', { class: 'adapt', attrs: { hidden: true, 'aria-labelledby': 'adapt-title' } }, [
     h('h3', { class: 'settings__title', id: 'adapt-title', text: t('adapt.title') }),
     h('p', { class: 'tab__intro', text: t('adapt.intro') }),
     hint.root,
+    biomeGroups.root,
+    networkHeading,
     list,
   ]);
 
@@ -119,6 +129,7 @@ export function createAdaptations(store: Store): AdaptationsView {
       setHidden(root, !unlocked);
       hint.update(unlocked);
       if (!unlocked) return;
+      setHidden(networkHeading, !biomeGroups.update());
       for (const row of rows) {
         const current = state.adaptations[row.def.id];
         const price = nextAdaptationCost(state, row.def.id);
@@ -139,6 +150,7 @@ export function createAdaptations(store: Store): AdaptationsView {
     destroy: () => {
       disposer.dispose();
       hint.destroy();
+      biomeGroups.destroy();
     },
   };
 }

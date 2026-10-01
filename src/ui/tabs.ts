@@ -15,6 +15,7 @@ export const TAB_IDS = [
   'upgrades',
   'sporulate',
   'mutations',
+  'chronicle',
   'achievements',
   'stats',
   'settings',

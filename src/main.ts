@@ -54,6 +54,11 @@ import { createSoundEngine, type SoundCue } from './audio/sound.ts';
 import { toSeed } from './core/rng.ts';
 import { createNetworkView, type NetworkView } from './render/network.ts';
 import { createStore, type Store } from './ui/store.ts';
+import { biomeAdaptationName, biomeName } from './ui/biome-text.ts';
+import { openChapter, pendingChapter, type ChapterNav } from './ui/chapter.ts';
+import { isModalOpen } from './ui/modal.ts';
+import type { DestinationId } from './data/biomes.ts';
+import { formatFactor } from './i18n/format.ts';
 import { createSettingsTab, type SettingsServices } from './ui/tab-settings.ts';
 import { achievementDescription, achievementName } from './ui/tab-achievements.ts';
 import type { TabId } from './ui/tabs.ts';
@@ -248,6 +253,31 @@ globalDisposer.add(() => {
 
 const floaters = createFloaters();
 let currentTab: TabId = 'generators';
+
+/** Enfoca un encabezado de la pestaña recién elegida, ya visible (en el cuadro siguiente). */
+function focusHeading(id: string): void {
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    el?.focus();
+    el?.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+/** Adónde llevan las láminas del viaje al cerrarse (ui/chapter.ts). */
+const chapterNav: ChapterNav = {
+  toWind: () => {
+    app.tabs.select('sporulate');
+    focusHeading('wind-title');
+  },
+  toAdaptations: (biome: DestinationId) => {
+    app.tabs.select('mutations');
+    focusHeading(`badapt-${biome}-title`);
+  },
+  toCore: () => {
+    app.hud.coreButton.focus();
+  },
+};
+
 let app: App = buildApp();
 applyMotion();
 
@@ -280,6 +310,7 @@ function buildApp(): App {
       restartAnimation(button, 'is-pulsing');
     },
     extraViews: (st) => [createSettingsTab(st, settingsServices)],
+    nav: chapterNav,
   });
   next.root.append(floaters.root);
   next.update(performance.now());
@@ -470,7 +501,11 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   buyUpgrade: 'chime',
   buyMutation: 'chime',
   buyAdaptation: 'chime',
+  buyBiomeAdaptation: 'chime',
   achievement: 'chord',
+  actOneClosed: 'chord',
+  colonized: 'chord',
+  disperse: 'wind',
   rainSpawn: 'drip',
   sporulate: 'spore',
 };
@@ -515,6 +550,48 @@ function handleEvent(event: GameEvent): void {
       announce(message);
       break;
     }
+    case 'rainFell': {
+      // La gota del Chocó que nadie atrapó cayó sola: el mismo aviso, con su propio texto.
+      let message: string;
+      if (event.effect === 'dew') message = t('rain.fell.dew', { value: fmt(event.amount) });
+      else if (event.effect === 'downpour') {
+        message = t('rain.fell.downpour', { time: formatDuration(event.duration, locale) });
+      } else message = t('rain.fell.storm', { time: formatDuration(event.duration, locale) });
+      toast(event.effect === 'storm' ? t('rain.storm.fact') : message, {
+        kind: 'rain',
+        title: event.effect === 'storm' ? message : undefined,
+      });
+      announce(message);
+      break;
+    }
+    case 'actOneClosed':
+      // Sin aviso flotante: la lámina se abre sola en cuanto no hay otro modal.
+      announce(t('actOne.announce'));
+      break;
+    case 'colonized': {
+      const message = t('wind.colonized', {
+        name: biomeName(event.biome),
+        factor: formatFactor(event.factor, locale),
+      });
+      toast(message, { kind: 'spore' });
+      announce(message);
+      break;
+    }
+    case 'disperse': {
+      // Guardar justo después de dispersar, como al esporular (PROMPT.md §15).
+      saveNow();
+      const leaving = t('wind.leaving', { name: biomeName(event.to) });
+      if (event.gained > 0) toast(tp('wind.gained', event.gained), { kind: 'spore', title: leaving });
+      else toast(leaving, { kind: 'spore' });
+      announce(leaving);
+      break;
+    }
+    case 'buyBiomeAdaptation':
+      toast(t('adapt.done', { name: biomeAdaptationName(event.id), rank: formatCount(event.rank) }), {
+        kind: 'spore',
+        duration: 3000,
+      });
+      break;
     case 'effectEnd':
       toast(t(EFFECT_ENDED[event.kind]), { kind: 'rain', duration: 2500 });
       break;
@@ -548,6 +625,29 @@ function handleEvent(event: GameEvent): void {
 
 // ---------------------------------------------------------------------------------------
 // Bucle
+
+// ---------------------------------------------------------------------------------------
+// Láminas del viaje
+
+/** Hay una lámina abierta: entre su cierre y el evento 'close' no se abre otra (ni la misma). */
+let chapterShowing = false;
+
+/**
+ * Abre la lámina pendiente cuando no hay otro modal (el informe offline y las confirmaciones
+ * van primero) y terminó la animación de esporular o dispersar: la lámina de llegada sale
+ * cuando ya se ve el suelo nuevo.
+ */
+function showPendingChapter(): void {
+  if (chapterShowing || isModalOpen() || (network?.isTransitioning() ?? false)) return;
+  const chapter = pendingChapter(store.state);
+  if (!chapter) return;
+  chapterShowing = true;
+  openChapter(store, chapter, chapterNav, {
+    onClosed: () => {
+      chapterShowing = false;
+    },
+  });
+}
 
 let speed = 1;
 let lastFrame = performance.now();
@@ -607,6 +707,7 @@ function frame(now: number): void {
     app.update(now);
     network?.sync(store.state);
     refreshTooltip();
+    showPendingChapter();
   }
   network?.frame(now);
   schedule(frame);

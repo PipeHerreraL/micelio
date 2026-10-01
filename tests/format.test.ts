@@ -3,8 +3,10 @@ import { en } from '../src/i18n/en.ts';
 import { es } from '../src/i18n/es.ts';
 import {
   formatDate,
+  formatDay,
   formatDuration,
   formatExact,
+  formatFactor,
   formatInteger,
   formatNumber,
   formatPercent,
@@ -486,5 +488,20 @@ describe('pseudoize', () => {
       expect(placeholders(pseudo[key])).toEqual(placeholders(es[key]));
       expect(pseudo[key].length).toBeGreaterThanOrEqual(es[key].length * 1.4);
     }
+  });
+});
+
+describe('factores y días (fase 8)', () => {
+  it('un factor se escribe sin «×», con hasta dos decimales y la coma del idioma', () => {
+    expect(formatFactor(1.25, 'es')).toBe('1,25');
+    expect(formatFactor(1.953125, 'es')).toBe('1,95');
+    expect(formatFactor(0.5, 'es')).toBe('0,5');
+    expect(formatFactor(5, 'en')).toBe('5');
+    expect(formatFactor(1.5, 'en')).toBe('1.5');
+  });
+
+  it('un día de la Crónica se escribe sin hora', () => {
+    expect(formatDay(Date.UTC(2026, 9, 3, 12), 'es', 'UTC')).toBe('3 de octubre de 2026');
+    expect(formatDay(Date.UTC(2026, 9, 3, 12), 'en', 'UTC')).toBe('October 3, 2026');
   });
 });

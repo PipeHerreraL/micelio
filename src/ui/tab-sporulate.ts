@@ -13,6 +13,7 @@ import { formatPercent } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, t, tp } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { createHint } from './hint.ts';
+import { createWindSection } from './wind.ts';
 import { uiIcon } from './icons.ts';
 import { openModal } from './modal.ts';
 import type { Store } from './store.ts';
@@ -38,6 +39,7 @@ export function createSporulateTab(store: Store): TabView {
     h('span', { text: t('sporulate.button') }),
   ]);
   const hint = createHint(store, 'hint.sporulate', t('hint.sporulate'));
+  const wind = createWindSection(store);
 
   const root = h('div', { class: 'tab tab--sporulate' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('sporulate.title') })]),
@@ -53,6 +55,7 @@ export function createSporulateTab(store: Store): TabView {
       ]),
     ]),
     button,
+    wind.root,
   ]);
 
   function confirm(): void {
@@ -119,6 +122,7 @@ export function createSporulateTab(store: Store): TabView {
     setAttr(button, 'aria-disabled', ready ? 'false' : 'true');
     toggleClass(button, 'is-unaffordable', !ready);
     hint.update(true);
+    wind.update();
   }
 
   return {
@@ -128,6 +132,7 @@ export function createSporulateTab(store: Store): TabView {
     destroy: () => {
       disposer.dispose();
       hint.destroy();
+      wind.destroy();
     },
   };
 }

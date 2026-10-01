@@ -67,6 +67,11 @@ export function interpolate(template: string, params?: Params): string {
   });
 }
 
+/** Si el catálogo activo tiene esta clave (para textos que solo existen en algunos biomas). */
+export function hasMessage(key: string): key is MessageKey {
+  return Object.hasOwn(catalog, key);
+}
+
 /** Texto de una clave en el idioma activo. */
 export function t(key: MessageKey, params?: Params): string {
   return interpolate(catalog[key], params);

@@ -34,6 +34,7 @@ export const en: Catalog = {
   'tab.sporulate': 'Sporulate',
   'tab.mutations': 'Mutations',
   'tab.achievements': 'Achievements',
+  'tab.chronicle': 'Chronicle',
   'tab.stats': 'Stats',
   'tab.settings': 'Settings',
   'tab.newBadge': 'new',
@@ -243,7 +244,7 @@ export const en: Catalog = {
   'sporulate.confirm.bonus': 'Production bonus: +{current} now, +{next} afterward.',
   'sporulate.confirm.lose': 'You will lose: nutrients, generators, upgrades, milestones and active effects.',
   'sporulate.confirm.keep':
-    'You will keep: spore level and spores, mutations, achievements, lifetime stats and settings.',
+    'You will keep: spore level and spores, mutations, adaptations, achievements, lifetime stats and settings.',
   'sporulate.confirm.yes': 'Sporulate',
   'sporulate.confirm.no': 'Keep growing',
   'sporulate.done.one': 'Sporulated: +{count} spore',
@@ -320,6 +321,234 @@ export const en: Catalog = {
     'Some fungi glow in rotting wood. It only changes the look: the network pulses glow brighter.',
   'adapt.foxfire.effect': 'The pulses glow brighter.',
   'hint.adaptations': 'Tree complete. Spare spores now go into adaptations.',
+
+  // Viento de esporas (fase 8): biomas, reglas y cartela
+  'biome.natal.name': 'Home forest',
+  'biome.natal.soil': 'brown forest soil',
+  'biome.natal.here': 'Your lineage lives in the home forest.',
+  'biome.taiga.name': 'Taiga',
+  'biome.taiga.soil': 'podzol',
+  'biome.taiga.here': 'Your lineage lives in the taiga.',
+  'biome.taiga.go': 'Disperse to the taiga',
+  'biome.taiga.style': 'For players who let things grow: the trees do the work.',
+  'biome.taiga.tag': '×{factor} in the taiga',
+  'biome.taiga.rule.trees': 'Mycorrhizal networks and mother trees yield ×{factor}.',
+  'biome.taiga.rule.rain': 'Half the rain: twice as long between drops.',
+  'biome.choco.name': 'Chocó rainforest',
+  'biome.choco.soil': 'ultisol',
+  'biome.choco.here': 'Your lineage lives in the Chocó rainforest.',
+  'biome.choco.go': 'Disperse to the Chocó rainforest',
+  'biome.choco.style': 'For attentive players: the rain rewards whoever catches it.',
+  'biome.choco.rule.rain': 'Twice the rain: half as long between drops.',
+  'biome.choco.rule.fall':
+    "While the game is open, drops you don't catch fall on their own before evaporating, and their effect still lands.",
+  'biome.choco.rule.dew': 'Dew gives at least {time} of production.',
+  'biome.choco.rule.storm':
+    'Each drop brings a Thunderstorm half as often: per hour, the same storms as in the home forest.',
+  'biome.progress': 'Colonization: level\u00a0{level} of\u00a0{goal}',
+  'biome.colonized': 'Biome colonized · level {level}',
+  'biome.actOne': 'Act I complete · level {level}',
+  'caption.place': '{name} · {soil}',
+  'caption.compact': '{name} · {level}/{goal}',
+  'caption.compactDone': '{name} · level {level}',
+  // Viento de esporas: la sección de Esporular y su confirmación
+  'wind.title': 'Spore wind',
+  'wind.intro':
+    'Dispersing carries your lineage to another biome with different rules. There, your spore level starts at 0; available spores, mutations and adaptations travel with you.',
+  'wind.lineage.one': 'Lineage: your production is ×{factor} in every biome, for {count} colonized biome.',
+  'wind.lineage.other': 'Lineage: your production is ×{factor} in every biome, for {count} colonized biomes.',
+  'wind.cost.one': 'The journey costs {count} spore.',
+  'wind.cost.other': 'The journey costs {count} spores.',
+  'wind.destinations': 'Destinations',
+  'wind.needColonize': 'First colonize this biome: level {goal}.',
+  'wind.needSpores.one': '{count} more spore needed for the journey.',
+  'wind.needSpores.other': '{count} more spores needed for the journey.',
+  'wind.last': 'This is the last biome in this version of Micelio: colonize it to complete the journey.',
+  'wind.none':
+    'There are no new biomes to travel to in this version of Micelio. Your network can keep growing here, unhurried.',
+  'wind.confirm.title': 'Disperse your lineage?',
+  'wind.confirm.destination': 'Destination: {name}, {soil}.',
+  'wind.confirm.gain.one': 'This run ends by sporulating: you will gain {count} spore.',
+  'wind.confirm.gain.other': 'This run ends by sporulating: you will gain {count} spores.',
+  'wind.confirm.noGain': "This run can't sporulate yet: its nutrients won't turn into spores.",
+  'wind.confirm.cost.one': 'The journey costs {cost} spores; you will have {count} spore left.',
+  'wind.confirm.cost.other': 'The journey costs {cost} spores; you will have {count} spores left.',
+  'wind.confirm.bonus': 'Spore level bonus: +{current} now, +0% on arrival.',
+  'wind.confirm.lose':
+    "You will lose: this biome's spore level and everything in the run (nutrients, generators, upgrades, milestones and active effects).",
+  'wind.confirm.keep':
+    'Traveling with you: available spores, mutations, adaptations, lineage, achievements, autobuy, lifetime stats and settings.',
+  'wind.confirm.oneWay':
+    "In this version you can't return to a biome you leave. It stays written in the Chronicle.",
+  'wind.confirm.yes': 'Disperse',
+  'wind.confirm.no': 'Stay here',
+  'wind.leaving': 'The wind carries your lineage away. Destination: {name}.',
+  'wind.gained.one': 'You sporulated before leaving: +{count} spore.',
+  'wind.gained.other': 'You sporulated before leaving: +{count} spores.',
+  'wind.colonized': 'Biome colonized: {name}. Your lineage now produces ×{factor} in every biome.',
+  'actOne.announce': 'End of Act I. The spore wind can now carry you to other biomes.',
+  'hint.wind':
+    "There's no rush to disperse: stay here as long as you like. In a new biome, runs last as long as they did at the start, with new rules.",
+  // Láminas del viaje
+  'chapter.close': 'Keep growing',
+  'chapter.toWind': 'See the wind',
+  'chapter.begin': 'Start growing',
+  'chapter.toAdaptations': 'See the adaptations',
+  'chapter.rules': 'Rules of this biome',
+  'chapter.goal': 'Your spore level starts at 0. Reach level {goal} to colonize this biome.',
+  'chapter.adaptHint':
+    'In Mutations you can learn three adaptations from this biome; whatever you learn travels with you.',
+  'chapter.lineage': 'From now on your lineage produces ×{factor} in every biome.',
+  'chapter.next': 'The wind is still blowing. Whenever you like, it can carry you farther.',
+  'chapter.act1.kicker': 'End of Act I',
+  'chapter.act1.title': 'The whole forest',
+  'chapter.act1.line1': 'Twelve mutations, and a network pulsing beneath every meadow and every forest.',
+  'chapter.act1.line2': 'No one can tell anymore where the forest ends and you begin.',
+  'chapter.act1.line3':
+    'But a finished forest has nowhere left to grow. The mushrooms ripen all at once, and the wind picks up.',
+  'chapter.act1.line4': 'Spores carry what you are. The soil stays behind: that will have to be won again.',
+  'chapter.act2.kicker': 'Act II · Spore wind',
+  'chapter.colonize.kicker': 'Biome colonized',
+  'chapter.taiga.arrive.title': 'The taiga',
+  'chapter.taiga.arrive.line1':
+    'The wind sets you down in the north, among spruces, pines and birches. Under the needle litter, the soil hides a band as gray as ash: a podzol.',
+  'chapter.taiga.arrive.line2': 'Here almost every tree lives with fungi, and rain is scarce.',
+  'chapter.choco.arrive.title': 'The Chocó rainforest',
+  'chapter.choco.arrive.line1':
+    'The wind crosses mountains and drops toward the Pacific. Here it rains almost every day, and the soil, washed for millennia, is red with iron.',
+  'chapter.choco.arrive.line2': "A fallen leaf doesn't last: the forest recycles it in months.",
+  'chapter.taiga.colonize.title': 'Under the ash',
+  'chapter.taiga.colonize.line1':
+    "In the podzol's gray band, your hyphae tunnel into rock to feed the spruces, as real ones are thought to do.",
+  'chapter.taiga.colonize.line2': 'The taiga is now part of your lineage.',
+  'chapter.choco.colonize.title': "What the rain can't take",
+  'chapter.choco.colonize.line1':
+    'The rain tries to carry every nutrient down to the river. Your network catches it first, among the surface roots.',
+  'chapter.choco.colonize.line2': 'The Chocó is now part of your lineage.',
+  // Crónica
+  'chronicle.title': 'Chronicle',
+  'chronicle.intro': 'Every biome your lineage inhabits is written here.',
+  'chronicle.entry': '{name} · {status}',
+  'chronicle.status.actOne': 'Act I',
+  'chronicle.status.colonized': 'colonized',
+  'chronicle.status.current': 'in progress',
+  'chronicle.since': 'Since {date}',
+  'chronicle.arrived': 'Arrived: {date}',
+  'chronicle.left': 'Left on the wind on {date}',
+  'chronicle.actOne.one': 'Act I in {count} run and {time} of play',
+  'chronicle.actOne.other': 'Act I in {count} runs and {time} of play',
+  'chronicle.colonizedIn.one': 'Colonized on {date}, in {count} run and {time} of play',
+  'chronicle.colonizedIn.other': 'Colonized on {date}, in {count} runs and {time} of play',
+  'chronicle.here.one': 'Here: {count} run and {time} of play',
+  'chronicle.here.other': 'Here: {count} runs and {time} of play',
+  'chronicle.level': 'Spore level reached: {level}',
+  'chronicle.adaptations': 'Adaptations learned here: {count} of {total}',
+  'chronicle.reread.act1': 'Reread: End of Act I',
+  'chronicle.reread.arrive': 'Reread the arrival',
+  'chronicle.reread.arrive.label': 'Reread the arrival plate: {name}',
+  'chronicle.reread.colonize': 'Reread the colonization',
+  'chronicle.reread.colonize.label': 'Reread the colonization plate: {name}',
+  'hint.chronicle': 'Plates you close can be reread here.',
+  // Adaptaciones de bioma
+  'adapt.group.network': 'From the network',
+  'badapt.group.taiga': 'Learned in the taiga',
+  'badapt.group.choco': 'Learned in the Chocó rainforest',
+  'badapt.needLevel.taiga': 'The next rank opens at level {level} in the taiga, or once you colonize it.',
+  'badapt.needLevel.choco':
+    'The next rank opens at level {level} in the Chocó rainforest, or once you colonize it.',
+  'hint.biomeAdaptations': 'What your lineage learns in one biome travels with it to all the others.',
+  'badapt.rockEating.name': 'Rock-eating fungi',
+  'badapt.rockEating.desc':
+    'In the gray horizon of podzols, feldspar grains have been found riddled with tunnels a few microns wide; mycorrhizal hyphae are thought to bore them to pull out minerals for their trees (Jongmans and colleagues, 1997). Mycorrhizal networks and mother trees yield ×{factor} per rank.',
+  'badapt.rockEating.effect': 'Mycorrhizal networks and mother trees ×{factor}.',
+  'badapt.seedlingNetwork.name': 'Connected seedlings',
+  'badapt.seedlingNetwork.desc':
+    'Seedlings sprouting near old trees have been found linked to their mycorrhizal network (Beiler and colleagues, 2010); how much it helps them is debated. Each run starts with {count} more mycorrhizal networks per rank.',
+  'badapt.seedlingNetwork.effect': 'Each run starts with {count} more mycorrhizal networks.',
+  'badapt.trehalose.name': 'Trehalose',
+  'badapt.trehalose.desc':
+    'Many fungi build up trehalose, a sugar that shields their cells from cold and drought. Your network stores it so each downpour lasts longer: Downpours last {time} more per rank.',
+  'badapt.trehalose.effect': 'Downpours last {time} more.',
+  'badapt.gongylidia.name': 'Gongylidia',
+  'badapt.gongylidia.desc':
+    'The fungus leafcutter ants farm, Leucoagaricus gongylophorus, swells its hyphal tips with nutrients to feed them: the gongylidia. Your rings learn to fatten the same way: fairy rings yield ×{factor} per rank.',
+  'badapt.gongylidia.effect': 'Fairy rings ×{factor}.',
+  'badapt.leafcutters.name': 'Leafcutter ants',
+  'badapt.leafcutters.desc':
+    "Leafcutter ants carry leaf fragments to their fungus and tend it day and night. Each rank adds one automatic click per second; Thunderstorms don't multiply it.",
+  'badapt.leafcutters.effect.one': '{count} automatic click per second.',
+  'badapt.leafcutters.effect.other': '{count} automatic clicks per second.',
+  'badapt.rootMat.name': 'Root mat',
+  'badapt.rootMat.desc':
+    'On poor tropical soils, a mat of fine roots and fungi catches nutrients before the rain washes them away; in an Amazon experiment it held on to more than 99.9% (Stark and Jordan, 1978). Dew yields ×{factor} per rank.',
+  'badapt.rootMat.effect': 'Dew ×{factor}.',
+  // Estadísticas del viaje
+  'stats.biome': 'Current biome',
+  'stats.dispersals': 'Dispersals',
+  'stats.history.rowIn.one': 'Run {n} ({biome}): {time}, +{count} spore',
+  'stats.history.rowIn.other': 'Run {n} ({biome}): {time}, +{count} spores',
+  // Textos que cambian en el Chocó: en la selva baja no hay abetos ni otoño
+  'gen.motherTree.flavor.choco':
+    'An emergent tree rising above the canopy. Whether it shares sugar through the network has been studied even less in the rainforest.',
+  'upg.motherTree.u3.flavor.choco': 'Young trees grow beneath an old one, waiting for a gap to open.',
+  'upg.motherTree.u4.name.choco': 'Memory of the tree',
+  'upg.motherTree.u4.flavor.choco': 'Centuries of roots know where the soil stays above water.',
+  'upg.autumnLitter.name.choco': 'Year-round leaf litter',
+  'dev.actOne': 'Close Act I',
+  'dev.colonize': 'Colonize this biome',
+  // Noticias de los biomas y del viento
+  'news.taiga.arrival': "Unfamiliar spores land in the taiga. The spruces don't ask where from.",
+  'news.taiga.podzol':
+    'Podzol comes from the Russian for “under the ash.” Nothing burned: the gray comes from water washing the soil for centuries.',
+  'news.taiga.circumpolar':
+    'The taiga rings the planet across the north: Scandinavia, Russia, Alaska and Canada. The network has started in one corner.',
+  'news.taiga.ecto':
+    'Spruce, pine, larch and birch: almost every tree in the taiga lives with ectomycorrhizal fungi. Nobody grows alone here.',
+  'news.taiga.carbon':
+    "A study on boreal islands in Sweden estimated that 50 to 70% of the soil's carbon came from roots and their fungi. The network keeps more than it shows.",
+  'news.taiga.rockEating':
+    "In the podzol's gray horizon, feldspar grains are riddled with tiny tunnels. Hyphae hunting for minerals are thought to bore them; geologists call it weathering, and the network calls it lunch.",
+  'news.taiga.amanita':
+    "Amanita muscaria, the red cap with white spots, partners with birches and spruces. Fairy-tale fame doesn't make it edible: it's toxic.",
+  'news.taiga.snowMold':
+    'Under the snow, close to freezing, some snow molds keep growing, helped among other things by antifreeze proteins. Not everyone hibernates.',
+  'news.taiga.morels':
+    'After a fire in the boreal forest, morels can come up by the hundreds. No forest ranger recommends the method.',
+  'news.taiga.lichen':
+    'Reindeer lichen grows a few millimeters a year. A reindeer eats decades of it in an afternoon, and the lichen holds no grudge.',
+  'news.taiga.chaga':
+    'Chaga grows on northern birches and looks like a lump of burnt charcoal. The birch disagrees with the description.',
+  'news.taiga.permafrost':
+    'In parts of Siberia, the taiga grows on ground that stays frozen all year. Roots live in the top layer, the only one that thaws in summer.',
+  'news.choco.arrival':
+    'Spores reach the Chocó rainforest. Here nobody asks whether it will rain, only when.',
+  'news.choco.forecast': 'Forecast for the Chocó today: rain. Tomorrow: same.',
+  'news.choco.lloro':
+    'In Lloró, in the Chocó, an estimated 13,000 mm of rain falls each year. It disputes the world record with a village in India.',
+  'news.choco.endemic':
+    'From the Darién in Panama to northwestern Ecuador, the biogeographic Chocó holds thousands of species found nowhere else. Almost nobody has counted the fungi.',
+  'news.choco.leafcutter':
+    "Leafcutter ants don't eat leaves: they chew them up to grow a fungus, and they eat the fungus. Farming on six legs.",
+  'news.choco.farmers':
+    "Genetic estimates suggest ants have been farming fungi for some 55 to 60 million years; humans, for about twelve thousand. The ants don't brag.",
+  'news.choco.arbuscular':
+    'Most rainforest trees live with arbuscular mycorrhizae. Fossils suggest the partnership is over 400 million years old: older than trees themselves.',
+  'news.choco.litter':
+    'In the rainforest a fallen leaf can vanish in a few months; in the taiga it takes years. Leaf litter here has no time to pile up.',
+  'news.choco.rootMat':
+    'On poor tropical soils, a mat of roots and fungi catches nutrients before the rain washes them away. In an Amazon experiment it held on to more than 99.9%.',
+  'news.choco.splash':
+    "Bird's nest fungi use every raindrop as a catapult: the impact flings their spore packets out of the cup. In the Chocó they never run out of ammunition.",
+  'news.choco.plastic':
+    'A fungus from the Ecuadorian Amazon, Pestalotiopsis microspora, can grow on polyurethane in the lab. The network still prefers leaves.',
+  'news.choco.glow':
+    'Some tropical mushrooms glow green at night. In one Brazilian species the light was found to attract insects, which may help spread its spores.',
+  'news.wind.rust':
+    'Wheat rust spores have been documented crossing on the wind from Australia to New Zealand: some two thousand kilometers, no luggage.',
+  'news.wind.buller':
+    "Many mushrooms launch each spore with a droplet that merges in microseconds: Buller's drop. Liftoff reaches thousands of times the force of gravity.",
+  'news.wind.altitude':
+    'Fungal spores have been collected kilometers up in the atmosphere. The wind carries passengers no map shows.',
 
   // Autocompra
   'autobuy.title': 'Autobuy',
@@ -480,6 +709,7 @@ export const en: Catalog = {
   'settings.import.confirm.title': 'Replace your save?',
   'settings.import.confirm.lifetime': 'Lifetime nutrients: {value}',
   'settings.import.confirm.level': 'Spore level: {level}',
+  'settings.import.confirm.biome': 'Biome: {name}',
   'settings.import.confirm.date': 'Saved on {date}',
   'settings.import.confirm.warning': 'Your current game will be lost.',
   'settings.import.confirm.yes': 'Replace save',

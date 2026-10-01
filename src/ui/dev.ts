@@ -8,6 +8,11 @@ import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { t } from '../i18n/index.ts';
 import { applyBackground } from '../systems/offline.ts';
+import { checkAchievements } from '../systems/achievements.ts';
+import { checkActOne, checkColonization } from '../systems/journey.ts';
+import { invalidate } from '../core/selectors.ts';
+import { COLONIZE_LEVEL } from '../data/biomes.ts';
+import { MUTATION_IDS } from '../data/mutations.ts';
 import { h } from './dom.ts';
 import type { Store } from './store.ts';
 
@@ -50,6 +55,20 @@ export function createDevPanel(store: Store, controls: DevControls): HTMLElement
     }),
     act(t('dev.drop'), (state) => {
       state.rain.nextIn = 0;
+    }),
+    // Viento de esporas (fase 8): atajos para probar el viaje sin jugar horas.
+    act(t('dev.actOne'), (state) => {
+      state.mutations = [...MUTATION_IDS];
+      state.owned.planetary = Math.max(1, state.owned.planetary);
+      state.spores.available += 2000;
+      invalidate(state);
+      checkAchievements(state);
+      checkActOne(state);
+    }),
+    act(t('dev.colonize'), (state) => {
+      state.spores.level = Math.max(state.spores.level, COLONIZE_LEVEL);
+      checkColonization(state, Date.now());
+      invalidate(state);
     }),
   ]);
 }

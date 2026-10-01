@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from '../src/data/achievements.ts';
+import { BIOME_ADAPTATIONS, BIOMES, DESTINATION_IDS } from '../src/data/biomes.ts';
 import { GENERATORS } from '../src/data/generators.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
 import { NEWS } from '../src/data/news.ts';
@@ -59,10 +60,42 @@ describe('catálogos de idioma', () => {
     for (const m of MUTATIONS) required.push(`mut.${m.id}.name`, `mut.${m.id}.desc`);
     for (const a of ACHIEVEMENTS) {
       required.push(`ach.${a.id}.name`);
-      if (a.secret) required.push(`ach.${a.id}.desc`);
+      if (a.secret || a.reveal) required.push(`ach.${a.id}.desc`);
     }
     for (const n of NEWS) required.push(`news.${n.id}`);
+    // Viento de esporas (fase 8): cada bioma y cada adaptación de bioma con sus textos.
+    for (const b of BIOMES) required.push(`biome.${b.id}.name`, `biome.${b.id}.soil`, `biome.${b.id}.here`);
+    for (const b of DESTINATION_IDS) {
+      required.push(
+        `biome.${b}.go`,
+        `biome.${b}.style`,
+        `badapt.group.${b}`,
+        `badapt.needLevel.${b}`,
+        `chapter.${b}.arrive.title`,
+        `chapter.${b}.arrive.line1`,
+        `chapter.${b}.arrive.line2`,
+        `chapter.${b}.colonize.title`,
+        `chapter.${b}.colonize.line1`,
+        `chapter.${b}.colonize.line2`,
+      );
+    }
+    for (const a of BIOME_ADAPTATIONS) {
+      required.push(`badapt.${a.id}.name`, `badapt.${a.id}.desc`);
+      if (a.effect.kind === 'autoClicks')
+        required.push(`badapt.${a.id}.effect.one`, `badapt.${a.id}.effect.other`);
+      else required.push(`badapt.${a.id}.effect`);
+    }
     for (const key of required) expect(keys.has(key), key).toBe(true);
+  });
+
+  it('cada texto que cambia en un bioma sustituye a una clave que existe', () => {
+    const keys = new Set(baseKeys);
+    for (const key of baseKeys) {
+      const match = /^(.*)\.(taiga|choco)$/.exec(key);
+      if (match?.[1] && (match[1].startsWith('gen.') || match[1].startsWith('upg.'))) {
+        expect(keys.has(match[1]), key).toBe(true);
+      }
+    }
   });
 
   it('el Anillo de hadas y el Árbol madre conservan su nombre acordado en inglés', () => {

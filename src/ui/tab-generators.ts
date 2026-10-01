@@ -38,6 +38,7 @@ import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 import { attachTooltip } from './tooltip.ts';
+import { biomeTag, biomeText } from './biome-text.ts';
 
 /** Fracción del coste a la que un generador aparece en silueta (PROMPT.md §12). */
 const SILHOUETTE_AT = 0.5;
@@ -199,7 +200,7 @@ export function createGeneratorsTab(store: Store): TabView {
         const d = derived(store.state);
         return [
           t(nameKey(id)),
-          t(flavorKey(id)),
+          biomeText(store.state, flavorKey(id)),
           ...numberDetails(d.unitProduction[id], d.generatorProduction[id]),
         ];
       },
@@ -287,12 +288,15 @@ export function createGeneratorsTab(store: Store): TabView {
     const unit = d.unitProduction[id];
     const total = d.generatorProduction[id];
     const share = num.gt(d.production, 0) ? num.toNumber(num.div(total, d.production)) : 0;
+    const tag = biomeTag(state, id);
     setText(
       row.stats,
       [
         t('gen.unitProduction', { value: fmt(unit) }),
         t('gen.totalProduction', { value: fmt(total) }),
         t('gen.share', { percent: formatPercent(share, getLocale(), 1) }),
+        // El factor del bioma, con texto: el número ya lo incluye y sin esto no se sabría por qué.
+        ...(tag === null ? [] : [tag]),
       ].join(' · '),
     );
 

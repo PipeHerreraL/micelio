@@ -7,6 +7,7 @@ import { LOCALES, NOTATIONS, type GameState, type Locale, type Notation } from '
 import { formatDate, formatPercent } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
 import { exportSave, importSave, type ImportError } from '../systems/save.ts';
+import { biomeName } from './biome-text.ts';
 import { Disposer, h, setAttr, setDisabled, setHidden, setText } from './dom.ts';
 import { openModal } from './modal.ts';
 import type { Store } from './store.ts';
@@ -204,6 +205,8 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
       body: [
         t('settings.import.confirm.lifetime', { value: fmt(save.state.lifetimeEarned) }),
         t('settings.import.confirm.level', { level: formatCount(save.state.spores.level) }),
+        // Desde la fase 8 la partida vive en un bioma: se dice cuál, para no reemplazar a ciegas.
+        t('settings.import.confirm.biome', { name: biomeName(save.state.forest.biome) }),
         t('settings.import.confirm.date', { date: formatDate(save.savedAt, getLocale()) }),
         h('p', { class: 'modal__warning', text: t('settings.import.confirm.warning') }),
       ],

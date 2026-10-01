@@ -198,14 +198,18 @@ const SPORE_DISSOLVE_MS = 800;
 const SPORE_FADE_IN_MS = 700;
 const SPORE_LIFT = 0.9;
 /**
- * Ráfaga al dispersar: las mismas esporas del pool, empujadas hacia la derecha y subiendo
- * despacio, en vez de flotar hacia arriba como al esporular (velocidades en anchos y altos
- * del lienzo por segundo).
+ * Ráfaga al dispersar: las mismas esporas del pool, empujadas hacia la derecha y subiendo,
+ * en vez de flotar hacia arriba como al esporular (velocidades en anchos y altos del lienzo por
+ * segundo). Con 0,04–0,12 y la vida de siempre recorrían un 5–19 % del ancho y no se iban;
+ * con estas y su vida de 1,4–2,2 s, casi todas salen por el borde derecho: el viento se las
+ * lleva.
  */
-const WIND_VX_MIN = 0.04;
-const WIND_VX_RANGE = 0.08;
-const WIND_VY_MIN = 0.02;
-const WIND_VY_RANGE = 0.04;
+const WIND_VX_MIN = 0.3;
+const WIND_VX_RANGE = 0.35;
+const WIND_VY_MIN = 0.08;
+const WIND_VY_RANGE = 0.14;
+const WIND_LIFE_MIN = 1.4;
+const WIND_LIFE_RANGE = 0.8;
 const REDUCED_FADE_MS = 200;
 /**
  * El evento y el contador de esporulaciones llegan por caminos distintos; se cuentan una vez.
@@ -1427,7 +1431,7 @@ export function createNetworkView(
         wind ? WIND_VX_MIN + Math.random() * WIND_VX_RANGE : (Math.random() - 0.5) * 0.03,
         wind ? -WIND_VY_MIN - Math.random() * WIND_VY_RANGE : -0.035 - Math.random() * 0.055,
         -0.02,
-        1 + Math.random() * 0.6,
+        wind ? WIND_LIFE_MIN + Math.random() * WIND_LIFE_RANGE : 1 + Math.random() * 0.6,
         1.3 + Math.random() * 0.8,
         PARTICLE_CREAM,
       );

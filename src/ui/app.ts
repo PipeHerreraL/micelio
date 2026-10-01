@@ -4,6 +4,7 @@
  * el ancho (escritorio, tableta, móvil); el DOM es el mismo.
  */
 import { availableUpgrades } from '../core/economy.ts';
+import { isActOneClosed } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
 import { GENERATORS } from '../data/generators.ts';
 import { SPORULATE_REQUIREMENT, SPORULATE_TAB_REVEAL } from '../data/prestige.ts';
@@ -14,7 +15,10 @@ import { createHud, type Hud } from './hud.ts';
 import { createNewsTicker } from './news.ts';
 import { createRainDrop } from './rain-drop.ts';
 import type { Store } from './store.ts';
+import { createBiomeCaption } from './biome-caption.ts';
+import type { ChapterNav } from './chapter.ts';
 import { createAchievementsTab } from './tab-achievements.ts';
+import { createChronicleTab } from './tab-chronicle.ts';
 import { createGeneratorsTab, revealState } from './tab-generators.ts';
 import { createMutationsTab } from './tab-mutations.ts';
 import { createSporulateTab } from './tab-sporulate.ts';
@@ -41,6 +45,8 @@ export interface AppOptions {
   onAbsorb: (button: HTMLButtonElement) => void;
   /** Vistas que se añaden en fases posteriores (esporular, mutaciones, ajustes). */
   extraViews?: (store: Store) => TabView[];
+  /** Adónde llevan las láminas del viaje al cerrarse (también al releerlas en la Crónica). */
+  nav: ChapterNav;
 }
 
 function anyGeneratorVisible(state: GameState): boolean {
@@ -65,6 +71,8 @@ export function isTabAvailable(id: TabId, state: GameState): boolean {
       );
     case 'mutations':
       return state.stats.sporulations > 0;
+    case 'chronicle':
+      return isActOneClosed(state);
   }
 }
 
@@ -75,6 +83,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     createUpgradesTab(store),
     createSporulateTab(store),
     createMutationsTab(store),
+    createChronicleTab(store, options.nav),
     createAchievementsTab(store),
     createStatsTab(store),
     ...(options.extraViews?.(store) ?? []),
@@ -84,11 +93,14 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   const hudBox = h('div', { class: 'layout__hud' }, [hud.counter]);
   const coreBox = h('div', { class: 'layout__core' }, [hud.core]);
   const effectsBox = h('div', { class: 'layout__effects' }, [hud.effects]);
+  const caption = createBiomeCaption(store);
   const drop = createRainDrop(
     store,
     () => stage,
     () => [
       ...[hudBox, coreBox, effectsBox].map((el) => el.getBoundingClientRect()),
+      // La cartela del bioma tampoco: la gota caería debajo y no se podría atrapar (§4.22).
+      ...(caption.root.hidden ? [] : [caption.root.getBoundingClientRect()]),
       // Los avisos se apilan sobre el escenario en escritorio: la gota tampoco cae debajo.
       ...Array.from(document.querySelectorAll('.toasts .toast'), (el) => el.getBoundingClientRect()),
     ],
@@ -99,6 +111,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   const stage: HTMLElement = h('section', { class: 'stage', attrs: { 'aria-label': t('meta.title') } }, [
     h('div', { class: 'stage__soil', attrs: { 'aria-hidden': 'true' } }),
     canvas,
+    caption.root,
     drop.root,
   ]);
 
@@ -127,6 +140,9 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
       hud.update();
       tabs.update();
       drop.update();
+      caption.update();
+      // El suelo de respaldo (CSS) cambia con el bioma antes de que el canvas lo pinte.
+      if (stage.dataset.biome !== state.forest.biome) stage.dataset.biome = state.forest.biome;
       // Interfaz de partida nueva: sin pestañas hasta el primer generador, salvo que Ajustes
       // ya estuviera a mano (después de borrar la partida).
       const fresh = !anyGeneratorVisible(state) && !hasSeen(state, 'tab.settings');
