@@ -140,8 +140,9 @@ Entradas no confiables: **el texto de importar partida** y **el contenido de
 
 ## Versiones
 
-`0.FASE.PARCHE` mientras se construye (`v0.1.0` al cerrar la fase 1, etc.) y `v1.0.0`
-cuando se cumple la definición de terminado de `PROMPT.md` §22. La versión vive en
+`0.FASE.PARCHE` mientras se construyó (`v0.1.0` al cerrar la fase 1, etc.) y `v1.0.0`
+cuando se cumplió la definición de terminado de `PROMPT.md` §22. Desde ahí, cada fase de
+`docs/ROADMAP.md` sube la versión menor (`v1.1.0` la fase 6, `v1.2.0` la fase 7…). La versión vive en
 `package.json` y en la etiqueta de git, y deben coincidir. Un cambio en el formato del
 guardado sube `SAVE_VERSION` y añade una migración: los guardados viejos siempre cargan.
 

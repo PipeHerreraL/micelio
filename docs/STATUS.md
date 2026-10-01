@@ -60,10 +60,15 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 ## Lo que sigue, en orden
 
-1. **Probar en un iPhone y un Safari de verdad** cuando haya uno a mano: es lo único que las
-   pruebas no cubren.
-2. **Ideas para después** (fuera del alcance de la versión 1): más idiomas (un archivo en
-   `src/i18n/`), más eventos además de la lluvia.
+La hoja de ruta después de la 1.0 está en [`docs/ROADMAP.md`](ROADMAP.md), con las decisiones
+del usuario: más contenido al final (Viento de esporas, por biomas y luego eras) y modos
+relacionados que no son de hongos, empezando por el Plasmodio.
+
+1. **Fase 6 — Cimientos (v1.1.0):** guardia contra números no finitos, reinicios
+   declarativos, simulador de campañas largas y segunda política del bot.
+2. **Fase 7 — Madurez de la red (v1.2.0):** rendimiento decreciente del nivel de esporas desde
+   el nivel 1000 y Adaptaciones.
+3. **Fase 8 — Viento de esporas I (v1.3.0).**
 
 ## Deuda conocida
 
