@@ -7,7 +7,7 @@ import { modelStep } from './flow.ts';
 import { previewGraph } from './graph.ts';
 import { measureOn } from './metrics.ts';
 import { respreadTubes } from './actions.ts';
-import type { PlasmodiumState } from './state.ts';
+import { foodLimit, plateDef, type PlasmodiumState } from './state.ts';
 
 /** Puntos por cumplir el objetivo: pesan más que cualquier red que no lo cumpla. */
 export const MEETS_BONUS = 1000;
@@ -33,4 +33,43 @@ export function previewScore(
   for (let i = 0; i < steps; i += 1) modelStep(draft, g);
   const snap = measureOn(draft, g);
   return (snap.meets ? MEETS_BONUS : 0) + snap.score;
+}
+
+/** Pasos de la previsualización de la Quimiotaxis (los mismos que el bot del simulador). */
+export const SUGGEST_STEPS = 150;
+
+/** Sitios libres de la placa abierta para un copo nuevo: ni fijos, ni bloqueados, ni ocupados. */
+export function freeSites(p: Readonly<PlasmodiumState>): number[] {
+  const def = plateDef(p.plate);
+  const record = p.plates[p.plate];
+  const used = [...(record?.foods ?? []), ...(record?.lamps ?? [])];
+  const out: number[] = [];
+  for (let i = 0; i < def.x.length; i += 1) {
+    if (!def.blocked.includes(i) && !def.fixedFoods.includes(i) && !used.includes(i)) out.push(i);
+  }
+  return out;
+}
+
+/** Puntuación de poner el siguiente copo en `site` (la Quimiotaxis prueba un sitio por frame). */
+export function suggestionScore(p: Readonly<PlasmodiumState>, site: number): number {
+  const record = p.plates[p.plate];
+  return previewScore(p, [...(record?.foods ?? []), site], record?.lamps ?? [], SUGGEST_STEPS);
+}
+
+/**
+ * Quimiotaxis: el mejor sitio para el siguiente copo (a igualdad, el de número menor), o null si
+ * no quedan copos por poner.
+ */
+export function suggestSite(p: Readonly<PlasmodiumState>): number | null {
+  if ((p.plates[p.plate]?.foods.length ?? 0) >= foodLimit(p, p.plate)) return null;
+  let best: number | null = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const site of freeSites(p)) {
+    const v = suggestionScore(p, site);
+    if (v > bestScore) {
+      bestScore = v;
+      best = site;
+    }
+  }
+  return best;
 }

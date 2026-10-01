@@ -39,6 +39,8 @@ export interface Metric {
   values: (number | null)[];
   format: (v: number | null) => string;
   pass: (median: number) => boolean;
+  /** Si es true, `pass` se aplica a cada valor (la peor semilla) y no a la mediana. */
+  every?: boolean;
 }
 
 export function present(values: (number | null)[]): number[] {
@@ -48,7 +50,9 @@ export function present(values: (number | null)[]): number[] {
 export function row(metric: Metric): { line: string; ok: boolean } {
   const values = present(metric.values);
   const m = median(values);
-  const ok = values.length === metric.values.length && metric.pass(m);
+  const ok =
+    values.length === metric.values.length &&
+    (metric.every === true ? values.every(metric.pass) : metric.pass(m));
   const range =
     values.length > 0 ? `${metric.format(Math.min(...values))}–${metric.format(Math.max(...values))}` : '—';
   return {

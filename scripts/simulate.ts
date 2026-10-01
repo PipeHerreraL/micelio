@@ -181,6 +181,12 @@ interface RunOptions {
 
 const START_TIME = Date.UTC(2026, 0, 1);
 
+/**
+ * Segundo (acumulado) en que llegó el plasmodio a cada partida simulada (fase 9). El simulador de
+ * la red no avanza al socio: solo anota cuándo lo trae el núcleo (línea informativa).
+ */
+const partnerArrivals = new WeakMap<GameState, number>();
+
 function playRun(state: GameState, options: RunOptions): RunRecord {
   const record: RunRecord = {
     firstOwned: {},
@@ -213,6 +219,9 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
     }
     record.maxValue = Math.max(record.maxValue, num.toNumber(state.lifetimeEarned));
     if (options.onActOne && isActOneClosed(state)) options.onActOne(options.elapsedBefore + t + 1);
+    if (state.partners.plasmodium && !partnerArrivals.has(state)) {
+      partnerArrivals.set(state, options.elapsedBefore + t + 1);
+    }
 
     if (record.sporulateAvailableAt === null && num.gte(state.runEarned, sporulateRequirement(state))) {
       record.sporulateAvailableAt = t + 1;
@@ -332,6 +341,8 @@ interface WindResult {
   after: number[];
   /** Esporas sin gastar y ganadas en toda la campaña, al colonizar el último bioma. */
   unspent: number;
+  /** Segundo en que llegó el plasmodio (informativo; null si no llegó). */
+  partnerAt: number | null;
   earnedSpores: number;
   maxValue: number;
   invalidSaves: number;
@@ -524,7 +535,8 @@ function windCampaign(
     if (run.sporesGained === 0) break;
     shopBetweenRuns(state);
   }
-  return { legs, waits, after, unspent, earnedSpores: earnedAtEnd, maxValue, invalidSaves };
+  const partnerAt = partnerArrivals.get(natal.state) ?? partnerArrivals.get(state) ?? null;
+  return { legs, waits, after, unspent, earnedSpores: earnedAtEnd, maxValue, invalidSaves, partnerAt };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -812,6 +824,12 @@ ORDERS.forEach((order, o) => {
   }
   afterTable.push(`| ${orderName(order)} | ${after.join(', ') || '—'} |`);
 });
+const partnerTimes = winds.flat().map((w) => w.partnerAt);
+const partnerPresent = partnerTimes.filter((v): v is number => v !== null);
+const partnerLine =
+  partnerPresent.length === partnerTimes.length
+    ? `El plasmodio (fase 9) llega a las ${hours(median(partnerPresent))} de mediana (${hours(Math.min(...partnerPresent))}–${hours(Math.max(...partnerPresent))}): a los 5 min de la primera partida tras el Acto I (informativo).`
+    : `El plasmodio (fase 9) llega en ${partnerPresent.length} de ${partnerTimes.length} campañas del viento (informativo).`;
 const rateTaiga = rateJourneys.map((r) => r.wind.legs[0]);
 const rateLine =
   `Regla del mejor ritmo (informativa, sin objetivo): el Acto I se cierra a las ${hours(median(rateJourneys.map((r) => r.actOneAt ?? Number.NaN)))}` +
@@ -903,6 +921,8 @@ const block = [
   ...afterTable,
   '',
   rateLine,
+  '',
+  partnerLine,
   '',
   '### Generadores',
   '',

@@ -25,7 +25,7 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 142.9 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 146.7 s de cómputo). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -144,6 +144,8 @@ Tras colonizar el último bioma no quedan destinos en esta versión; las 4 parti
 
 Regla del mejor ritmo (informativa, sin objetivo): el Acto I se cierra a las 5.96 h y la taiga se coloniza en 6.72 h (9 de 9 semillas), con partidas de 6:06 de mediana. En un bioma esa regla esporula muy a menudo y coloniza más tarde que la de §17: no es la mejor estrategia para el viaje, por eso no guía su balance (ARCHITECTURE.md §4.28).
 
+El plasmodio (fase 9) llega a las 3.42 h de mediana (3.20 h–3.56 h): a los 5 min de la primera partida tras el Acto I (informativo).
+
 ### Generadores
 
 | #   | Generador       | Coste base (N)  | Producción base (N/s) | Desbloqueo              |
@@ -162,3 +164,47 @@ Regla del mejor ritmo (informativa, sin objetivo): el Acto I se cierra a las 5.9
 Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/upgrades.ts`.
 
 <!-- sim:end -->
+
+<!-- sim:plasmodio:start -->
+
+_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 57.9 s de cómputo). No editar a mano entre estas marcas._
+
+### El plasmodio (docs/ROADMAP.md, fase 9)
+
+Desde la llegada; mediana de las semillas y rango. El activo coloca con el bot (previsualiza cada sitio y elige entre los 3 mejores), da un pulso cada 3 s y abre la placa siguiente al momento; el pasivo da pulsos solo el primer minuto y deja que la siguiente se abra sola; el ingenuo coloca al azar, prueba otra colocación si en 10 min no cumple y, en cuanto compra la Quimiotaxis, pone los copos donde sugiere. Los tres compran igual.
+
+| Métrica                                                                              | Objetivo  | Mediana          | Rango                             | Estado |
+| ------------------------------------------------------------------------------------ | --------- | ---------------- | --------------------------------- | ------ |
+| Plasmodio: Tronco caído cartografiado desde la llegada (activo)                      | 20–35 min | 27:04            | 26:44–27:43                       | cumple |
+| Plasmodio: Laberinto cartografiado desde que se abre (activo)                        | 30–90 min | 38:34            | 38:27–38:45                       | cumple |
+| Plasmodio: Archipiélago cartografiado desde que se abre (activo)                     | 30–90 min | 58:59            | 57:27–1:03:54                     | cumple |
+| Plasmodio: Puente amargo cartografiado desde que se abre (activo)                    | 30–90 min | 1:13:29          | 1:11:12–1:16:33                   | cumple |
+| Plasmodio: Fusión cartografiado desde que se abre (activo)                           | 30–90 min | 1:20:50          | 1:18:30–1:21:17                   | cumple |
+| Plasmodio: las cinco placas (activo)                                                 | 4–6 h     | 4.65 h           | 4.59 h–4.75 h                     | cumple |
+| Plasmodio: pasivo frente a activo, las cinco placas (cada semilla)                   | ≤ 2,5     | 1,88             | 1,85–1,89                         | cumple |
+| Plasmodio: objetivo sostenido tras abrir la placa (activo, la peor placa)            | ≤ 10 min  | 6:08             | 6:06–6:08                         | cumple |
+| Plasmodio: espera más larga sin comprar (activo)                                     | ≤ 22 min  | 19:38            | 19:00–19:43                       | cumple |
+| Plasmodio: jugador ingenuo (al azar, recoloca a los 10 min), Tronco caído            | ≤ 45 min  | 35:55            | 31:16–49:18                       | cumple |
+| Plasmodio: jugador ingenuo frente al activo, las cinco placas                        | ≤ 1,75    | 1,14             | 1,12–1,19                         | cumple |
+| Plasmodio: semillas que terminan las cinco placas en 12 h (activo, pasivo e ingenuo) | 27 de 27  | 27               | 27–27                             | cumple |
+| Plasmodio: Rastro máximo                                                             | < 1e63    | 602 mil billones | 602 mil billones–602 mil billones | cumple |
+| Plasmodio: 8 h de golpe frente a 8 h en vivo (Rastro; 5 placas × 3 semillas)         | 0,98–1,02 | 1,000            | 1,000–1,000                       | cumple |
+| Plasmodio: guardados inválidos tras cada fruto y cada compra                         | 0         | 0                | 0–0                               | cumple |
+| Plasmodio: fallos del solver y valores no finitos                                    | 0         | 0                | 0–0                               | cumple |
+| Plasmodio: red de hongos idéntica con y sin el socio (2 semillas × 2 esporulaciones) | sí        | sí               | sí–sí                             | cumple |
+
+**Resultado:** 17 de 17 objetivos cumplidos.
+
+Mediana por placa, desde que se abre:
+
+| Placa         | Activo  | Objetivo sostenido (activo) | Pasivo  | Ingenuo |
+| ------------- | ------- | --------------------------- | ------- | ------- |
+| Tronco caído  | 27:04   | 1:36                        | 52:50   | 35:55   |
+| Laberinto     | 38:34   | 2:11                        | 1:00:52 | 40:23   |
+| Archipiélago  | 58:59   | 1:16                        | 1:59:44 | 1:16:51 |
+| Puente amargo | 1:13:29 | 6:08                        | 2:19:25 | 1:20:06 |
+| Fusión        | 1:20:50 | 2:32                        | 2:29:27 | 1:28:04 |
+
+A prueba de cortes (informativo): 6 de 9 partidas activas lo consiguen, la mediana a las 1.11 h.
+
+<!-- sim:plasmodio:end -->

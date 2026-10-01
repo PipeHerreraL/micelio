@@ -188,7 +188,10 @@ export function modelStep(p: PlasmodiumState, g: PlateGraph): boolean {
     if (g.substance[e]) {
       a += DECAY * SUBSTANCE_BETA * (1 - 0.5 * ((hab[g.ea[e] ?? 0] ?? 0) + (hab[g.eb[e] ?? 0] ?? 0)));
     }
-    if (memory && fq < NOFLOW) a *= MEMORY_FACTOR;
+    // La Memoria externa no toca los tubos con sustancia: secarlos antes de que el plasmodio se
+    // acostumbre hacía imposibles el Puente y la Fusión (medido: la Fusión no cumplía ni con la
+    // colocación que sugiere la Quimiotaxis).
+    if (memory && fq < NOFLOW && !g.substance[e]) a *= MEMORY_FACTOR;
     // Solución exacta de dD/dt = f − a·D con f constante en el paso: el equilibrio de Tero (f/a),
     // estable con cualquier Δ (nunca negativa ni oscilante).
     const target = fq / a;

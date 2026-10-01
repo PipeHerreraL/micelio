@@ -19,7 +19,12 @@ export const LIGHT_LAMBDA = 3;
  * D_ALIVE, así que el tubo no se sostiene hasta que el plasmodio se acostumbra. Medido.
  */
 export const SUBSTANCE_BETA = 60;
-/** Memoria externa: los tubos sin flujo se secan el doble de rápido (Reid et al. 2012). Medido. */
+/**
+ * Memoria externa: los tubos sin flujo se secan el doble de rápido (Reid et al. 2012), salvo los que
+ * llevan sustancia. Medido sobre las placas fijas con la colocación de referencia: el objetivo llega
+ * a los 44 s en el Tronco (sin ella, 130) y a los 31 s en el Archipiélago (59); en el Puente poda
+ * más (red más barata y menos tolerante: la referencia ya no cumple, la de la Quimiotaxis sí).
+ */
 export const MEMORY_FACTOR = 2;
 /** f(|Q|) por debajo de esto cuenta como «sin flujo» para la Memoria externa. */
 export const NOFLOW = 0.01;
@@ -125,7 +130,7 @@ export const PLASMODIUM_UPGRADES: readonly PlasmodiumUpgradeDef[] = [
   { id: 'dormancy', baseCost: 5e7, max: 1, fromMapped: 1 },
   // Marca el sitio sugerido para el siguiente copo.
   { id: 'chemotaxis', baseCost: 1e8, max: 1, fromMapped: 2 },
-  // Medido: objetivo de 145 a 108 pasos en el Tronco y de 183 a 141 en la Fusión.
+  // Poda: la red converge antes (ver MEMORY_FACTOR).
   { id: 'memory', baseCost: 1e11, max: 1, fromMapped: 2 },
 ];
 

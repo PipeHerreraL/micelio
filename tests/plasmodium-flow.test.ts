@@ -189,6 +189,28 @@ describe('un paso del modelo', () => {
     expect(plain.conductivity[1]).toBeCloseTo(Math.exp(-0.1), 12);
     expect(memory.conductivity[1]).toBeCloseTo(Math.exp(-0.2), 12);
   });
+
+  it('la Memoria externa no seca antes los tubos con sustancia', () => {
+    const tail = plate({
+      x: [0.5, 1.5, 2.5],
+      y: [0.5, 0.5, 0.5],
+      edges: [
+        [0, 1],
+        [1, 2],
+      ],
+      fixedFoods: [0, 1],
+      substance: 'salt',
+      substanceEdges: [1],
+      habituated: [1, 2],
+    });
+    const g = buildPlateGraph(tail, 0);
+    const plain = on(g);
+    const memory = on(g);
+    memory.upgrades.memory = 1;
+    modelStep(plain, g);
+    modelStep(memory, g);
+    expect(memory.conductivity[1]).toBe(plain.conductivity[1]);
+  });
 });
 
 describe('medidas de la red', () => {
