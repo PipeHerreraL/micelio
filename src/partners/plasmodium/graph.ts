@@ -163,6 +163,7 @@ export function buildPlateGraph(def: PlateDef, index: number): PlateGraph {
 }
 
 const graphs: (PlateGraph | undefined)[] = [];
+const previewGraphs: (PlateGraph | undefined)[] = [];
 
 /** Grafo de la placa `index`, construido la primera vez y reutilizado después (los datos son fijos). */
 export function plateGraph(index: number): PlateGraph {
@@ -172,6 +173,21 @@ export function plateGraph(index: number): PlateGraph {
     if (!def) throw new Error(`Placa desconocida: ${index}`);
     g = buildPlateGraph(def, index);
     graphs[index] = g;
+  }
+  return g;
+}
+
+/**
+ * Otra copia del grafo de la placa, con su propio espacio de trabajo y su propia instantánea: las
+ * previsualizaciones (Quimiotaxis, bot) no pisan la medida de la red de verdad.
+ */
+export function previewGraph(index: number): PlateGraph {
+  let g = previewGraphs[index];
+  if (!g) {
+    const def = PLATES[index];
+    if (!def) throw new Error(`Placa desconocida: ${index}`);
+    g = buildPlateGraph(def, index);
+    previewGraphs[index] = g;
   }
   return g;
 }
