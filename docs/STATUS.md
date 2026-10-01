@@ -1,6 +1,6 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 1.0.0._
+_Actualizado: 2026-10-01. Versión 1.1.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -33,18 +33,13 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 ## Lo último que se hizo
 
-- **Pruebas de navegador con Playwright** (`tests/e2e/`, `npm run test:e2e`): 57 pruebas en
-  cinco perfiles (Chromium, Firefox 155 y WebKit 26.6 de escritorio; Pixel 7 e iPhone 14
-  emulados). Humo de los primeros minutos, recarga, idioma, exportar e importar, y una prueba
-  por cada bug del diario que necesitaba navegador; cada una falla sin su arreglo (comprobado).
-  También corren en el CI, y Pages solo publica si pasan.
-- La primera corrida encontró un bug nuevo (#13): tras borrar la partida no se podía volver a
-  Ajustes para importar un respaldo sin absorber antes. Arreglado.
-- **Fluidez medida** (`npm run perf`, partida avanzada): Chromium 128 fps (el refresco de la
-  pantalla), también con la CPU frenada 4×; Firefox 65 fps; ningún frame por encima de 20 ms en
-  ninguno de los dos. El WebKit de Windows da unos 50 fps, lo mismo que con una página vacía:
-  es el tope del motor en ese sistema, no el juego.
-- Antes: fases 1 a 5 cerradas (v0.1.0 a v0.5.0), revisión adversarial final con 36 arreglos.
+- **Fase 6 de la hoja de ruta (cimientos, v1.1.0):** techo numérico y guardado que nunca
+  pisa el último bueno con un valor imposible; reinicios declarativos (`src/core/resets.ts`);
+  historial de las últimas 50 partidas, visible en Estadísticas (guardado versión 3); campaña
+  larga de 20 esporulaciones en el simulador, con la regla de §17 y la del mejor ritmo.
+- **Línea base para la fase 7** (`docs/BALANCE.md`): con la regla de §17 las partidas 12 a 17
+  duran unos 3–4 min; con la del mejor ritmo, las 14 a 19 rondan los 9–10 min.
+- Antes: v1.0.0 con 57 pruebas de navegador (Playwright) y la definición de terminado cumplida.
 
 ## Definición de terminado (PROMPT.md §22)
 
@@ -60,15 +55,11 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 ## Lo que sigue, en orden
 
-La hoja de ruta después de la 1.0 está en [`docs/ROADMAP.md`](ROADMAP.md), con las decisiones
-del usuario: más contenido al final (Viento de esporas, por biomas y luego eras) y modos
-relacionados que no son de hongos, empezando por el Plasmodio.
+La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 6 — Cimientos (v1.1.0):** guardia contra números no finitos, reinicios
-   declarativos, simulador de campañas largas y segunda política del bot.
-2. **Fase 7 — Madurez de la red (v1.2.0):** rendimiento decreciente del nivel de esporas desde
-   el nivel 1000 y Adaptaciones.
-3. **Fase 8 — Viento de esporas I (v1.3.0).**
+1. **Fase 7 — Madurez de la red (v1.2.0):** rendimiento decreciente del nivel de esporas desde
+   el nivel 1000 y Adaptaciones. Medir con las dos reglas de la campaña larga.
+2. **Fase 8 — Viento de esporas I (v1.3.0):** fin del Acto I, Dispersar, taiga, Chocó, Crónica.
 
 ## Deuda conocida
 

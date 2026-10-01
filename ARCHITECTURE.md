@@ -290,6 +290,22 @@ visibilidad, `storage` entre pestañas). La primera corrida encontró uno nuevo 
 Playwright en Windows da unos 50 fps incluso con una página vacía (tope del motor en ese
 sistema, no del juego); Safari en un iPhone real no se ha probado.
 
+### 4.26 Cimientos para crecer: techo, reinicios declarativos e historial (fase 6)
+
+- **Techo numérico.** `num.clamp` deja toda cantidad entre 0 y `num.CEILING` (1e300), y `gain`
+  la aplica. Por encima de ~1.8e308 un `number` es `Infinity`, que JSON escribe como `null`: la
+  partida pasaría por dañada al cargar. Además, `saveGame` valida el texto antes de escribirlo y
+  devuelve `invalid` sin tocar el último guardado bueno; la interfaz lo avisa una vez.
+- **Reinicios declarativos.** `src/core/resets.ts` clasifica cada campo de `GameState` como
+  `run`, `life` o `custom` para cada capa de reinicio. El tipo obliga a clasificar todas las
+  claves y una prueba compara los campos `run` con una partida nueva. Las capas que llegan
+  (dispersar, pasar de era) añaden su propia tabla en vez de repetir asignaciones a mano.
+- **Historial de partidas.** `history` guarda las últimas 50 partidas (esporulación, duración,
+  esporas y fecha) para la Crónica y las estadísticas. Guardado versión 3, con migración.
+- **Campaña larga en el simulador.** `npm run sim` juega también 20 esporulaciones con dos
+  reglas: la de PROMPT.md §17 y la del mejor ritmo de esporas por minuto, que es la que haría un
+  jugador que optimiza y la que debe guiar el balance de la fase 7.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |

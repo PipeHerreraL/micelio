@@ -37,7 +37,7 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 
 | Fase | Versión | Contenido                                                   | Tamaño |
 | ---- | ------- | ----------------------------------------------------------- | ------ |
-| 6    | 1.1.0   | Cimientos                                                   | S      |
+| 6    | 1.1.0   | Cimientos (hecha)                                           | S      |
 | 7    | 1.2.0   | Madurez de la red y Adaptaciones                            | M      |
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica | L      |
 | 9    | 1.4.0   | El Plasmodio y la estructura de socios                      | L      |
@@ -52,7 +52,7 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 - **Reinicios declarativos.** Una tabla dice qué campos reinicia cada capa (esporular, y luego
   dispersar y pasar de era), con una prueba que clasifica cada clave de `createState()` para
   que un campo nuevo no se olvide (la familia del BUG-JOURNAL #2).
-- **Simulador de campañas largas** (`npm run sim -- --long`, 20 esporulaciones) y una segunda
+- **Simulador de campañas largas** (20 esporulaciones, dentro de `npm run sim`) y una segunda
   política del bot: esporular cuando se maximizan las esporas por minuto, no solo con la regla
   `max(10, nivel)`.
 - **Historial de partidas** (duración, esporas, bioma) para la Crónica y las estadísticas.
