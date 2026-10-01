@@ -5,6 +5,7 @@
  */
 import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
+import { mappedCount } from '../partners/plasmodium/state.ts';
 import { BIOME_NEWS_SHARE, NEWS, NEWS_INTERVAL, type NewsDef } from '../data/news.ts';
 import { t, type MessageKey } from '../i18n/index.ts';
 import { biomeText } from './biome-text.ts';
@@ -31,6 +32,10 @@ function unlocked(state: GameState, def: NewsDef): boolean {
       );
     case 'dispersals':
       return state.forest.leg >= c.count;
+    case 'partner': {
+      const p = state.partners[c.id];
+      return p !== null && (c.mapped === undefined || mappedCount(p) >= c.mapped);
+    }
   }
 }
 

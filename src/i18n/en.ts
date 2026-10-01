@@ -873,4 +873,102 @@ export const en: Catalog = {
   'dev.skipHour': 'Skip 1 hour',
   'dev.give': 'Add ×10 nutrients',
   'dev.drop': 'Force a drop',
+
+  'tab.partners': 'Partners',
+  'partners.title': 'Partners',
+  'partners.intro':
+    'Other organisms living near your network. Each one plays its own way, with its own currency; nothing they do takes anything from your network.',
+  'partners.loading': 'Preparing the plate…',
+  'partners.loadFailed':
+    'This partner could not be loaded. There may be a new version of the game, or the connection may be failing.',
+  'partners.reload': 'Reload the page',
+  'hint.partners': 'The plasmodium keeps adapting while you switch tabs, and while you are away.',
+  'save.partnerReset':
+    "The plasmodium's state could not be recovered, so it starts over. Your network lost nothing, and the previous save was kept in the backup copy.",
+  'save.partnerRestored':
+    'The plasmodium had an impossible value and went back to its last saved state. Your network was saved as usual.',
+  'settings.import.confirm.partnerReset':
+    'The plasmodium in this save could not be recovered: it will start over.',
+  'partners.loadingTitle': 'Plasmodium',
+
+  'chapter.partner.kicker': 'A partner',
+  'chapter.later': 'Not now',
+  'chapter.toPlate': 'See the plate',
+  'chapter.plasmodium.arrive.title': 'A yellow neighbor',
+  'chapter.plasmodium.arrive.line1':
+    'Something yellow creeps over a fallen log, a few centimeters an hour at most. It looks like a fungus, it was long classified as one, and mycologists still study it.',
+  'chapter.plasmodium.arrive.line2':
+    'Without a brain, it links the food it finds with networks that have been compared to the Tokyo rail system.',
+  'chapter.plasmodium.arrive.line3':
+    'It is Physarum polycephalum, a slime mold: a protist, a single cell with many nuclei.',
+  'chapter.plasmodium.arrive.line4':
+    'In the Partners tab you can give it oat flakes and watch how it decides. Nothing it does takes anything from your network.',
+  'plasmodium.announce': 'A new partner: the plasmodium. It lives in the Partners tab.',
+
+  'achievements.partner.plasmodium.title': 'From the plasmodium',
+  'achievements.partner.intro':
+    "These achievements belong to the plasmodium: they do not add to your network's production bonus.",
+  'achievements.partner.progress': '{count} of {total}',
+  'pach.firstOat.name': 'First flake',
+  'pach.firstOat.desc': 'Place your first oat flake.',
+  'pach.log.name': 'Sporangia',
+  'pach.log.desc': 'Map the Fallen log.',
+  'pach.maze.name': 'No brain, no detours',
+  'pach.maze.desc': 'Map the Maze.',
+  'pach.archipelago.name': 'Commuter lines',
+  'pach.archipelago.desc': 'Map the Archipelago.',
+  'pach.bitter.name': 'No longer bitter',
+  'pach.bitter.desc': 'Map the Bitter bridge.',
+  'pach.fusion.name': 'A single cell',
+  'pach.fusion.desc': 'Map the Fusion.',
+  'pach.cutProof.name': 'Cut-proof',
+  'pach.cutProof.desc': 'Link three or more flakes with a stable network and a cut tolerance of 100%.',
+  'pach.noPulse.name': 'Protist patience',
+  'pach.noPulse.desc': 'Map a plate without sending a single pulse since you opened it.',
+
+  'autobuy.mode.label': 'How autobuy chooses',
+  'autobuy.mode.threshold': 'By threshold',
+  'autobuy.mode.payback': 'Fastest payback',
+  'autobuy.payback.desc':
+    'Pruning, a gift from the plasmodium: every second it buys, among the enabled generators (and upgrades, if enabled), whatever earns back its cost soonest. If the best option is not affordable yet, it waits until it is.',
+  'autobuy.payback.saving': 'Saving for: {name} ({time})',
+  'autobuy.payback.idle': 'Nothing to buy among the enabled options.',
+
+  'sporulate.rate': 'You are earning {value} spores per minute of run.',
+  'sporulate.rate.next': 'With the next spore, in {time}, it would be {value} per minute.',
+  'sporulate.rate.none': 'This run is not earning spores yet.',
+  'sporulate.rate.source': 'Short path, a gift from the plasmodium.',
+
+  'offline.plasmodium': 'The plasmodium kept adapting for {time}, at {percent}.',
+  'stats.plasmodium': 'Plasmodium',
+  'stats.plasmodium.trailEarned': 'Trail earned',
+  'stats.plasmodium.plates': 'Plates mapped',
+  'stats.plasmodium.pulses': 'Pulses sent',
+
+  'news.plasmodium.notFungus':
+    'Undergrowth clarification: the yellow mold on the log is not a fungus. Mycologists study it anyway, and it does not complain.',
+  'news.plasmodium.speed':
+    'Breaking news: the plasmodium moved a few centimeters. At its scale, that is a sprint.',
+  'news.plasmodium.shuttle':
+    'Its cytoplasm flows back and forth through the tubes, reversing every minute or two. It is called shuttle streaming.',
+  'news.plasmodium.mating':
+    'Physarum is said to have about 720 mating types. Arranging a date is complicated.',
+  'news.plasmodium.sclerotium':
+    'If it dries out, the plasmodium becomes a hard crust, the sclerotium. Add water and it wakes as if nothing happened.',
+  'news.plasmodium.blob':
+    'In 2019, the Paris zoo put it on display under the nickname “le blob.” It kept eating oats.',
+  'news.plasmodium.space':
+    'In 2021, dormant plasmodia traveled to the International Space Station for a school experiment. Water woke them up, as always.',
+  'news.plasmodium.maze': 'A mold solves a maze. It asks that nobody tell the mole.',
+  'news.plasmodium.trains':
+    'A mold drew, with oats, a network much like the Tokyo rail system. Word in the undergrowth is that railway engineers now eye oats with suspicion.',
+  'news.plasmodium.slime':
+    'The plasmodium tends to avoid places where it has already left slime: that way it wastes no time where it already searched (Reid and colleagues, 2012).',
+  'news.plasmodium.quinine':
+    'After several days crossing quinine bridges, plasmodia in a French lab stopped turning up their noses. No neurons involved.',
+  'news.plasmodium.fusion':
+    'Two plasmodia that touch can fuse into a single cell. What one learned, the other inherits.',
+
+  'dev.partner': 'Bring the plasmodium',
+  'dev.plate': 'Map this plate',
 };

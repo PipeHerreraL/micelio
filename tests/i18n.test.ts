@@ -9,6 +9,10 @@ import { UPGRADES } from '../src/data/upgrades.ts';
 import { en } from '../src/i18n/en.ts';
 import { es } from '../src/i18n/es.ts';
 import { CATALOGS } from '../src/i18n/index.ts';
+import { plasmodiumEn } from '../src/i18n/partners/plasmodium.en.ts';
+import { plasmodiumEs } from '../src/i18n/partners/plasmodium.es.ts';
+import { PLASMODIUM_ACHIEVEMENT_IDS, PLASMODIUM_UPGRADES } from '../src/data/plasmodium.ts';
+import { PLATES } from '../src/data/plasmodium-plates.ts';
 
 const placeholders = (text: string): string[] =>
   [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1] ?? '').sort();
@@ -104,6 +108,57 @@ describe('catálogos de idioma', () => {
   });
 });
 
+describe('catálogos del plasmodio (fase 9)', () => {
+  const PARTNER: Record<string, Readonly<Record<string, string>>> = { es: plasmodiumEs, en: plasmodiumEn };
+  const baseKeys = Object.keys(plasmodiumEs).sort();
+
+  it('los dos idiomas tienen las mismas claves, ningún texto vacío y los mismos marcadores', () => {
+    expect(Object.keys(plasmodiumEn).sort()).toEqual(baseKeys);
+    for (const [locale, catalog] of Object.entries(PARTNER)) {
+      for (const key of baseKeys) {
+        const text = catalog[key] ?? '';
+        expect(text.trim().length, `${locale}:${key}`).toBeGreaterThan(0);
+        expect(placeholders(text), `${locale}:${key}`).toEqual(
+          placeholders(plasmodiumEs[key as keyof typeof plasmodiumEs]),
+        );
+      }
+    }
+  });
+
+  it('cada plural tiene su forma «one» y su forma «other»', () => {
+    for (const key of baseKeys) {
+      if (key.endsWith('.one')) expect(baseKeys).toContain(`${key.slice(0, -4)}.other`);
+      if (key.endsWith('.other')) expect(baseKeys).toContain(`${key.slice(0, -6)}.one`);
+    }
+  });
+
+  it('las claves que nombran los datos existen: placas, mejoras, logros y láminas', () => {
+    const keys = new Set(baseKeys);
+    const main = new Set(Object.keys(es));
+    for (const plate of PLATES) {
+      for (const k of ['name', 'intro', 'goal'])
+        expect(keys.has(`plate.${plate.id}.${k}`), plate.id).toBe(true);
+      for (const k of ['title', 'line1', 'line2'])
+        expect(keys.has(`chapter.${plate.id}.${k}`), plate.id).toBe(true);
+    }
+    for (const u of PLASMODIUM_UPGRADES) {
+      expect(keys.has(`pupg.${u.id}.name`), u.id).toBe(true);
+      expect(keys.has(`pupg.${u.id}.desc`), u.id).toBe(true);
+      expect(keys.has(`pupg.${u.id}.effect`) || keys.has(`pupg.${u.id}.effect.other`), u.id).toBe(true);
+    }
+    for (const id of PLASMODIUM_ACHIEVEMENT_IDS) {
+      expect(main.has(`pach.${id}.name`), id).toBe(true);
+      expect(main.has(`pach.${id}.desc`), id).toBe(true);
+    }
+  });
+
+  it('ningún texto usa signos fuera del estilo de la casa (≤, ≥, flechas)', () => {
+    for (const catalog of [plasmodiumEs, plasmodiumEn, es, en]) {
+      for (const [key, text] of Object.entries(catalog)) expect(/[≤≥→←↑↓]/.test(text), key).toBe(false);
+    }
+  });
+});
+
 /**
  * Rangos `unicode-range` del subconjunto `latin` de una fuente de @fontsource. Las hojas
  * `latin-400.css` que importa main.ts no declaran rango (cargan solo ese subconjunto), así
@@ -126,7 +181,8 @@ describe('cobertura de las fuentes', () => {
   const fonts = ['source-sans-3', 'im-fell-english'].map(latinRanges);
 
   it('cada carácter de cada idioma lo cubren las fuentes importadas', () => {
-    for (const [locale, catalog] of Object.entries(CATALOGS)) {
+    const all = { ...CATALOGS, 'plasmodio-es': plasmodiumEs, 'plasmodio-en': plasmodiumEn };
+    for (const [locale, catalog] of Object.entries(all)) {
       // Se recorre por puntos de código, que es lo que cubre unicode-range.
       const chars = new Set<string>();
       for (const text of Object.values(catalog)) for (const char of text) chars.add(char);

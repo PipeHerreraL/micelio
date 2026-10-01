@@ -883,6 +883,110 @@ export const es = {
   'dev.skipHour': 'Avanzar 1 h',
   'dev.give': 'Sumar ×10 nutrientes',
   'dev.drop': 'Forzar gota',
+
+  // Socios (fase 9)
+  'tab.partners': 'Socios',
+  'partners.title': 'Socios',
+  'partners.intro':
+    'Otros organismos que viven cerca de tu red. Cada uno juega a su manera y con su propia moneda; lo que hagan no le quita nada a tu red.',
+  'partners.loading': 'Preparando la placa…',
+  'partners.loadFailed':
+    'No se pudo cargar este socio. Puede que haya una versión nueva del juego o que falle la conexión.',
+  'partners.reload': 'Recargar la página',
+  'hint.partners': 'El plasmodio sigue adaptándose aunque cambies de pestaña, y también mientras no estás.',
+  'save.partnerReset':
+    'El estado del plasmodio no se pudo recuperar y empieza de nuevo. Tu red no ha perdido nada, y el guardado anterior quedó en la copia de respaldo.',
+  'save.partnerRestored':
+    'El plasmodio tenía un valor imposible y volvió a su último estado guardado. Tu red se guardó con normalidad.',
+  'settings.import.confirm.partnerReset':
+    'El plasmodio de este guardado no se pudo recuperar: empezará de nuevo.',
+  'partners.loadingTitle': 'Plasmodio',
+
+  // Llegada del plasmodio
+  'chapter.partner.kicker': 'Un socio',
+  'chapter.later': 'Ahora no',
+  'chapter.toPlate': 'Ver la placa',
+  'chapter.plasmodium.arrive.title': 'Un vecino amarillo',
+  'chapter.plasmodium.arrive.line1':
+    'Sobre un tronco caído avanza algo amarillo, como mucho unos centímetros por hora. Parece un hongo, durante mucho tiempo se clasificó entre ellos y los micólogos lo siguen estudiando.',
+  'chapter.plasmodium.arrive.line2':
+    'Sin cerebro, une la comida que encuentra con redes que se han comparado con la de los trenes de Tokio.',
+  'chapter.plasmodium.arrive.line3':
+    'Es Physarum polycephalum, un moho mucilaginoso: un protista, una sola célula con muchos núcleos.',
+  'chapter.plasmodium.arrive.line4':
+    'En la pestaña Socios puedes darle copos de avena y mirar cómo decide. Lo que haga no le quita nada a tu red.',
+  'plasmodium.announce': 'Un socio nuevo: el plasmodio. Vive en la pestaña Socios.',
+
+  // Logros del plasmodio (no suman al bono)
+  'achievements.partner.plasmodium.title': 'Del plasmodio',
+  'achievements.partner.intro': 'Estos logros son del plasmodio: no suman al bono de producción de tu red.',
+  'achievements.partner.progress': '{count} de {total}',
+  'pach.firstOat.name': 'Primer copo',
+  'pach.firstOat.desc': 'Pon tu primer copo de avena.',
+  'pach.log.name': 'Esporangios',
+  'pach.log.desc': 'Cartografía el Tronco caído.',
+  'pach.maze.name': 'Sin cerebro y sin rodeos',
+  'pach.maze.desc': 'Cartografía el Laberinto.',
+  'pach.archipelago.name': 'Cercanías',
+  'pach.archipelago.desc': 'Cartografía el Archipiélago.',
+  'pach.bitter.name': 'Ya no sabe amargo',
+  'pach.bitter.desc': 'Cartografía el Puente amargo.',
+  'pach.fusion.name': 'Una sola célula',
+  'pach.fusion.desc': 'Cartografía la Fusión.',
+  'pach.cutProof.name': 'A prueba de cortes',
+  'pach.cutProof.desc': 'Une tres copos o más con la red estable y una tolerancia a cortes del 100 %.',
+  'pach.noPulse.name': 'Paciencia de protista',
+  'pach.noPulse.desc': 'Cartografía una placa sin dar ni un pulso desde que la abriste.',
+
+  // Poda (autocompra)
+  'autobuy.mode.label': 'Cómo elige la autocompra',
+  'autobuy.mode.threshold': 'Por umbral',
+  'autobuy.mode.payback': 'Lo que antes se amortiza',
+  'autobuy.payback.desc':
+    'Poda, un regalo del plasmodio: cada segundo compra, entre los generadores activados (y las mejoras, si están activadas), lo que antes recupera su coste con lo que produce. Si lo mejor aún no alcanza, espera a poder pagarlo.',
+  'autobuy.payback.saving': 'Ahorrando para: {name} ({time})',
+  'autobuy.payback.idle': 'Nada que comprar entre lo activado.',
+
+  // Camino corto (Esporular)
+  'sporulate.rate': 'Ahora ganas {value} esporas por minuto de partida.',
+  'sporulate.rate.next': 'Con la siguiente espora, dentro de {time}, serían {value} por minuto.',
+  'sporulate.rate.none': 'Aún no ganas esporas en esta partida.',
+  'sporulate.rate.source': 'Camino corto, un regalo del plasmodio.',
+
+  // Offline y estadísticas
+  'offline.plasmodium': 'El plasmodio siguió adaptándose durante {time}, al {percent}.',
+  'stats.plasmodium': 'Plasmodio',
+  'stats.plasmodium.trailEarned': 'Rastro ganado',
+  'stats.plasmodium.plates': 'Placas cartografiadas',
+  'stats.plasmodium.pulses': 'Pulsos dados',
+
+  // Noticias del plasmodio (Apéndice B: condiciones)
+  'news.plasmodium.notFungus':
+    'Aclaración del sotobosque: el moho amarillo del tronco no es un hongo. Los micólogos lo estudian igual, y él no se queja.',
+  'news.plasmodium.speed': 'Última hora: el plasmodio avanzó unos centímetros. A su escala, es una carrera.',
+  'news.plasmodium.shuttle':
+    'Su citoplasma va y viene por los tubos y cambia de sentido cada uno o dos minutos. Lo llaman flujo de vaivén.',
+  'news.plasmodium.mating':
+    'Se dice que Physarum tiene unos 720 tipos de apareamiento. Organizar una cita es complicado.',
+  'news.plasmodium.sclerotium':
+    'Si se seca, el plasmodio se vuelve una costra dura, el esclerocio. Con agua, despierta como si nada.',
+  'news.plasmodium.blob':
+    'En 2019, el zoológico de París lo exhibió con el apodo de «le blob». Él siguió comiendo avena.',
+  'news.plasmodium.space':
+    'En 2021, plasmodios dormidos viajaron a la Estación Espacial Internacional para un experimento escolar. Despertaron con agua, como siempre.',
+  'news.plasmodium.maze': 'Un moho resuelve un laberinto. Pide que no se lo cuenten al topo.',
+  'news.plasmodium.trains':
+    'Un moho trazó con avena una red parecida a la de los trenes de Tokio. En el sotobosque se dice que los ingenieros ferroviarios miran la avena con desconfianza.',
+  'news.plasmodium.slime':
+    'El plasmodio suele evitar pasar por donde ya dejó mucílago: así no pierde tiempo donde ya buscó (Reid y colegas, 2012).',
+  'news.plasmodium.quinine':
+    'Tras varios días cruzando puentes con quinina, unos plasmodios de un laboratorio francés dejaron de hacerle ascos. Sin neuronas.',
+  'news.plasmodium.fusion':
+    'Dos plasmodios que se tocan pueden fundirse en una sola célula. Lo que uno aprendió, el otro lo hereda.',
+
+  // Panel de desarrollo
+  'dev.partner': 'Traer al plasmodio',
+  'dev.plate': 'Cartografiar esta placa',
 } as const;
 
 export type MessageKey = keyof typeof es;

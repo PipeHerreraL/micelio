@@ -5,6 +5,7 @@
  */
 import type { DestinationId } from './biomes.ts';
 import type { GeneratorId } from './generators.ts';
+import type { PartnerId } from '../partners/ids.ts';
 
 export type NewsCondition =
   | { kind: 'always' }
@@ -14,7 +15,9 @@ export type NewsCondition =
   | { kind: 'drops'; count: number }
   /** En un bioma (fase 8), con nivel local y unidades mínimos opcionales. */
   | { kind: 'biome'; biome: DestinationId; level?: number; owned?: { id: GeneratorId; count: number } }
-  | { kind: 'dispersals'; count: number };
+  | { kind: 'dispersals'; count: number }
+  /** Con un socio (fase 9), y si se pide, con un número de placas cartografiadas. */
+  | { kind: 'partner'; id: PartnerId; mapped?: number };
 
 export interface NewsDef {
   id: string;
@@ -98,4 +101,16 @@ export const NEWS: readonly NewsDef[] = [
   { id: 'wind.rust', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.buller', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.altitude', when: { kind: 'dispersals', count: 1 } },
+  { id: 'plasmodium.notFungus', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.speed', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.shuttle', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.mating', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.sclerotium', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.blob', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.space', when: { kind: 'partner', id: 'plasmodium' } },
+  { id: 'plasmodium.maze', when: { kind: 'partner', id: 'plasmodium', mapped: 2 } },
+  { id: 'plasmodium.slime', when: { kind: 'partner', id: 'plasmodium', mapped: 2 } },
+  { id: 'plasmodium.trains', when: { kind: 'partner', id: 'plasmodium', mapped: 3 } },
+  { id: 'plasmodium.quinine', when: { kind: 'partner', id: 'plasmodium', mapped: 4 } },
+  { id: 'plasmodium.fusion', when: { kind: 'partner', id: 'plasmodium', mapped: 5 } },
 ];
