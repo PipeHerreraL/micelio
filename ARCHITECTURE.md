@@ -118,8 +118,8 @@ nativo) aún no es compatible con el linter con tipos.
 ### 4.6 Selectores con caché por estado e invalidación explícita
 
 **Elegido:** `src/core/selectors.ts` guarda los derivados en un `WeakMap<GameState, Derived>`.
-Cada acción que cambia un multiplicador (compra, evento, logro, esporulación, carga) llama
-a `invalidate(state)`. Un estado nuevo (carga, simulador) arranca sin caché.
+Cada acción que cambia un multiplicador (compra, evento, logro, esporulación, carga y, desde
+la fase 8, dispersar, colonizar y comprar una adaptación de bioma) llama a `invalidate(state)`. Un estado nuevo (carga, simulador) arranca sin caché.
 
 **Por qué no un campo `rev` en el estado:** ensuciaría el guardado con un dato de caché.
 **Por qué no recalcular siempre:** el bucle corre a 20 Hz y la UI pide derivados a 10 Hz;
@@ -133,7 +133,8 @@ cada acción.
 ### 4.7 Cola de eventos del núcleo
 
 **Elegido:** `src/core/events.ts` es una cola (`emit`, `drain`) de eventos planos
-(`achievement`, `purchase`, `rainSpawn`, `rainCaught`, `effectEnd`, `sporulate`…). El
+(`achievement`, `purchase`, `rainSpawn`, `rainCaught`, `effectEnd`, `sporulate` y, desde la
+fase 8, `actOneClosed`, `colonized`, `disperse` y `rainFell`…). El
 núcleo emite; `main.ts` vacía la cola en cada frame y reparte a avisos, sonido y canvas.
 
 **Por qué:** las acciones mantienen la firma `(state, payload) => void` y el núcleo no
@@ -150,9 +151,12 @@ importa nada de presentación. El simulador simplemente vacía y descarta la col
   lluvia) y empieza a contar cuando la gota anterior se resuelve (atrapada o evaporada).
 - **Tormenta eléctrica** multiplica por 500 el valor completo del clic (`V`), no solo `M`:
   así sigue importando en partidas avanzadas, donde `M` es despreciable frente a `qP`.
-- **Rocío** usa la producción actual (`P`), que ya incluye cualquier evento activo. En la
-  práctica no se solapan: el intervalo mínimo entre gotas (92 s con Olfato) supera la
-  duración máxima del Aguacero (90 s con Tormenta perfecta).
+- **Rocío** usa la producción actual (`P`), que ya incluye cualquier evento activo.
+  ~~En la práctica no se solapan: el intervalo mínimo entre gotas (92 s con Olfato) supera la
+  duración máxima del Aguacero (90 s con Tormenta perfecta).~~
+  **Corrección (fase 8):** en el Chocó llueve el doble (46 s de espera mínima con Olfato) y sí
+  se solapan; se mantuvo la producción con evento porque así se midió el balance del Chocó.
+  En el natal sigue sin pasar.
 
 ### 4.9 Repositorio público y GitHub Pages
 
@@ -175,6 +179,9 @@ recibe exactamente lo que habría producido en vivo. Se usa igual para offline (
 
 - El tiempo en segundo plano cuenta como tiempo jugado (el juego seguía abierto); el
   offline no.
+- La producción sin evento sale del selector (`productionWithoutEvent`) y no dividiendo la
+  total por `E`: desde la fase 8, los clics automáticos de las Hormigas cortadoras no se
+  multiplican igual que los generadores.
 - Un intervalo negativo (reloj que retrocede) se trata como cero.
 - «Sin prisa» se otorga por el hueco real, no por el recortado al límite.
 
@@ -243,7 +250,8 @@ separador y «12.345» con él (norma de la RAE para cuatro cifras); en inglés,
 ### 4.21 Esporas siempre a la vista
 
 Desde que aparece la pestaña Esporular, el contador muestra debajo de N/s cuántas esporas
-darías ahora y cuántos nutrientes de vida faltan para la siguiente. La especificación pide
+darías ahora y cuántos nutrientes ~~de vida~~ del bosque faltan para la siguiente (fase 8: las
+esporas salen de los nutrientes del bosque actual, §4.28). La especificación pide
 que se vea «siempre»; meterlo solo en la pestaña obligaría a abrirla para saberlo.
 
 ### 4.22 La gota nunca cae debajo del núcleo
@@ -251,6 +259,7 @@ que se vea «siempre»; meterlo solo en la pestaña obligaría a abrirla para sa
 En móvil y tableta el núcleo está encima del escenario. La lógica sortea la posición de la
 gota sin saber de pantallas (está en `src/systems`), así que la interfaz la refleja al otro
 lado si cae a menos de 44 px del borde del núcleo. El estado no cambia: solo dónde se dibuja.
+Desde la fase 8 esquiva también la cartela del bioma, en la esquina del escenario.
 
 ### 4.23 Noticias al azar en la interfaz
 
@@ -326,6 +335,62 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   desde la partida 16 cada partida se alarga mucho. Ese muro es la señal para Dispersar, que
   llega en la fase 8 y devuelve el nivel a 0 en cada bioma.
 
+### 4.28 Viento de esporas I: biomas, Dispersar y Crónica (fase 8)
+
+- **El bosque vive en el estado.** `forest` (bioma, tramo, nutrientes ganados allí y marcas de
+  llegada), `chronicle` (una entrada por bosque cerrado) y `biomeAdaptations`. Lo colonizado y
+  lo visitado no se guardan aparte: se deducen de la Crónica (`src/core/forest.ts`), así la
+  regla vive en un solo sitio. Guardado versión 5; la migración deja toda partida 1.x en el
+  natal con `forest.earned` = nutrientes de vida, y la validación cruza bosque, Crónica, rangos
+  e historial.
+- **Las esporas salen de los nutrientes del bosque**, con requisito y escala por bosque:
+  1e8 en el natal; en un destino, R = escala del bioma · 3,5^(tramo − 1) (taiga 1e11, Chocó
+  2e11). Con los de toda la vida, el prototipo daba 11.330 esporas de golpe al llegar. En el
+  natal los dos valen lo mismo bit a bit, y el simulador da idéntico en las 21 métricas de
+  antes.
+- **Linaje:** producción ×2 por bioma colonizado fuera del natal. Sin él, el segundo bioma
+  tardaba 4–5,5 h. Todos los factores nuevos (bioma, adaptaciones de bioma, linaje, obreras)
+  cambian solo al dispersar, comprar o colonizar, que invalidan: ninguno cambia con el tiempo
+  (ROADMAP, reglas comunes).
+- **El Acto I y la colonización los decide el núcleo** (`src/systems/journey.ts`), no la
+  interfaz: el tick lo comprueba una vez por segundo y el tiempo analítico al final, así el
+  simulador y una partida 1.x lo ven sin pantalla. El Acto I mira el logro de la Red
+  planetaria y no `owned` (que se reinicia al esporular): una partida 1.x que ya la tuvo lo
+  cierra al cargar. Son las dos únicas funciones que escriben en la Crónica, una entrada por
+  tramo como mucho: el tope se pone donde se construye.
+- **Dispersar esporula si la partida puede** y esas esporas ayudan a pagar el viaje: el Acto I
+  se cierra a mitad de partida, y obligar a esporular y luego dispersar eran dos confirmaciones
+  y dos animaciones seguidas. Reinicia con su propia tabla (`DISPERSE_RESET`), con la lluvia
+  del destino desde la llegada. Esporular conserva su sorteo de lluvia de siempre (solo si
+  había gota), para que el azar del natal no cambie.
+- **Dos excepciones a las reglas comunes del ROADMAP, a propósito:** Dispersar cuesta 300
+  esporas fijas (el nivel vuelve a 0 en cada bioma, así que el ingreso por bioma es plano y un
+  coste fijo ya va a su ritmo; con 300 y luego 600 hacía falta una partida más de espera), y
+  los cinco logros de Viento suman al +1 % como los demás: Viento no es un sistema nuevo con
+  moneda propia, usa esporas y el azar común, y ninguno de esos logros se alcanza sin dispersar.
+- **Adaptaciones de bioma:** tres por bioma, ×2 por rango, con el nivel local que pide cada
+  rango (colonizar los abre todos). Se aprenden en su bioma y valen en todos: en esta versión no
+  se vuelve a un bioma, y una compra que caducara al irse castigaría haberla hecho.
+- **Chocó:** la gota que nadie atrapa cae sola y aplica su efecto, pero solo al expirar con el
+  juego abierto; `evaporateDrop` (offline, segundo plano, esporular) sigue sin efecto, o una
+  partida nueva empezaría con un Aguacero heredado. No cuenta como atrapada: «Atrapa N gotas»
+  sigue siendo verdad. Las Hormigas cortadoras suman clics automáticos a la producción (el N/s
+  visible, el offline y el segundo plano los cobran sin código aparte) y el clic del jugador
+  no las ve, para que no se realimenten.
+- **Textos que cambian por bioma:** no se renombran generadores (romperían logros y
+  costumbres); en la selva baja no hay abetos ni otoño, así que el Chocó sustituye seis
+  textos con claves `<clave>.choco` (`biomeText`, `src/ui/biome-text.ts`).
+- **Láminas en cola calculada del estado** (`src/ui/chapter.ts`): salen igual tras offline,
+  migración o recarga, esperan a que no haya otro modal ni animación y navegan en `onClose`,
+  cuando el `<dialog>` ya devolvió el foco.
+- **La regla del mejor ritmo no guía el balance del viaje.** En un bioma esporula muy a
+  menudo y coloniza la taiga mucho más tarde que la de §17 (ver la línea informativa de
+  `docs/BALANCE.md`): no es la mejor estrategia para colonizar.
+- **Descartado:** renombrar generadores por bioma; R por tramo ×25/×220 (las partidas del segundo
+  bioma bajaban a 9 min); bajar la escala del primer destino (7e10 y 1,2e11 con ×4,5), que solo
+  compensaba un fallo del bot del simulador: tras el Acto I gastaba en Cuerpo apical las esporas
+  que un jugador lleva al viaje. Corregido el bot, valen las escalas del prototipo con ×3,5.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -363,14 +428,15 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 
 ## 7. Presupuestos
 
-| Operación                       | Presupuesto         | Medido           | Cómo                                    |
-| ------------------------------- | ------------------- | ---------------- | --------------------------------------- |
-| JavaScript del build            | < 150 kB comprimido | 32.4 kB (fase 1) | `npm run build` (gzip que informa Vite) |
-| Frame                           | 60 fps estables     | —                | Herramientas del navegador              |
-| Partículas vivas                | ≤ 200 (pool)        | —                | Tope en `render/particles.ts`           |
-| Segmentos de la red             | ≤ 2000              | —                | Tope en `render/network.ts`             |
-| Refresco de números en pantalla | ≤ 10 Hz             | —                | Limitador en `main.ts`                  |
-| Balance en 10 esporulaciones    | < 1e300             | 2.4e13           | `npm run sim`                           |
+| Operación                                       | Presupuesto              | Medido                                                                    | Cómo                                    |
+| ----------------------------------------------- | ------------------------ | ------------------------------------------------------------------------- | --------------------------------------- |
+| JavaScript del build                            | < 150 kB comprimido      | 76.4 kB (fase 8; 32.4 kB en la fase 1)                                    | `npm run build` (gzip que informa Vite) |
+| Frame                                           | 60 fps estables          | ~131 fps en el natal y en la taiga (Edge local, limitado por la pantalla) | `npm run perf`                          |
+| Partículas vivas                                | ≤ 200 (pool)             | —                                                                         | Tope en `render/particles.ts`           |
+| Segmentos de la red                             | ≤ 2000                   | —                                                                         | Tope en `render/network.ts`             |
+| Refresco de números en pantalla                 | ≤ 10 Hz                  | —                                                                         | Limitador en `main.ts`                  |
+| Balance en 10 esporulaciones                    | < 1e300                  | 2.4e13                                                                    | `npm run sim`                           |
+| Balance del viaje (dos biomas y 4 partidas más) | < 1e63 (nombres de idle) | 7.4e17                                                                    | `npm run sim`                           |
 
 ## 8. Escala
 
@@ -442,6 +508,10 @@ táctiles ≥ 44 px.
 **Movimiento:** solo la esporulación está orquestada. Lo demás responde a acciones: brote
 de filamentos al comprar, onda y número flotante al hacer clic, campanilla visual del logro
 y aparición de la gota.
+
+Dispersar (fase 8) es una variante de ese único momento orquestado, no un segundo: el mismo
+brillo, pero las esporas salen con el viento hacia un lado, el suelo del bioma nuevo se funde
+sobre el viejo y brota la red. Con «reducir movimiento», el cambio de suelo es instantáneo.
 
 ---
 

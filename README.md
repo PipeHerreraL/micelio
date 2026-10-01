@@ -20,8 +20,14 @@ analítica: la partida se guarda en tu navegador.
   unidades.
 - **La lluvia** cae cada pocos minutos. Atrapa la gota antes de que se evapore: Aguacero,
   Rocío o Tormenta eléctrica.
-- **Esporula** cuando la partida sume 1e8 nutrientes: empiezas de nuevo con un bono permanente
-  y esporas para gastar en el árbol de **mutaciones**.
+- **Esporula** cuando la partida sume 1e8 nutrientes (en el bosque natal): empiezas de nuevo con
+  un bono que dura mientras sigas en ese bosque y esporas para gastar en el árbol de
+  **mutaciones**.
+- Con el árbol de mutaciones completo y una Red planetaria se cierra el **Acto I**: el
+  **viento de esporas** puede llevar tu linaje a la **taiga** o a la **selva del Chocó**. Allí el
+  nivel de esporas vuelve a 0, con reglas nuevas y tres adaptaciones propias por bioma; las
+  mutaciones y las adaptaciones viajan contigo. Coloniza cada bioma (nivel 500) y queda escrito
+  en la **Crónica**.
 - En **Ajustes** puedes cambiar idioma, notación de números, sonido y movimiento, y exportar o
   importar tu partida.
 

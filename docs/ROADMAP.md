@@ -29,20 +29,23 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
   sistemas dependen de valores lentos (al esporular, al comprar, al cambiar de etapa).
 - Cada sistema nuevo tiene su moneda y su `rngSeed` propios; sus logros no suman al +1 %
   global.
-- Todo sumidero de esporas crece ×2 por nivel, al ritmo del ingreso.
+- Todo sumidero de esporas crece ×2 por nivel, al ritmo del ingreso. Excepción medida:
+  Dispersar cuesta 300 fijas, porque el ingreso por bioma es plano (el nivel vuelve a 0).
+  Los logros de Viento sí suman al +1 %: Viento no es un sistema con moneda propia
+  (ARCHITECTURE.md §4.28).
 - Cada fase es jugable y publicable sola, con su migración de guardado y sus objetivos en el
   simulador. Las 18 métricas de PROMPT.md §17 deben seguir cumpliéndose.
 
 ## Fases
 
-| Fase | Versión | Contenido                                                   | Tamaño |
-| ---- | ------- | ----------------------------------------------------------- | ------ |
-| 6    | 1.1.0   | Cimientos (hecha)                                           | S      |
-| 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                    | M      |
-| 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica | L      |
-| 9    | 1.4.0   | El Plasmodio y la estructura de socios                      | L      |
-| 10   | 1.5.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre      | M      |
-| 11   | 1.6.0   | Tiempo profundo: las eras geológicas                        | L      |
+| Fase | Versión | Contenido                                                           | Tamaño |
+| ---- | ------- | ------------------------------------------------------------------- | ------ |
+| 6    | 1.1.0   | Cimientos (hecha)                                                   | S      |
+| 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                            | M      |
+| 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica (hecha) | L      |
+| 9    | 1.4.0   | El Plasmodio y la estructura de socios                              | L      |
+| 10   | 1.5.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
+| 11   | 1.6.0   | Tiempo profundo: las eras geológicas                                | L      |
 
 ### Fase 6 — Cimientos (S)
 
@@ -88,6 +91,15 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
   de toda la vida; sin esto el prototipo dio 11.330 esporas de golpe.
 - Objetivos (prototipo, a medir): partidas de 20–33 min dentro de un bioma; colonizar en
   2–3,5 h.
+- **Resultado (v1.3.0):** 42 de 42 objetivos en `npm run sim`. El Acto I se cierra a las
+  3,3 h y ningún viaje pide partidas de espera. Partidas de 21–29 min de mediana (la más
+  corta, de 13 min o más), colonizar en 2,1–3,2 h y el pasivo a 1,55–2,48 veces el activo, en
+  los dos órdenes. Escalas del prototipo (taiga 1e11, Chocó 2e11) con ×3,5 en el segundo
+  destino (con ×3 el Chocó segundo bajaba de 2 h). Ninguna partida 1.x pierde nada al
+  actualizar (guardado versión 5). Ver ARCHITECTURE.md §4.28. Riesgos: el Chocó segundo
+  (2,06 h) y el pasivo de la taiga segunda (2,48×) quedan cerca del límite; y sin destinos,
+  tras el último bioma cada partida se alarga (hasta 1 h 6 min la cuarta en el orden
+  Chocó→taiga): lo resuelve el ciclo libre de la fase 10.
 
 ### Fase 9 — El Plasmodio (L)
 
