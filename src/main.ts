@@ -49,7 +49,11 @@ import { Disposer, h, restartAnimation } from './ui/dom.ts';
 import { createFloaters } from './ui/floaters.ts';
 import { announce } from './ui/live.ts';
 import { openModal } from './ui/modal.ts';
+import { createSoundEngine, type SoundCue } from './audio/sound.ts';
+import { toSeed } from './core/rng.ts';
+import { createNetworkView, type NetworkView } from './render/network.ts';
 import { createStore, type Store } from './ui/store.ts';
+import { createSettingsTab, type SettingsServices } from './ui/tab-settings.ts';
 import { achievementDescription, achievementName } from './ui/tab-achievements.ts';
 import type { TabId } from './ui/tabs.ts';
 import { toast } from './ui/toasts.ts';
@@ -126,9 +130,98 @@ applyLocale(store.state);
 const globalDisposer = new Disposer();
 installTooltipGlobalHandlers(globalDisposer);
 
+// ---------------------------------------------------------------------------------------
+// Ajustes
+
+/** Reconstruye la interfaz (cambio de idioma o notación). El estado no se toca. */
+function rebuildApp(focusId?: string): void {
+  app.destroy();
+  applyLocale(store.state);
+  app = buildApp();
+  if (focusId) document.getElementById(focusId)?.focus();
+}
+
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+/** El ajuste «Reducir movimiento» o la preferencia del sistema. */
+function motionReduced(): boolean {
+  return store.state.settings.reducedMotion || reducedMotionQuery.matches;
+}
+
+function applyMotion(): void {
+  document.documentElement.classList.toggle('reduce-motion', store.state.settings.reducedMotion);
+  network?.setReducedMotion(motionReduced());
+}
+
+const sound = createSoundEngine();
+
+function applySound(): void {
+  sound.configure(store.state.settings.sound, store.state.settings.volume);
+}
+applySound();
+// Mudo hasta la primera interacción (PROMPT.md §14): cada gesto intenta desbloquear el audio.
+for (const type of ['pointerup', 'touchend', 'keydown', 'click']) {
+  globalDisposer.listen(
+    window,
+    type,
+    () => {
+      sound.unlock();
+    },
+    { capture: true, passive: true },
+  );
+}
+
+const settingsServices: SettingsServices = {
+  rebuild: (focusId) => {
+    rebuildApp(focusId);
+  },
+  replaceGame: (next) => {
+    store.replace(next);
+    saveNow();
+    rebuildApp();
+    applyMotion();
+    applySound();
+    toast(t('settings.import.done'), { kind: 'info' });
+  },
+  wipeGame: () => {
+    // Los ajustes (idioma, sonido, movimiento) se conservan: son del jugador, no de la partida.
+    const fresh = createState(randomSeed(), Date.now());
+    fresh.settings = { ...store.state.settings };
+    store.replace(fresh);
+    saveNow();
+    currentTab = 'generators';
+    rebuildApp();
+    toast(t('settings.wipe.done'), { kind: 'info' });
+  },
+  applySound: () => {
+    applySound();
+  },
+  applyMotion: () => {
+    applyMotion();
+  },
+};
+/** Red dibujada en el canvas del escenario; se rehace con la interfaz. */
+let network: NetworkView | null = null;
+let canvasObserver: ResizeObserver | null = null;
+
 const floaters = createFloaters();
 let currentTab: TabId = 'generators';
-const app: App = buildApp();
+let app: App = buildApp();
+applyMotion();
+
+function mountNetwork(canvas: HTMLCanvasElement): void {
+  canvasObserver?.disconnect();
+  network?.destroy();
+  // La semilla sale del inicio de la vida: la misma partida vuelve a dibujar la misma red.
+  network = createNetworkView(canvas, { seed: toSeed(store.state.stats.startedAt) });
+  network.setReducedMotion(motionReduced());
+  canvasObserver = new ResizeObserver(() => {
+    network?.resize();
+  });
+  canvasObserver.observe(canvas);
+  network.resize();
+  network.sync(store.state);
+}
 
 function buildApp(): App {
   const host = document.querySelector<HTMLElement>('#app');
@@ -141,9 +234,11 @@ function buildApp(): App {
     onAbsorb: (button) => {
       restartAnimation(button, 'is-pulsing');
     },
+    extraViews: (st) => [createSettingsTab(st, settingsServices)],
   });
   next.root.append(floaters.root);
   next.update(performance.now());
+  mountNetwork(next.canvas);
   return next;
 }
 
@@ -261,8 +356,20 @@ const EFFECT_ENDED: Record<'downpour' | 'storm', MessageKey> = {
   storm: 'rain.ended.storm',
 };
 
+const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
+  click: 'plop',
+  buyGenerator: 'chime',
+  buyUpgrade: 'chime',
+  buyMutation: 'chime',
+  achievement: 'chord',
+  rainSpawn: 'drip',
+  sporulate: 'spore',
+};
+
 function handleEvent(event: GameEvent): void {
   const locale = getLocale();
+  const cue = EVENT_SOUND[event.type];
+  if (cue) sound.play(cue);
   switch (event.type) {
     case 'click': {
       // Coordenadas de viewport: en escritorio el núcleo está fuera del escenario.
@@ -368,15 +475,24 @@ function frame(now: number): void {
   lastFrame = now;
   advance(delta);
 
-  for (const event of drain()) handleEvent(event);
+  for (const event of drain()) {
+    handleEvent(event);
+    network?.onEvent(event);
+  }
 
   if (now - lastUi >= UI_INTERVAL_MS) {
     lastUi = now;
     app.update(now);
+    network?.sync(store.state);
     refreshTooltip();
   }
+  network?.frame(now);
   schedule(frame);
 }
+
+globalDisposer.listen(reducedMotionQuery, 'change', () => {
+  applyMotion();
+});
 
 globalDisposer.listen(document, 'visibilitychange', () => {
   if (forceLoop) return;

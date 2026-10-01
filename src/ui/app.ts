@@ -26,8 +26,10 @@ import { createToastContainer } from './toasts.ts';
 
 export interface App {
   root: HTMLElement;
-  /** Capa del escenario sobre la que van el canvas, la gota y los números flotantes. */
+  /** Capa del escenario sobre la que van el canvas y la gota. */
   stage: HTMLElement;
+  /** Canvas decorativo de la red (aria-hidden). */
+  canvas: HTMLCanvasElement;
   hud: Hud;
   tabs: Tabs;
   /** Refresco de la interfaz (como máximo 10 Hz). `now` en ms. */
@@ -90,8 +92,11 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     () => [hudBox, coreBox, effectsBox].map((el) => el.getBoundingClientRect()),
   );
 
+  // El canvas es decorativo: toda la información está también en el DOM (PROMPT.md §16).
+  const canvas = h('canvas', { class: 'stage__canvas', attrs: { 'aria-hidden': 'true' } });
   const stage: HTMLElement = h('section', { class: 'stage', attrs: { 'aria-label': t('meta.title') } }, [
     h('div', { class: 'stage__soil', attrs: { 'aria-hidden': 'true' } }),
+    canvas,
     drop.root,
   ]);
 
@@ -115,6 +120,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   return {
     root,
     stage,
+    canvas,
     hud,
     tabs,
     update(now) {

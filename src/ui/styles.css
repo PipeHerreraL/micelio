@@ -269,7 +269,7 @@ button {
 @media (min-width: 1024px) {
   .layout {
     height: 100dvh;
-    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(380px, 460px);
+    grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(400px, 500px);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       'hud stage panel'
@@ -333,7 +333,14 @@ button {
   .layout__hud {
     align-self: start;
     justify-self: start;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
+  }
+
+  /* El contador va encima del canvas: un velo de humus lo mantiene legible sobre las setas. */
+  .layout__hud .counter {
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--radius);
+    background: rgb(27 20 15 / 82%);
   }
 
   .layout__core {
@@ -418,8 +425,8 @@ button {
 .counter__value {
   display: block;
   font-family: var(--font-title);
-  font-size: clamp(2rem, 1.4rem + 2.4vw, 2.9rem);
-  line-height: 1.05;
+  font-size: clamp(1.7rem, 1rem + 1.5vw, 2.4rem);
+  line-height: 1.1;
   letter-spacing: 0.01em;
 }
 
@@ -701,11 +708,10 @@ button {
 
 .tabs__list {
   display: flex;
-  gap: 0.15rem;
+  flex-wrap: wrap;
+  gap: 0 0.15rem;
   padding: 0.5rem 0.75rem 0;
   border-bottom: 1px solid var(--filete);
-  overflow-x: auto;
-  scrollbar-width: thin;
   flex: none;
 }
 
@@ -738,6 +744,17 @@ button {
   height: 1.2em;
 }
 
+/* En el panel lateral los iconos no caben sin partir la lista en tres filas: solo en móvil. */
+@media (min-width: 768px) {
+  .tabs__tab .icon {
+    display: none;
+  }
+
+  .tabs__tab {
+    padding: 0 0.6rem;
+  }
+}
+
 .tabs__badge {
   width: 7px;
   height: 7px;
@@ -764,6 +781,9 @@ button {
   .tabs__list {
     position: fixed;
     inset: auto 0 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
     z-index: 20;
     padding: 0.25rem 0.5rem calc(0.25rem + env(safe-area-inset-bottom));
     background: var(--humus-hondo);
@@ -907,6 +927,10 @@ button {
   margin-top: 0.3rem;
 }
 
+.gen__milestone-label {
+  white-space: nowrap;
+}
+
 .bar {
   position: relative;
   flex: none;
@@ -935,7 +959,7 @@ button {
   flex-direction: column;
   align-items: flex-end;
   gap: 0;
-  min-width: 9.5rem;
+  min-width: 8.5rem;
   padding: 0.35rem 0.75rem;
   line-height: 1.2;
   text-align: end;

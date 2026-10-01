@@ -277,15 +277,16 @@ se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millo
 
 ### 4.14 Dependencias
 
-| Paquete                                                    | Por qué                                            |
-| ---------------------------------------------------------- | -------------------------------------------------- |
-| `vite`                                                     | Servidor de desarrollo y build estático            |
-| `typescript`                                               | Tipos en modo estricto                             |
-| `vitest`                                                   | Pruebas sin DOM, comparte la configuración de Vite |
-| `eslint`, `@eslint/js`, `typescript-eslint`, `globals`     | Lint con tipos                                     |
-| `prettier`, `eslint-config-prettier`                       | Formato, sin pelear con ESLint                     |
-| `@types/node`                                              | Tipos para el simulador y las pruebas              |
-| `@fontsource/im-fell-english`, `@fontsource/source-sans-3` | Fuentes autoalojadas (§4.13)                       |
+| Paquete                                                    | Por qué                                                                                |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `vite`                                                     | Servidor de desarrollo y build estático                                                |
+| `typescript`                                               | Tipos en modo estricto                                                                 |
+| `vitest`                                                   | Pruebas sin DOM, comparte la configuración de Vite                                     |
+| `eslint`, `@eslint/js`, `typescript-eslint`, `globals`     | Lint con tipos                                                                         |
+| `prettier`, `eslint-config-prettier`                       | Formato, sin pelear con ESLint                                                         |
+| `@types/node`                                              | Tipos para el simulador y las pruebas                                                  |
+| `happy-dom`                                                | DOM simulado para las pocas pruebas de interfaz (foco, listas); el resto corre sin DOM |
+| `@fontsource/im-fell-english`, `@fontsource/source-sans-3` | Fuentes autoalojadas (§4.13)                                                           |
 
 ## 5. Datos
 
