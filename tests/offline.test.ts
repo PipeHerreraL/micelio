@@ -320,3 +320,20 @@ describe('autocompra al volver', () => {
     expect(state.nutrients).toBeCloseTo(18000, 6);
   });
 });
+
+// BUG-JOURNAL #3: «Sin prisa» solo se daba al cargar una partida, no al volver a una pestaña
+// que había pasado la noche en segundo plano.
+describe('«Sin prisa» al volver de segundo plano', () => {
+  it('volver tras 10 horas en segundo plano otorga «Sin prisa»', () => {
+    const state = createState(5, Date.UTC(2026, 9, 1));
+    applyBackground(state, 10 * 3600);
+    expect(state.achievements).toContain('secret.noRush');
+  });
+
+  it('una hora en segundo plano o un reloj que retrocede no lo otorgan', () => {
+    const state = createState(5, Date.UTC(2026, 9, 1));
+    applyBackground(state, 3600);
+    applyBackground(state, -50);
+    expect(state.achievements).not.toContain('secret.noRush');
+  });
+});

@@ -1,10 +1,10 @@
 /**
  * Contador de nutrientes, N/s, núcleo para absorber y efectos activos.
  */
-import { click } from '../core/actions.ts';
+import { click, nutrientsToNextSpore, sporeGain } from '../core/actions.ts';
 import { derived } from '../core/selectors.ts';
-import type { ActiveEffect, TimedEffectKind } from '../core/state.ts';
-import { fmt, numberTooltip, t } from '../i18n/index.ts';
+import { hasSeen, type ActiveEffect, type TimedEffectKind } from '../core/state.ts';
+import { fmt, numberTooltip, t, tp } from '../i18n/index.ts';
 import { formatDuration } from '../i18n/format.ts';
 import { getLocale } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, svg } from './dom.ts';
@@ -72,10 +72,22 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
   // Contador
   const value = h('span', { class: 'counter__value tabular' });
   const rate = h('span', { class: 'counter__rate tabular' });
+  // Desde que aparece Esporular, el HUD dice siempre cuántas esporas darías ahora y cuántos
+  // nutrientes faltan para la siguiente (PROMPT.md §10).
+  const sporeNow = h('span', { class: 'counter__spores tabular' });
+  const sporeNext = h('span', { class: 'counter__spores-next tabular' });
+  const spores = h('p', { class: 'counter__line counter__line--spores', attrs: { hidden: true } }, [
+    sporeNow,
+    sporeNext,
+  ]);
   const counter = h('section', { class: 'counter', attrs: { 'aria-label': t('hud.nutrients.label') } }, [
     h('p', { class: 'counter__line' }, [value]),
     h('p', { class: 'counter__line counter__line--rate' }, [rate]),
+    spores,
   ]);
+  // Enfocables para que el tooltip del número grande también llegue con el teclado.
+  value.tabIndex = 0;
+  rate.tabIndex = 0;
   attachTooltip(value, () => numberTooltip(store.state.nutrients), disposer);
   attachTooltip(rate, () => numberTooltip(derived(store.state).production), disposer);
 
@@ -119,6 +131,12 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     setText(value, t('hud.nutrients', { value: fmt(state.nutrients) }));
     setText(rate, t('hud.perSecond', { value: fmt(d.production) }));
     setAttr(coreButton, 'aria-label', t('core.label', { value: fmt(d.clickValue) }));
+    const showSpores = hasSeen(state, 'tab.sporulate');
+    setHidden(spores, !showSpores);
+    if (showSpores) {
+      setText(sporeNow, tp('sporulate.gain', sporeGain(state)));
+      setText(sporeNext, t('sporulate.next', { value: fmt(nutrientsToNextSpore(state)) }));
+    }
     const started = state.stats.clicks > 0 || state.owned.hypha > 0 || state.stats.sporulations > 0;
     setHidden(keyHint, started);
     setHidden(hint, state.owned.hypha > 0 || state.stats.sporulations > 0);

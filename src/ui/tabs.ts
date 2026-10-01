@@ -55,10 +55,15 @@ export function createTabs(
   const list = h('div', { class: 'tabs__list', attrs: { role: 'tablist', 'aria-label': t('tabs.label') } });
   const panelHost = h('div', { class: 'tabs__panels' });
 
-  for (const view of views) {
+  // Mismo orden que TAB_IDS, venga en el orden que venga la lista de vistas.
+  const ordered = [...views].sort((a, b) => TAB_IDS.indexOf(a.id) - TAB_IDS.indexOf(b.id));
+  for (const view of ordered) {
     const tabId = `tab-${view.id}`;
     const panelId = `panel-${view.id}`;
-    const badge = h('span', { class: 'tabs__badge', attrs: { 'aria-hidden': 'true' } });
+    // El punto de «novedad» también se dice con texto para quien no lo ve.
+    const badge = h('span', { class: 'tabs__badge' }, [
+      h('span', { class: 'visually-hidden', text: t('tab.newBadge') }),
+    ]);
     const label = t(`tab.${view.id}` as MessageKey);
     const button = h(
       'button',

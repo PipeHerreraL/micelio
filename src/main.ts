@@ -13,7 +13,9 @@ import '@fontsource/source-sans-3/latin-600.css';
 import './ui/styles.css';
 
 import { drain, type GameEvent } from './core/events.ts';
-import { createState, type GameState } from './core/state.ts';
+import { markSeen } from './core/actions.ts';
+import { createState, hasSeen, type GameState } from './core/state.ts';
+import { getAchievement } from './data/achievements.ts';
 import { tick, TICK_SECONDS } from './core/tick.ts';
 import { es } from './i18n/es.ts';
 import { formatDuration, formatPercent } from './i18n/format.ts';
@@ -25,6 +27,7 @@ import {
   setLocale,
   setNotation,
   t,
+  tp,
   type MessageKey,
 } from './i18n/index.ts';
 import {
@@ -44,8 +47,10 @@ import {
 import { createApp, type App } from './ui/app.ts';
 import { Disposer, h, restartAnimation } from './ui/dom.ts';
 import { createFloaters } from './ui/floaters.ts';
+import { announce } from './ui/live.ts';
 import { openModal } from './ui/modal.ts';
 import { createStore, type Store } from './ui/store.ts';
+import { achievementDescription, achievementName } from './ui/tab-achievements.ts';
 import type { TabId } from './ui/tabs.ts';
 import { toast } from './ui/toasts.ts';
 import { installTooltipGlobalHandlers, refreshTooltip } from './ui/tooltip.ts';
@@ -112,9 +117,8 @@ if (loaded.kind === 'loaded') {
 } else {
   initialState = createState(randomSeed(), bootNow);
 }
-// Los eventos del progreso offline (logros, autocompra) no deben sonar todos de golpe al
-// cargar; los logros se ven en su pestaña.
-drain();
+// Los eventos del progreso offline (logros, autocompra) se quedan en la cola: el primer
+// frame los reparte cuando la interfaz ya existe.
 
 const store: Store = createStore(initialState);
 applyLocale(store.state);
@@ -138,18 +142,25 @@ function buildApp(): App {
       restartAnimation(button, 'is-pulsing');
     },
   });
-  next.stage.append(floaters.root);
-  next.update();
+  next.root.append(floaters.root);
+  next.update(performance.now());
   return next;
 }
 
 // ---------------------------------------------------------------------------------------
 // Guardado
 
+// Solo en desarrollo, `?loop` mueve el bucle con temporizadores aunque la pestaña esté
+// oculta: sirve para probar desde herramientas que muestran la página en segundo plano.
+const forceLoop = import.meta.env.DEV && new URLSearchParams(window.location.search).has('loop');
+
 const tabId = newTabId();
-let savingBlocked = false;
+// Un guardado dañado sin copia de respaldo no se pisa hasta que el jugador lo decida.
+let savingBlocked = loaded.kind === 'corrupt' && !loaded.backedUp;
 let warnedUnavailable = false;
-let hiddenAt: number | null = null;
+// Una página que arranca oculta (pestaña en segundo plano, sesión restaurada) no avanza
+// hasta que se muestra: cuenta desde el arranque (BUG-JOURNAL #4).
+let hiddenAt: number | null = !forceLoop && document.hidden ? bootNow : null;
 
 claimTab(storage, tabId);
 
@@ -194,7 +205,23 @@ globalDisposer.listen(window, 'pagehide', saveNow);
 // ---------------------------------------------------------------------------------------
 // Avisos del arranque
 
-if (loaded.kind === 'corrupt') toast(t('save.corrupt'), { kind: 'warning', duration: 0 });
+if (loaded.kind === 'corrupt') {
+  if (loaded.backedUp) {
+    toast(t('save.corrupt'), { kind: 'warning', duration: 0 });
+  } else {
+    toast(t('save.corruptNoBackup'), {
+      kind: 'warning',
+      duration: 0,
+      action: {
+        label: t('save.startFresh'),
+        onSelect: () => {
+          savingBlocked = false;
+          saveNow();
+        },
+      },
+    });
+  }
+}
 if (loaded.kind === 'unavailable') {
   warnedUnavailable = true;
   toast(t('save.unavailable'), { kind: 'warning', duration: 0 });
@@ -229,18 +256,66 @@ if (offlineReport && offlineReport.elapsed > OFFLINE_REPORT_THRESHOLD) showOffli
 // ---------------------------------------------------------------------------------------
 // Eventos del núcleo
 
+const EFFECT_ENDED: Record<'downpour' | 'storm', MessageKey> = {
+  downpour: 'rain.ended.downpour',
+  storm: 'rain.ended.storm',
+};
+
 function handleEvent(event: GameEvent): void {
+  const locale = getLocale();
   switch (event.type) {
     case 'click': {
+      // Coordenadas de viewport: en escritorio el núcleo está fuera del escenario.
       const rect = app.hud.coreButton.getBoundingClientRect();
-      const stageRect = app.stage.getBoundingClientRect();
-      floaters.show(
-        `+${fmt(event.value)}`,
-        rect.left + rect.width / 2 - stageRect.left,
-        rect.top + rect.height * 0.25 - stageRect.top,
-      );
+      floaters.show(`+${fmt(event.value)}`, rect.left + rect.width / 2, rect.top + rect.height * 0.25);
       break;
     }
+    case 'achievement': {
+      const def = getAchievement(event.id);
+      if (!def) break;
+      const message = t('achievement.unlocked', { name: achievementName(def) });
+      toast(achievementDescription(def), { kind: 'achievement', title: message });
+      announce(message);
+      break;
+    }
+    case 'rainSpawn': {
+      announce(t('rain.spawn'));
+      if (!hasSeen(store.state, 'hint.rain')) {
+        toast(t('hint.rain'), { kind: 'rain', duration: 8000 });
+        store.dispatch(markSeen, { key: 'hint.rain' });
+      }
+      break;
+    }
+    case 'rainCaught': {
+      let message: string;
+      if (event.effect === 'dew') message = t('rain.caught.dew', { value: fmt(event.amount) });
+      else if (event.effect === 'downpour') {
+        message = t('rain.caught.downpour', { time: formatDuration(event.duration, locale) });
+      } else message = t('rain.caught.storm', { time: formatDuration(event.duration, locale) });
+      toast(event.effect === 'storm' ? t('rain.storm.fact') : message, {
+        kind: 'rain',
+        title: event.effect === 'storm' ? message : undefined,
+      });
+      announce(message);
+      break;
+    }
+    case 'effectEnd':
+      toast(t(EFFECT_ENDED[event.kind]), { kind: 'rain', duration: 2500 });
+      break;
+    case 'sporulate': {
+      // Guardar justo después de esporular (PROMPT.md §15).
+      saveNow();
+      const message = tp('sporulate.done', event.gained);
+      toast(message, { kind: 'spore' });
+      announce(message);
+      break;
+    }
+    case 'buyMutation':
+      toast(t('mut.done', { name: t(`mut.${event.id}.name` as MessageKey) }), {
+        kind: 'spore',
+        duration: 3000,
+      });
+      break;
     default:
       break;
   }
@@ -254,36 +329,57 @@ let lastFrame = performance.now();
 let accumulator = 0;
 let lastUi = 0;
 
-/** Avanza la lógica `ms` milisegundos de tiempo real (en vivo, a paso fijo). */
-function advance(ms: number): void {
-  if (ms > MAX_FRAME_GAP_MS) {
-    applyBackground(store.state, ms / 1000);
+/** Tope de pasos por frame: si la lógica se queda atrás, se descarta el resto en vez de espiralar. */
+const MAX_TICKS_PER_FRAME = 200;
+
+/**
+ * Avanza la lógica `realMs` milisegundos de tiempo real. El hueco se mide sin acelerar (solo
+ * una suspensión real va por la vía analítica); el acelerador de desarrollo multiplica el
+ * tiempo que se juega en vivo y, a velocidades altas, usa pasos mayores (hasta 1 s, como el
+ * simulador) para que lluvia, logros y efectos sigan funcionando.
+ */
+function advance(realMs: number): void {
+  if (realMs > MAX_FRAME_GAP_MS) {
+    applyBackground(store.state, (realMs * speed) / 1000);
     accumulator = 0;
     return;
   }
-  accumulator += ms;
-  while (accumulator >= TICK_MS) {
-    tick(store.state, { dt: TICK_SECONDS });
-    accumulator -= TICK_MS;
+  accumulator += realMs * speed;
+  const stepMs = Math.min(1000, TICK_MS * Math.max(1, speed / 10));
+  let steps = 0;
+  while (accumulator >= stepMs && steps < MAX_TICKS_PER_FRAME) {
+    tick(store.state, { dt: stepMs / 1000 });
+    accumulator -= stepMs;
+    steps += 1;
   }
+  if (steps === MAX_TICKS_PER_FRAME) accumulator = 0;
 }
+
+const schedule = (cb: (now: number) => void): void => {
+  if (forceLoop)
+    window.setTimeout(() => {
+      cb(performance.now());
+    }, 16);
+  else requestAnimationFrame(cb);
+};
 
 function frame(now: number): void {
   const delta = Math.max(0, now - lastFrame);
   lastFrame = now;
-  advance(delta * speed);
+  advance(delta);
 
   for (const event of drain()) handleEvent(event);
 
   if (now - lastUi >= UI_INTERVAL_MS) {
     lastUi = now;
-    app.update();
+    app.update(now);
     refreshTooltip();
   }
-  requestAnimationFrame(frame);
+  schedule(frame);
 }
 
 globalDisposer.listen(document, 'visibilitychange', () => {
+  if (forceLoop) return;
   if (document.hidden) {
     saveNow();
     hiddenAt = Date.now();
@@ -293,11 +389,10 @@ globalDisposer.listen(document, 'visibilitychange', () => {
     // Reloj que retrocede: applyBackground ignora intervalos negativos.
     applyBackground(store.state, (Date.now() - hiddenAt) / 1000);
     hiddenAt = null;
-    drain();
   }
   lastFrame = performance.now();
   accumulator = 0;
-  app.update();
+  app.update(lastFrame);
 });
 
 // Espacio o Enter absorben cuando el foco no está en otro control (PROMPT.md §8).
@@ -316,7 +411,7 @@ globalDisposer.listen(document, 'keydown', (e) => {
   app.hud.coreButton.click();
 });
 
-requestAnimationFrame(frame);
+schedule(frame);
 
 // ---------------------------------------------------------------------------------------
 // Herramientas de desarrollo: ninguna llega al build de producción.

@@ -79,11 +79,19 @@ export function toggleClass(el: Element, name: string, on: boolean): void {
   if (el.classList.contains(name) !== on) el.classList.toggle(name, on);
 }
 
-/** Ancho de una barra de progreso (0–1) como transform, sin provocar reflow. */
+const lastProgress = new WeakMap<HTMLElement, string>();
+
+/**
+ * Ancho de una barra de progreso (0–1) como transform, sin provocar reflow. El último valor
+ * se guarda aparte: el navegador normaliza al leer («scaleX(0.500)» vuelve como
+ * «scaleX(0.5)») y la comparación con el estilo nunca coincidiría.
+ */
 export function setProgress(el: HTMLElement, fraction: number): void {
   const clamped = Math.max(0, Math.min(1, Number.isFinite(fraction) ? fraction : 0));
   const value = `scaleX(${clamped.toFixed(3)})`;
-  if (el.style.transform !== value) el.style.transform = value;
+  if (lastProgress.get(el) === value) return;
+  lastProgress.set(el, value);
+  el.style.transform = value;
 }
 
 /** Reinicia una animación CSS quitando y volviendo a poner su clase en el mismo nodo. */

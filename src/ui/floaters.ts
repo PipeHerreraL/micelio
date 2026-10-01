@@ -9,7 +9,7 @@ const POOL_SIZE = 24;
 
 export interface Floaters {
   root: HTMLElement;
-  /** Muestra `text` centrado en `x`, `y` (px relativos a `root`). */
+  /** Muestra `text` centrado en `x`, `y` (px de viewport: la capa es fija). */
   show(text: string, x: number, y: number): void;
 }
 

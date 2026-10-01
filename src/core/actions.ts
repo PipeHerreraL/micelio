@@ -17,6 +17,7 @@ import {
 import { SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
+import { evaporateDrop } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
 import { emit } from './events.ts';
 import { nutrientsForSpores, sporesFor } from './formulas.ts';
@@ -98,7 +99,9 @@ export function sporulate(state: GameState, payload: { now: number }): void {
   state.owned = emptyOwned();
   state.upgrades = [];
   state.effects = [];
-  state.rain.drop = null;
+  // La gota visible se evapora y la cuenta atrás vuelve a sortearse: con solo quitarla,
+  // nextIn seguía en 0 y caía otra gota en el siguiente tick.
+  evaporateDrop(state);
   state.stats.runTime = 0;
   state.stats.runStartedAt = payload.now;
   applyRunStartBonuses(state);
@@ -145,11 +148,11 @@ export function setBuyAmount(state: GameState, payload: { amount: BuyAmount }): 
   state.settings.buyAmount = payload.amount;
 }
 
-export function setSetting<K extends keyof Settings>(
-  state: GameState,
-  payload: { key: K; value: Settings[K] },
-): void {
-  state.settings[payload.key] = payload.value;
+/** Un ajuste y su valor, con el tipo de cada clave. */
+export type SettingPayload = { [K in keyof Settings]: { key: K; value: Settings[K] } }[keyof Settings];
+
+export function setSetting(state: GameState, payload: SettingPayload): void {
+  Object.assign(state.settings, { [payload.key]: payload.value });
 }
 
 export function setAutobuyGenerator(state: GameState, payload: { id: GeneratorId; on: boolean }): void {

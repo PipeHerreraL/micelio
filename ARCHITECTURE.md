@@ -240,6 +240,41 @@ los nutrientes crecen 20 veces por segundo, así que el borde exacto dura un ins
 `Intl.NumberFormat` con la agrupación por defecto de cada idioma: en español «1234» va sin
 separador y «12.345» con él (norma de la RAE para cuatro cifras); en inglés, «1,234».
 
+### 4.21 Esporas siempre a la vista
+
+Desde que aparece la pestaña Esporular, el contador muestra debajo de N/s cuántas esporas
+darías ahora y cuántos nutrientes de vida faltan para la siguiente. La especificación pide
+que se vea «siempre»; meterlo solo en la pestaña obligaría a abrirla para saberlo.
+
+### 4.22 La gota nunca cae debajo del núcleo
+
+En móvil y tableta el núcleo está encima del escenario. La lógica sortea la posición de la
+gota sin saber de pantallas (está en `src/systems`), así que la interfaz la refleja al otro
+lado si cae a menos de 44 px del borde del núcleo. El estado no cambia: solo dónde se dibuja.
+
+### 4.23 Noticias al azar en la interfaz
+
+El ticker elige al azar entre las noticias desbloqueadas evitando repetir las últimas. Usa
+`Math.random` porque vive en `src/ui`: no afecta al estado ni al simulador.
+
+### 4.24 Números con nombres de juego idle (petición del usuario)
+
+~~Desde 1e6, sufijos cortos (M, B, T… hasta Dc); desde 1e36, notación científica siempre
+(PROMPT.md §13).~~
+
+**Corrección (2026-10-01, a pedido del usuario):** la notación por defecto escribe el nombre del
+orden de magnitud, como en los juegos idle: «1,5 millones», «2,3 mil millones» en español
+(escala larga, la correcta en español) y «1.5 Million», «2.3 Billion» en inglés. Los nombres
+llegan hasta 1e63 (vigintillion / mil decillones), así que en partida no aparece la notación
+exponencial: el balance de 10 esporulaciones no pasa de 1e14 (ver `docs/BALANCE.md`). Desde 1e66
+se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millones».
+
+- En Ajustes se puede elegir sufijos cortos (M, B…), científica o ingeniería.
+- El tooltip de un número grande da la cifra entera («1.500.000.000»); con sufijos cortos,
+  también el nombre largo.
+- Los guardados de la versión 1 tenían «suffix» por defecto: la migración 1 → 2 los pasa a
+  nombres y respeta científica e ingeniería.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                            |

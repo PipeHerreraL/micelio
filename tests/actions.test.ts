@@ -611,6 +611,22 @@ describe('esporular', () => {
     expect(derived(state).production).toBe(0);
   });
 
+  // BUG-JOURNAL #2: al esporular con una gota en pantalla, nextIn seguía en 0 y caía otra
+  // gota en el siguiente tick, en mitad de la esporulación.
+  it('esporular con una gota en pantalla no hace caer otra gota en el siguiente tick', () => {
+    const state = fresh();
+    state.runEarned = 2e8;
+    state.lifetimeEarned = 2.25e8;
+    // Así queda la lluvia cuando una gota acaba de aparecer (rain.ts pone nextIn a 0).
+    state.rain.drop = { x: 0.5, y: 0.5, remaining: 10 };
+    state.rain.nextIn = 0;
+    sporulate(state, { now: NOW });
+    // El siguiente intervalo es de al menos 120 s / 1.3 (con Olfato de lluvia) ≈ 92 s.
+    expect(state.rain.nextIn).toBeGreaterThanOrEqual(120 / 1.3);
+    tick(state, { dt: 0.05 });
+    expect(currentDrop(state)).toBeNull();
+  });
+
   it('esporular conserva nivel, disponibles, mutaciones, logros, estadísticas de vida y ajustes', () => {
     const state = fresh();
     state.runEarned = 2e8;

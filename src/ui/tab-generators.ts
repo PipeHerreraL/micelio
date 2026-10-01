@@ -22,7 +22,7 @@ import { derived } from '../core/selectors.ts';
 import { AUTOBUY_THRESHOLDS, BUY_AMOUNTS, hasSeen, type BuyAmount, type GameState } from '../core/state.ts';
 import { GENERATORS, getGenerator, type GeneratorId } from '../data/generators.ts';
 import { formatDuration, formatPercent } from '../i18n/format.ts';
-import { fmt, getLocale, t, tp, type MessageKey, type PluralKey } from '../i18n/index.ts';
+import { fmt, getLocale, numberDetails, t, tp, type MessageKey, type PluralKey } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { generatorIcon } from './icons.ts';
 import { createHint } from './hint.ts';
@@ -56,6 +56,8 @@ interface Row {
   root: HTMLLIElement;
   name: HTMLElement;
   owned: HTMLElement;
+  ownedVisible: HTMLElement;
+  ownedSr: HTMLElement;
   stats: HTMLElement;
   milestoneFill: HTMLElement;
   milestoneLabel: HTMLElement;
@@ -117,12 +119,14 @@ export function createGeneratorsTab(store: Store): TabView {
   const list = h('ul', { class: 'gen-list' });
   const intro = createHint(store, 'hint.generators', t('hint.generators'));
   const autobuyHint = createHint(store, 'hint.autobuy', t('hint.autobuy'));
+  const milestoneHint = createHint(store, 'hint.milestone', t('hint.milestone'));
   const root = h('div', { class: 'tab tab--generators' }, [
     h('div', { class: 'tab__toolbar' }, [
       h('h2', { class: 'tab__title', text: t('generators.title') }),
       amountGroup,
     ]),
     intro.root,
+    milestoneHint.root,
     autobuyHint.root,
     autobuyBar,
     list,
@@ -132,7 +136,10 @@ export function createGeneratorsTab(store: Store): TabView {
     const id = def.id;
     const info = h('button', { class: 'gen__icon', attrs: { type: 'button' } }, [generatorIcon(id)]);
     const name = h('h3', { class: 'gen__name' });
-    const owned = h('span', { class: 'gen__owned tabular' });
+    // «×12» a la vista y «Tienes 12» para el lector: un span genérico no admite aria-label.
+    const ownedVisible = h('span', { attrs: { 'aria-hidden': 'true' } });
+    const ownedSr = h('span', { class: 'visually-hidden' });
+    const owned = h('span', { class: 'gen__owned tabular' }, [ownedVisible, ownedSr]);
     const stats = h('p', { class: 'gen__stats tabular' });
     const milestoneFill = h('span', { class: 'bar__fill' });
     const milestoneLabel = h('span', { class: 'gen__milestone-label tabular' });
@@ -180,7 +187,12 @@ export function createGeneratorsTab(store: Store): TabView {
       info,
       () => {
         if (revealState(store.state, id) !== 'full') return t('gen.hidden.hint');
-        return [t(nameKey(id)), t(flavorKey(id))];
+        const d = derived(store.state);
+        return [
+          t(nameKey(id)),
+          t(flavorKey(id)),
+          ...numberDetails(d.unitProduction[id], d.generatorProduction[id]),
+        ];
       },
       disposer,
       { tapToggles: true },
@@ -195,6 +207,7 @@ export function createGeneratorsTab(store: Store): TabView {
         return [
           t('gen.buy', { count, unit: tp(unitKey(id), count) }),
           t('upg.gainProduction', { value: fmt(gain.production) }),
+          ...numberDetails(quote.cost, gain.production),
         ];
       },
       disposer,
@@ -206,6 +219,8 @@ export function createGeneratorsTab(store: Store): TabView {
       root,
       name,
       owned,
+      ownedVisible,
+      ownedSr,
       stats,
       milestoneFill,
       milestoneLabel,
@@ -256,8 +271,8 @@ export function createGeneratorsTab(store: Store): TabView {
 
     const d = derived(state);
     const owned = state.owned[id];
-    setText(row.owned, t('gen.owned', { count: owned }));
-    setAttr(row.owned, 'aria-label', t('gen.owned.label', { count: owned }));
+    setText(row.ownedVisible, t('gen.owned', { count: owned }));
+    setText(row.ownedSr, t('gen.owned.label', { count: owned }));
 
     const unit = d.unitProduction[id];
     const total = d.generatorProduction[id];
@@ -329,6 +344,8 @@ export function createGeneratorsTab(store: Store): TabView {
         GENERATORS.every((g) => state.owned[g.id] === 0),
     );
     autobuyHint.update(autobuy);
+    // Avisa del primer hito cuando ya se ve cerca: algún generador con 10 a 24 unidades.
+    milestoneHint.update(GENERATORS.some((g) => state.owned[g.id] >= 10 && state.owned[g.id] < 25));
     for (const row of rows) updateRow(row, state);
   }
 
@@ -340,6 +357,7 @@ export function createGeneratorsTab(store: Store): TabView {
       disposer.dispose();
       intro.destroy();
       autobuyHint.destroy();
+      milestoneHint.destroy();
     },
   };
 }

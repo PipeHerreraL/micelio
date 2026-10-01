@@ -100,6 +100,10 @@ export function applyOffline(state: GameState, savedAt: number, now: number): Of
  * 100 % y cuenta como tiempo jugado, con el mismo límite que offline.
  */
 export function applyBackground(state: GameState, seconds: number): Num {
-  const effective = Math.min(Math.max(0, seconds), offlineCapSeconds(state));
-  return applyElapsed(state, effective, { efficiency: 1, countsAsPlayTime: true });
+  const real = Math.max(0, seconds);
+  const effective = Math.min(real, offlineCapSeconds(state));
+  const gained = applyElapsed(state, effective, { efficiency: 1, countsAsPlayTime: true });
+  // «Sin prisa» también cuenta al volver a una pestaña que pasó la noche en segundo plano.
+  if (real >= AWAY_ACHIEVEMENT_SECONDS) grantAchievement(state, 'secret.noRush');
+  return gained;
 }

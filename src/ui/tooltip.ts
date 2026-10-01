@@ -51,6 +51,18 @@ function position(target: HTMLElement): void {
   node.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
 }
 
+/** aria-describedby es una lista de ids: el tooltip añade y quita el suyo sin pisar otros. */
+function addDescribedBy(el: HTMLElement, id: string): void {
+  const ids = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
+  if (!ids.includes(id)) el.setAttribute('aria-describedby', [...ids, id].join(' '));
+}
+
+function removeDescribedBy(el: HTMLElement, id: string): void {
+  const ids = (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter((x) => x && x !== id);
+  if (ids.length > 0) el.setAttribute('aria-describedby', ids.join(' '));
+  else el.removeAttribute('aria-describedby');
+}
+
 export function showTooltip(target: HTMLElement, content: TooltipContent): void {
   const node = ensureTip();
   if (!render(content)) {
@@ -60,14 +72,14 @@ export function showTooltip(target: HTMLElement, content: TooltipContent): void 
   owner = target;
   currentContent = content;
   node.hidden = false;
-  target.setAttribute('aria-describedby', node.id);
+  addDescribedBy(target, node.id);
   position(target);
 }
 
 export function hideTooltip(): void {
   if (!tip) return;
   tip.hidden = true;
-  owner?.removeAttribute('aria-describedby');
+  if (owner) removeDescribedBy(owner, tip.id);
   owner = null;
   currentContent = null;
 }
