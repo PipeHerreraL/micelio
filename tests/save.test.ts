@@ -168,7 +168,7 @@ describe('claves de almacenamiento', () => {
 describe('guardar y cargar', () => {
   it('guardar y cargar devuelve el estado completo idéntico y la marca savedAt', () => {
     const storage = new MemoryStorage();
-    expect(saveGame(storage, richState(), SAVED_AT)).toBe(true);
+    expect(saveGame(storage, richState(), SAVED_AT)).toBe('saved');
 
     const save = expectLoaded(loadGame(storage));
     expect(save).toStrictEqual({ version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() });
@@ -176,7 +176,7 @@ describe('guardar y cargar', () => {
 
   it('una partida nueva recién creada también sobrevive al viaje de ida y vuelta', () => {
     const storage = new MemoryStorage();
-    expect(saveGame(storage, createState(7, NOW), NOW)).toBe(true);
+    expect(saveGame(storage, createState(7, NOW), NOW)).toBe('saved');
 
     const save = expectLoaded(loadGame(storage));
     expect(save.savedAt).toBe(NOW);
@@ -227,17 +227,17 @@ describe('guardar y cargar', () => {
 
   it('con el almacenamiento lleno saveGame devuelve false sin lanzar', () => {
     const storage = new FullStorage();
-    expect(saveGame(storage, richState(), SAVED_AT)).toBe(false);
+    expect(saveGame(storage, richState(), SAVED_AT)).toBe('failed');
     // Lo intentó en la clave correcta.
     expect(storage.writes).toStrictEqual(['micelio:save']);
   });
 
   it('sin almacenamiento saveGame devuelve false', () => {
-    expect(saveGame(null, richState(), SAVED_AT)).toBe(false);
+    expect(saveGame(null, richState(), SAVED_AT)).toBe('failed');
   });
 
   it('con el almacenamiento bloqueado saveGame devuelve false sin lanzar', () => {
-    expect(saveGame(new BlockedStorage(), richState(), SAVED_AT)).toBe(false);
+    expect(saveGame(new BlockedStorage(), richState(), SAVED_AT)).toBe('failed');
   });
 
   it('un segundo guardado reemplaza al primero', () => {

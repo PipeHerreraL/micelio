@@ -299,6 +299,7 @@ const tabId = newTabId();
 let blockedBy: 'corrupt' | 'otherTab' | null =
   loaded.kind === 'corrupt' && !loaded.backedUp ? 'corrupt' : null;
 let warnedUnavailable = loaded.kind === 'unavailable';
+let warnedInvalid = false;
 // Una página que arranca oculta (pestaña en segundo plano, sesión restaurada) no avanza
 // hasta que se muestra: cuenta desde el arranque (BUG-JOURNAL #4).
 let hiddenAt: number | null = !forceLoop && document.hidden ? bootNow : null;
@@ -311,12 +312,19 @@ function saveNow(): boolean {
   // Con la pestaña oculta el estado no avanza: el guardado se fecha cuando se ocultó, para
   // que el progreso offline cuente todo el tiempo desde entonces.
   const savedAt = hiddenAt ?? Date.now();
-  const ok = saveGame(storage, store.state, savedAt);
-  if (!ok && !warnedUnavailable) {
+  const outcome = saveGame(storage, store.state, savedAt);
+  if (outcome === 'failed' && !warnedUnavailable) {
     warnedUnavailable = true;
     showStickyNotices();
   }
-  return ok;
+  if (outcome === 'invalid' && !warnedInvalid) {
+    // No debería pasar nunca: el núcleo acota las cantidades (num.clamp). Si pasa, el último
+    // guardado bueno se conserva y queda constancia en la consola para poder rastrearlo.
+    warnedInvalid = true;
+    console.error('Micelio: el estado tiene un valor imposible; no se guardó.');
+    showStickyNotices();
+  }
+  return outcome === 'saved';
 }
 
 /** El jugador decidió dejar atrás el guardado dañado: desde ahora se puede pisar. */
@@ -326,7 +334,8 @@ function liftCorruptBlock(): void {
   removeToast('save-corrupt-no-backup');
 }
 
-type NoticeId = 'save-corrupt' | 'save-corrupt-no-backup' | 'save-other-tab' | 'save-unavailable';
+type NoticeId =
+  'save-corrupt' | 'save-corrupt-no-backup' | 'save-other-tab' | 'save-unavailable' | 'save-invalid';
 /** Avisos fijos que el jugador cerró: no vuelven al reconstruir la interfaz. */
 const dismissedNotices = new Set<NoticeId>();
 const corruptBackedUp = loaded.kind === 'corrupt' && loaded.backedUp;
@@ -369,6 +378,7 @@ function showStickyNotices(): void {
     });
   }
   if (warnedUnavailable) notice('save-unavailable', t('save.unavailable'));
+  if (warnedInvalid) notice('save-invalid', t('save.invalid'));
 }
 
 /**

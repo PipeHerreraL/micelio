@@ -391,6 +391,10 @@ export const en: Catalog = {
   'stats.totalTime': 'Total time played',
   'stats.startedAt': 'Start date',
 
+  'stats.history.title': 'Recent runs',
+  'stats.history.empty': "You haven't sporulated yet. Every finished run will be listed here.",
+  'stats.history.row.one': 'Run {n}: {time}, +{count} spore',
+  'stats.history.row.other': 'Run {n}: {time}, +{count} spores',
   // Ajustes
   'settings.title': 'Settings',
   'settings.language': 'Language',
@@ -461,6 +465,7 @@ export const en: Catalog = {
   'save.startFresh': 'Start over',
   'save.otherTab':
     "Micelio was opened in another tab. This one has stopped saving so it won't overwrite the other.",
+  'save.invalid': 'The game has an impossible value and was not saved, so the last good save stays intact.',
   'save.reload': 'Reload',
 
   // Avisos de primera vez

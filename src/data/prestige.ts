@@ -13,3 +13,6 @@ export const SPORE_SCALE = 1e8;
 export const SPORE_LEVEL_BONUS = 0.01;
 /** La pestaña Esporular aparece al llegar a esta fracción del requisito (PROMPT.md §12). */
 export const SPORULATE_TAB_REVEAL = 0.25;
+
+/** Partidas que guarda el historial: bastan para la Crónica y no hinchan el guardado. */
+export const HISTORY_LIMIT = 50;

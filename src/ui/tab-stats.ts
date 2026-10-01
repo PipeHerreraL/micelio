@@ -4,13 +4,16 @@
  */
 import { ACHIEVEMENTS } from '../data/achievements.ts';
 import { formatDate, formatDuration } from '../i18n/format.ts';
-import { fmt, formatCount, getLocale, numberTooltip, t, type MessageKey } from '../i18n/index.ts';
+import { fmt, formatCount, getLocale, numberTooltip, t, tp, type MessageKey } from '../i18n/index.ts';
 import type { GameState } from '../core/state.ts';
-import { Disposer, h, setText } from './dom.ts';
+import { Disposer, h, setHidden, setText } from './dom.ts';
 import { focusableWhileTooltip } from './hud.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 import { attachTooltip } from './tooltip.ts';
+
+/** Partidas que se listan en Estadísticas, de la más reciente a la más vieja. */
+const HISTORY_SHOWN = 10;
 
 interface StatRow {
   label: MessageKey;
@@ -56,9 +59,32 @@ export function createStatsTab(store: Store): TabView {
       return [h('dt', { class: 'stats__label', text: t(row.label) }), value];
     }),
   );
+  // Últimas partidas: se rehace solo cuando termina una (cambia la longitud del historial).
+  const historyList = h('ol', { class: 'history' });
+  const historyEmpty = h('p', { class: 'tab__intro', text: t('stats.history.empty') });
+  let historyBuiltFor = -1;
+  const buildHistory = (state: GameState): void => {
+    const recent = state.history.slice(-HISTORY_SHOWN).reverse();
+    historyList.replaceChildren(
+      ...recent.map((run) =>
+        h('li', {
+          class: 'history__row tabular',
+          text: tp('stats.history.row', run.spores, {
+            n: formatCount(run.sporulation),
+            time: formatDuration(run.duration, getLocale()),
+          }),
+        }),
+      ),
+    );
+    setHidden(historyEmpty, recent.length > 0);
+  };
+
   const root = h('div', { class: 'tab tab--stats' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('stats.title') })]),
     list,
+    h('h3', { class: 'settings__title history__title', text: t('stats.history.title') }),
+    historyEmpty,
+    historyList,
   ]);
   return {
     id: 'stats',
@@ -70,6 +96,10 @@ export function createStatsTab(store: Store): TabView {
         setText(node, row.value(store.state));
         if (row.raw) focusableWhileTooltip(node, numberTooltip(row.raw(store.state)) !== null);
       });
+      if (store.state.history.length !== historyBuiltFor) {
+        historyBuiltFor = store.state.history.length;
+        buildHistory(store.state);
+      }
     },
     destroy: () => {
       disposer.dispose();

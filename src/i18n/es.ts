@@ -398,6 +398,10 @@ export const es = {
   'stats.totalTime': 'Tiempo jugado en total',
   'stats.startedAt': 'Fecha de inicio',
 
+  'stats.history.title': 'Últimas partidas',
+  'stats.history.empty': 'Aún no has esporulado. Aquí quedará cada partida terminada.',
+  'stats.history.row.one': 'Partida {n}: {time}, +{count} espora',
+  'stats.history.row.other': 'Partida {n}: {time}, +{count} esporas',
   // Ajustes
   'settings.title': 'Ajustes',
   'settings.language': 'Idioma',
@@ -468,6 +472,8 @@ export const es = {
     'El guardado estaba dañado y no había espacio para una copia de respaldo. No guardaremos nada hasta que decidas empezar de nuevo.',
   'save.startFresh': 'Empezar de nuevo',
   'save.otherTab': 'Micelio se abrió en otra pestaña. Esta dejó de guardar para no pisarla.',
+  'save.invalid':
+    'La partida tiene un valor imposible y no se guardó, para no estropear el último guardado bueno.',
   'save.reload': 'Recargar',
 
   // Avisos de primera vez

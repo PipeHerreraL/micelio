@@ -13,10 +13,12 @@ import { hasMutation, hasUpgrade, type BuyAmount, type GameState } from './state
 
 /** Suma nutrientes a los tres totales: actuales, de la partida y de la vida. */
 export function gain(state: GameState, amount: Num): void {
-  if (!num.gt(amount, 0) || !Number.isFinite(amount)) return;
-  state.nutrients = num.add(state.nutrients, amount);
-  state.runEarned = num.add(state.runEarned, amount);
-  state.lifetimeEarned = num.add(state.lifetimeEarned, amount);
+  if (!num.gt(amount, 0)) return;
+  // Con el techo, ninguna suma puede volverse Infinity y estropear el guardado.
+  const safe = num.clamp(amount);
+  state.nutrients = num.clamp(num.add(state.nutrients, safe));
+  state.runEarned = num.clamp(num.add(state.runEarned, safe));
+  state.lifetimeEarned = num.clamp(num.add(state.lifetimeEarned, safe));
 }
 
 /** Resta nutrientes si alcanzan. Devuelve si se pudo pagar. */

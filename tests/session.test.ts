@@ -44,7 +44,7 @@ describe('sesión de juego', () => {
       }
       tick(state, { dt: TICK_SECONDS });
       // Guardado cada 15 s, como en el juego.
-      if (i % 300 === 0) expect(saveGame(storage, state, start + i * 50)).toBe(true);
+      if (i % 300 === 0) expect(saveGame(storage, state, start + i * 50)).toBe('saved');
       drain();
       expect(num.isValid(state.nutrients)).toBe(true);
     }
@@ -56,7 +56,7 @@ describe('sesión de juego', () => {
     // La caché no se quedó atrás en ningún momento: al final coincide con un cálculo fresco.
     expect(derived(state).production).toBeCloseTo(computeDerived(state).production, 9);
 
-    expect(saveGame(storage, state, start + 600_000)).toBe(true);
+    expect(saveGame(storage, state, start + 600_000)).toBe('saved');
     const loaded = loadGame(storage);
     expect(loaded.kind).toBe('loaded');
     if (loaded.kind === 'loaded') expect(loaded.save.state).toEqual(state);
@@ -77,7 +77,7 @@ describe('sesión de juego', () => {
     expect(state.spores).toEqual({ level: 15, available: 11 });
     expect(state.mutations).toEqual(['soilMemory', 'lightChitin']);
 
-    expect(saveGame(storage, state, start + 120_000)).toBe(true);
+    expect(saveGame(storage, state, start + 120_000)).toBe('saved');
     const loaded = loadGame(storage);
     expect(loaded.kind).toBe('loaded');
     if (loaded.kind !== 'loaded') return;

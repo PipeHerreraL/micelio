@@ -10,6 +10,7 @@
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { isAchievementId } from '../data/achievements.ts';
 import { isMutationId, type MutationId } from '../data/mutations.ts';
+import { HISTORY_LIMIT } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
 import * as num from '../core/num.ts';
 import {
@@ -24,6 +25,7 @@ import {
   type Locale,
   type Notation,
   type RainDrop,
+  type RunRecord,
 } from '../core/state.ts';
 
 export const SAVE_KEY = 'micelio:save';
@@ -31,7 +33,7 @@ export const BACKUP_KEY = 'micelio:save:backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveFile {
   version: number;
@@ -59,6 +61,12 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (!state || !settings) return raw;
     const notation = settings.notation === 'suffix' ? 'names' : settings.notation;
     return { ...raw, state: { ...state, settings: { ...settings, notation } } };
+  },
+  /** 2 → 3: aparece el historial de partidas, vacío para las partidas que ya existían. */
+  2: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    if (!state) return raw;
+    return { ...raw, state: { ...state, history: [] } };
   },
 };
 
@@ -216,6 +224,15 @@ export function validateState(raw: unknown): GameState | null {
 
   if (!isCount(raw.rngSeed) || raw.rngSeed > 0xffffffff) return null;
 
+  // El historial se acota donde se construye (AGENTS.md: guardar estructuras en el borde).
+  if (!Array.isArray(raw.history) || raw.history.length > HISTORY_LIMIT) return null;
+  const history: RunRecord[] = [];
+  for (const r of raw.history) {
+    if (!isObject(r) || !isCount(r.sporulation) || !isCount(r.spores)) return null;
+    if (!isNonNegative(r.duration) || !isNonNegative(r.endedAt)) return null;
+    history.push({ sporulation: r.sporulation, duration: r.duration, spores: r.spores, endedAt: r.endedAt });
+  }
+
   return {
     nutrients,
     runEarned,
@@ -232,6 +249,7 @@ export function validateState(raw: unknown): GameState | null {
     settings,
     seen,
     rngSeed: raw.rngSeed,
+    history,
   };
 }
 
@@ -328,14 +346,23 @@ export function loadGame(storage: StorageLike | null): LoadResult {
   return { kind: 'corrupt', error: parsed.error, backedUp };
 }
 
-/** Escribe el guardado. Devuelve false si el almacenamiento falla o está lleno. */
-export function saveGame(storage: StorageLike | null, state: GameState, now: number): boolean {
-  if (!storage) return false;
+/**
+ * Resultado de guardar: `saved`; `failed` si el almacenamiento falla o está lleno; `invalid`
+ * si el estado tiene un valor imposible (un número no finito, un id desconocido). En ese caso
+ * no se escribe nada: es mejor conservar el último guardado bueno que pisarlo con uno que la
+ * próxima carga mandaría a la copia de respaldo.
+ */
+export type SaveOutcome = 'saved' | 'failed' | 'invalid';
+
+export function saveGame(storage: StorageLike | null, state: GameState, now: number): SaveOutcome {
+  if (!storage) return 'failed';
+  const text = serializeSave(state, now);
+  if (!parseSave(text).ok) return 'invalid';
   try {
-    storage.setItem(SAVE_KEY, serializeSave(state, now));
-    return true;
+    storage.setItem(SAVE_KEY, text);
+    return 'saved';
   } catch {
-    return false;
+    return 'failed';
   }
 }
 

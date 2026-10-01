@@ -35,6 +35,21 @@ export const lt = (a: Num, b: Num): boolean => a < b;
 export const lte = (a: Num, b: Num): boolean => a <= b;
 export const eq = (a: Num, b: Num): boolean => a === b;
 
+/**
+ * Techo de cualquier cantidad de balance. Por encima de ~1.8e308 un `number` se vuelve
+ * `Infinity`, que JSON escribe como `null` y haría pasar la partida por dañada al cargar.
+ * El balance no llega ni a 1e14 en 10 esporulaciones (docs/BALANCE.md); el techo solo
+ * protege el guardado de las campañas muy largas. Si algún día se roza, toca migrar a
+ * break_eternity.js (ARCHITECTURE.md §4.3).
+ */
+export const CEILING: Num = 1e300;
+
+/** Lleva una cantidad al rango válido: lo no finito o por encima del techo queda en el techo. */
+export const clamp = (a: Num): Num => {
+  if (Number.isNaN(a)) return 0;
+  return a > CEILING ? CEILING : a < 0 ? 0 : a;
+};
+
 /** Un número de balance válido es finito y no negativo. */
 export const isValid = (a: unknown): a is Num => typeof a === 'number' && Number.isFinite(a) && a >= 0;
 

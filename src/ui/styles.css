@@ -1272,6 +1272,24 @@ button {
   font-weight: 600;
 }
 
+/* Historial de partidas, bajo las estadísticas */
+
+.history__title {
+  margin-top: 1.5rem;
+}
+
+.history {
+  margin: 0;
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.history__row {
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--filete);
+  color: var(--micelio-tenue);
+}
+
 /* ------------------------------------------------------------------------------------ */
 /* Noticias del sotobosque */
 

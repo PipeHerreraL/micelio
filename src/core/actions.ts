@@ -14,7 +14,7 @@ import {
   isMutationId,
   type MutationId,
 } from '../data/mutations.ts';
-import { SPORULATE_REQUIREMENT } from '../data/prestige.ts';
+import { HISTORY_LIMIT, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
 import { evaporateDrop } from '../systems/rain.ts';
@@ -23,9 +23,10 @@ import { emit } from './events.ts';
 import { nutrientsForSpores, sporesFor } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
+import { resetFields, SPORULATE_RESET } from './resets.ts';
 import { derived, invalidate } from './selectors.ts';
 import {
-  emptyOwned,
+  createState,
   hasMutation,
   hasUpgrade,
   type AutobuyThreshold,
@@ -93,12 +94,16 @@ export function sporulate(state: GameState, payload: { now: number }): void {
   state.spores.level += gained;
   state.spores.available += gained;
   state.stats.sporulations += 1;
+  state.history.push({
+    sporulation: state.stats.sporulations,
+    duration: state.stats.runTime,
+    spores: gained,
+    endedAt: payload.now,
+  });
+  if (state.history.length > HISTORY_LIMIT) state.history.splice(0, state.history.length - HISTORY_LIMIT);
 
-  state.nutrients = num.ZERO;
-  state.runEarned = num.ZERO;
-  state.owned = emptyOwned();
-  state.upgrades = [];
-  state.effects = [];
+  // Los campos «run» de la tabla vuelven al valor de una partida nueva (src/core/resets.ts).
+  resetFields(state, createState(0, payload.now), SPORULATE_RESET);
   // La gota visible se evapora y la cuenta atrás vuelve a sortearse: con solo quitarla,
   // nextIn seguía en 0 y caía otra gota en el siguiente tick.
   evaporateDrop(state);

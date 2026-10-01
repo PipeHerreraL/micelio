@@ -103,6 +103,20 @@ export interface GameState {
   seen: string[];
   /** Estado del generador pseudoaleatorio (ver rng.ts). */
   rngSeed: number;
+  /** Partidas terminadas, la más reciente al final (tope en HISTORY_LIMIT). */
+  history: RunRecord[];
+}
+
+/** Una partida terminada al esporular: lo que la Crónica y las estadísticas recuerdan. */
+export interface RunRecord {
+  /** Número de esporulación con que terminó (1 = la primera). */
+  sporulation: number;
+  /** Segundos jugados en la partida. */
+  duration: number;
+  /** Esporas ganadas al terminarla. */
+  spores: number;
+  /** Marca de tiempo (ms) del final. */
+  endedAt: number;
 }
 
 export function emptyOwned(): Record<GeneratorId, number> {
@@ -159,6 +173,7 @@ export function createState(seed: number, now: number): GameState {
     settings: defaultSettings(),
     seen: [],
     rngSeed,
+    history: [],
   };
 }
 
