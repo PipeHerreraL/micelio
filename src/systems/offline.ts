@@ -17,6 +17,7 @@ import { derived, invalidate } from '../core/selectors.ts';
 import { hasMutation, type GameState } from '../core/state.ts';
 import { checkAchievements, grantAchievement } from './achievements.ts';
 import { checkActOne } from './journey.ts';
+import { checkPartnerUnlocks } from './partners.ts';
 import { runAutobuy } from './autobuy.ts';
 import { evaporateDrop } from './rain.ts';
 
@@ -73,6 +74,7 @@ export function applyElapsed(state: GameState, seconds: number, options: Elapsed
   runAutobuy(state);
   checkAchievements(state);
   checkActOne(state);
+  checkPartnerUnlocks(state);
   return produced;
 }
 
