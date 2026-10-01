@@ -1,6 +1,6 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 0.1.0._
+_Actualizado: 2026-10-01. Versión 0.2.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -19,7 +19,7 @@ bloque de trabajo, no en cada commit.
 | ---- | ------------------------------------------------------------------------------------ | -------------- |
 | 0    | Plan, documentos raíz, repositorio y CI                                              | hecho          |
 | 1    | Núcleo jugable: estado, bucle, clic, 8 generadores, formato, guardado, offline, sim  | hecho (v0.1.0) |
-| 2    | Profundidad: mejoras, hitos, sinergias, logros, lluvia, estadísticas, noticias       | sin empezar    |
+| 2    | Profundidad: mejoras, hitos, sinergias, logros, lluvia, estadísticas, noticias       | hecho (v0.2.0) |
 | 3    | Prestigio: Esporular, mutaciones, generadores 9 y 10, autocompra                     | sin empezar    |
 | 4    | Pulido: canvas, sonido, responsive, accesibilidad, ajustes, exportar, inglés         | sin empezar    |
 | 5    | Balance y entrega: campaña en el simulador, BALANCE.md, README, GitHub Pages, v1.0.0 | sin empezar    |
@@ -102,26 +102,22 @@ El guardado envuelve el estado: `{ version, savedAt, state }` en `localStorage['
 
 ## Lo último que se hizo
 
-- **Fase 1 cerrada.** Núcleo puro y determinista (`src/core`): estado, fórmulas, selectores
-  con caché, acciones, tick y cola de eventos. Sistemas de guardado (validación, migraciones,
-  respaldo, dos pestañas, exportar/importar), offline analítico, lluvia, autocompra y logros.
-- Interfaz de la fase 1: contador, núcleo (clic, Espacio, Enter), pestaña Generadores con
-  selector ×1/×10/×100/Máx, revelación en silueta, tiempo hasta poder comprar y barra de hito.
-- Catálogos `es.ts` y `en.ts` completos desde el primer día (477 claves), con prueba de
-  paridad, marcadores, plurales y cobertura de fuentes.
-- Simulador completo (`npm run sim`): cumple los 18 objetivos de PROMPT.md §17 con los valores
-  de la especificación sin tocar (`docs/BALANCE.md`).
-- 352 pruebas en verde. Bug #1 del diario (tooltip del sufijo en 999 999.6) corregido.
+- **Fase 2 cerrada.** Pestañas Mejoras, Logros y Estadísticas; gota de lluvia como botón con
+  sus efectos y avisos; noticias del sotobosque; avisos de primera vez en contexto.
+- **Números con nombres de juego idle** a pedido del usuario: «1,5 millones», «1.5 Million»,
+  hasta 1e63, sin ceros de relleno (ARCHITECTURE.md §4.24). Guardado en versión 2 con migración.
+- Revisión adversarial de las fases 1 y 2: 21 hallazgos confirmados y corregidos; seis entran
+  en el diario de bugs (#2 a #7), dos con prueba de regresión y cuatro sin prueba automática
+  (requieren DOM o navegador: ver la tabla del diario).
+- 365 pruebas en verde; el simulador sigue cumpliendo 18 de 18 objetivos.
 
 ## Lo que sigue, en orden
 
-1. **Fase 2 — Profundidad:** pestañas Mejoras, Logros y Estadísticas; lluvia visible (gota
-   como botón, efectos con cuenta atrás, avisos); noticias del sotobosque; avisos de primera
-   vez de cada sistema. La lógica ya existe y está probada: falta la interfaz.
-2. **Fase 3 — Prestigio:** pestañas Esporular y Mutaciones (árbol dibujado), generadores 9 y 10
-   visibles, controles de autocompra.
-3. **Fase 4 — Pulido:** canvas de la red, sonido, ajustes, exportar/importar en la interfaz,
-   responsive fino y accesibilidad.
+1. **Fase 3 — Prestigio:** pestañas Esporular y Mutaciones (ya escritas y probadas a mano),
+   generadores 9 y 10, autocompra en la interfaz.
+2. **Fase 4 — Pulido:** canvas de la red y sonido (módulos en construcción), Ajustes con
+   exportar/importar, responsive fino, accesibilidad y zoom al 200 %.
+3. **Fase 5 — Entrega:** revisión final, README, v1.0.0.
 
 ## Deuda conocida
 
