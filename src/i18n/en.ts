@@ -287,6 +287,40 @@ export const en: Catalog = {
   'mut.locked.label': '{name}, locked',
   'mut.done': 'Mutated: {name}',
 
+  // Network maturity and adaptations (phase 7)
+  'sporulate.maturity':
+    'Network maturity: up to level {threshold} each level gives +1%; beyond that, each level adds less.',
+  'adapt.title': 'Adaptations',
+  'adapt.intro':
+    'With the tree complete, spare spores go into adaptations. Each one can be raised several times.',
+  'adapt.buy': 'Adapt: {name}',
+  'adapt.rank': 'rank {rank}',
+  'adapt.rankOf': 'rank {rank} of {max}',
+  'adapt.maxed': 'Maxed out',
+  'adapt.none': 'No ranks yet.',
+  'adapt.done': 'Adapted: {name}, rank {rank}',
+  'adapt.apicalBody.name': 'Apical body',
+  'adapt.apicalBody.desc':
+    'At the tip of every hypha, a tiny organelle decides where to grow. Raises the maturity threshold by 10% per rank.',
+  'adapt.apicalBody.effect': 'Maturity threshold: level {threshold}.',
+  'adapt.sclerotium.name': 'Sclerotium',
+  'adapt.sclerotium.desc':
+    'A hardened mass of mycelium that keeps reserves for years. Every run starts with more nutrients.',
+  'adapt.sclerotium.effect': 'Every run starts with {value} N.',
+  'adapt.hydraulicLift.name': 'Hydraulic lift',
+  'adapt.hydraulicLift.desc':
+    'Hyphae carry water from wet soil to dry soil. The raindrop takes 2 s longer to evaporate per rank.',
+  'adapt.hydraulicLift.effect': 'The raindrop lasts {time}.',
+  'adapt.deepTorpor.name': 'Deep torpor',
+  'adapt.deepTorpor.desc':
+    'The network lasts longer without you. Offline progress counts 6 more hours per rank.',
+  'adapt.deepTorpor.effect': 'Offline up to {time} ({extra} more).',
+  'adapt.foxfire.name': 'Foxfire',
+  'adapt.foxfire.desc':
+    'Some fungi glow in rotting wood. It only changes the look: the network pulses glow brighter.',
+  'adapt.foxfire.effect': 'The pulses glow brighter.',
+  'hint.adaptations': 'Tree complete. Spare spores now go into adaptations.',
+
   // Autocompra
   'autobuy.title': 'Autobuy',
   'autobuy.threshold': 'Buy if it costs less than {percent} of your nutrients',

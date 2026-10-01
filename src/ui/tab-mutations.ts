@@ -8,6 +8,7 @@ import { hasMutation } from '../core/state.ts';
 import { MUTATIONS, getMutation, type MutationDef, type MutationId } from '../data/mutations.ts';
 import { getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setText, svg, toggleClass } from './dom.ts';
+import { createAdaptations } from './adaptations.ts';
 import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
@@ -42,6 +43,7 @@ export function createMutationsTab(store: Store): TabView {
   const tree = h('div', { class: 'mut-tree' });
   tree.append(lines);
   const hint = createHint(store, 'hint.mutations', t('hint.mutations'));
+  const adaptations = createAdaptations(store);
   const root = h('div', { class: 'tab tab--mutations' }, [
     h('div', { class: 'tab__toolbar' }, [
       h('h2', { class: 'tab__title', text: t('mutations.title') }),
@@ -50,6 +52,7 @@ export function createMutationsTab(store: Store): TabView {
     hint.root,
     h('p', { class: 'tab__intro', text: t('mutations.intro') }),
     h('div', { class: 'mut-tree__scroll' }, [tree]),
+    adaptations.root,
   ]);
 
   // El DOM va en el orden de lectura del dibujo (fila y luego columna) para que el tabulador
@@ -189,6 +192,7 @@ export function createMutationsTab(store: Store): TabView {
       drawLines();
     }
     hint.update(state.spores.available > 0 && state.mutations.length === 0);
+    adaptations.update();
   }
 
   return {
@@ -198,6 +202,7 @@ export function createMutationsTab(store: Store): TabView {
     destroy: () => {
       disposer.dispose();
       hint.destroy();
+      adaptations.destroy();
     },
   };
 }

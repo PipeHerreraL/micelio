@@ -5,7 +5,9 @@
  */
 import { canSporulate, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
 import * as num from '../core/num.ts';
-import { SPORE_LEVEL_BONUS, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
+import { SPORE_SOFTCAP_EXPONENT, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
+import { sporeFactor } from '../core/formulas.ts';
+import { derived } from '../core/selectors.ts';
 import { formatPercent } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, t, tp } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
@@ -15,14 +17,16 @@ import { openModal } from './modal.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 
-function bonusPercent(level: number): string {
-  return formatPercent(level * SPORE_LEVEL_BONUS, getLocale(), 0);
+/** Bono de producción del nivel de esporas, con la madurez de la red (factor − 1). */
+function bonusPercent(level: number, threshold: number): string {
+  return formatPercent(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1, getLocale(), 0);
 }
 
 export function createSporulateTab(store: Store): TabView {
   const disposer = new Disposer();
   const level = h('p', { class: 'spore__level tabular' });
   const available = h('p', { class: 'spore__available tabular' });
+  const maturity = h('p', { class: 'spore__maturity', attrs: { hidden: true } });
   const gain = h('p', { class: 'spore__gain tabular' });
   const next = h('p', { class: 'spore__next tabular' });
   const requirement = h('p', { class: 'spore__requirement tabular' });
@@ -38,7 +42,7 @@ export function createSporulateTab(store: Store): TabView {
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('sporulate.title') })]),
     hint.root,
     h('p', { class: 'tab__intro', text: t('sporulate.intro') }),
-    h('div', { class: 'spore__summary' }, [level, available]),
+    h('div', { class: 'spore__summary' }, [level, maturity, available]),
     h('div', { class: 'spore__now' }, [gain, next]),
     h('div', { class: 'spore__progress' }, [
       requirement,
@@ -59,8 +63,8 @@ export function createSporulateTab(store: Store): TabView {
       body: [
         h('p', { class: 'modal__lead', text: tp('sporulate.confirm.gain', gained) }),
         t('sporulate.confirm.bonus', {
-          current: bonusPercent(state.spores.level),
-          next: bonusPercent(state.spores.level + gained),
+          current: bonusPercent(state.spores.level, derived(state).sporeThreshold),
+          next: bonusPercent(state.spores.level + gained, derived(state).sporeThreshold),
         }),
         t('sporulate.confirm.lose'),
         t('sporulate.confirm.keep'),
@@ -92,9 +96,13 @@ export function createSporulateTab(store: Store): TabView {
       level,
       t('sporulate.level', {
         level: formatCount(state.spores.level),
-        percent: bonusPercent(state.spores.level),
+        percent: bonusPercent(state.spores.level, derived(state).sporeThreshold),
       }),
     );
+    // Madurez de la red: por encima del umbral, cada nivel aporta menos (lo dice con texto).
+    const threshold = derived(state).sporeThreshold;
+    setHidden(maturity, state.spores.level <= threshold);
+    setText(maturity, t('sporulate.maturity', { threshold: formatCount(Math.round(threshold)) }));
     setText(available, tp('sporulate.available', state.spores.available));
     setText(gain, tp('sporulate.gain', sporeGain(state)));
     setText(next, t('sporulate.next', { value: fmt(nutrientsToNextSpore(state)) }));

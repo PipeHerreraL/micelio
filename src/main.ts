@@ -22,6 +22,7 @@ import { formatDuration, formatPercent } from './i18n/format.ts';
 import {
   detectLocale,
   fmt,
+  formatCount,
   getLocale,
   pseudoCatalog,
   setLocale,
@@ -465,6 +466,7 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   buyGenerator: 'chime',
   buyUpgrade: 'chime',
   buyMutation: 'chime',
+  buyAdaptation: 'chime',
   achievement: 'chord',
   rainSpawn: 'drip',
   sporulate: 'spore',
@@ -521,6 +523,15 @@ function handleEvent(event: GameEvent): void {
       announce(message);
       break;
     }
+    case 'buyAdaptation':
+      toast(
+        t('adapt.done', { name: t(`adapt.${event.id}.name` as MessageKey), rank: formatCount(event.rank) }),
+        {
+          kind: 'spore',
+          duration: 3000,
+        },
+      );
+      break;
     case 'buyMutation':
       toast(t('mut.done', { name: t(`mut.${event.id}.name` as MessageKey) }), {
         kind: 'spore',

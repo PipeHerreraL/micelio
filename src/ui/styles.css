@@ -1723,6 +1723,87 @@ button {
 }
 
 /* ------------------------------------------------------------------------------------ */
+/* Adaptaciones (debajo del árbol de mutaciones) */
+
+.adapt {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--filete);
+}
+
+.adapt-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adapt__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--filete);
+}
+
+.adapt__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.adapt__name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--font-title);
+  font-size: 1.1rem;
+}
+
+.adapt__rank,
+.adapt__desc,
+.adapt__effect {
+  font-family: var(--font-ui);
+  font-size: 0.875rem;
+  color: var(--micelio-tenue);
+}
+
+.adapt__effect {
+  color: var(--micelio);
+}
+
+.adapt__buy {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  min-width: 10rem;
+  line-height: 1.2;
+  text-align: end;
+}
+
+.adapt__cost {
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+@container panels (max-width: 30rem) {
+  .adapt__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adapt__buy {
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.spore__maturity {
+  color: var(--micelio-tenue);
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------------------------ */
 /* Tooltip */
 
 .tooltip {

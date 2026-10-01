@@ -2,8 +2,7 @@
  * La gota de lluvia: un botón real (PROMPT.md §16) colocado en un punto de la zona de
  * juego. Se encoge mientras se evapora; al tocarla se despacha `catchDrop`.
  */
-import { catchDrop } from '../systems/rain.ts';
-import { DROP_LIFETIME } from '../data/rain.ts';
+import { catchDrop, dropLifetime } from '../systems/rain.ts';
 import { t } from '../i18n/index.ts';
 import { Disposer, h, setHidden } from './dom.ts';
 import { uiIcon } from './icons.ts';
@@ -85,7 +84,7 @@ export function createRainDrop(store: Store, stage: () => HTMLElement, cover: ()
         root.style.top = `${(y * 100).toFixed(2)}%`;
       }
       // Se evapora: el último tercio de su vida se va desvaneciendo.
-      const life = Math.max(0, Math.min(1, drop.remaining / DROP_LIFETIME));
+      const life = Math.max(0, Math.min(1, drop.remaining / dropLifetime(store.state)));
       root.style.setProperty('--life', life.toFixed(3));
     },
     destroy: () => {

@@ -292,6 +292,39 @@ export const es = {
   'mut.locked.label': '{name}, bloqueada',
   'mut.done': 'Mutaste: {name}',
 
+  // Madurez de la red y adaptaciones (fase 7)
+  'sporulate.maturity':
+    'Madurez de la red: hasta el nivel {threshold} cada nivel da +1 %; por encima, cada nivel aporta menos.',
+  'adapt.title': 'Adaptaciones',
+  'adapt.intro':
+    'Con el árbol completo, las esporas sobrantes se invierten en adaptaciones. Se pueden subir varias veces.',
+  'adapt.buy': 'Adaptar: {name}',
+  'adapt.rank': 'rango {rank}',
+  'adapt.rankOf': 'rango {rank} de {max}',
+  'adapt.maxed': 'Al máximo',
+  'adapt.none': 'Aún sin rangos.',
+  'adapt.done': 'Adaptaste: {name}, rango {rank}',
+  'adapt.apicalBody.name': 'Cuerpo apical',
+  'adapt.apicalBody.desc':
+    'En la punta de cada hifa, un orgánulo diminuto decide hacia dónde crecer. Sube el umbral de madurez un 10 % por rango.',
+  'adapt.apicalBody.effect': 'Umbral de madurez: nivel {threshold}.',
+  'adapt.sclerotium.name': 'Esclerocio',
+  'adapt.sclerotium.desc':
+    'Una masa de micelio endurecido que guarda reservas durante años. Cada partida empieza con más nutrientes.',
+  'adapt.sclerotium.effect': 'Cada partida empieza con {value} N.',
+  'adapt.hydraulicLift.name': 'Redistribución hidráulica',
+  'adapt.hydraulicLift.desc':
+    'Las hifas llevan agua del suelo húmedo al seco. La gota de lluvia tarda 2 s más en evaporarse por rango.',
+  'adapt.hydraulicLift.effect': 'La gota dura {time}.',
+  'adapt.deepTorpor.name': 'Letargo profundo',
+  'adapt.deepTorpor.desc': 'La red aguanta más tiempo sin ti. El progreso offline cuenta 6 h más por rango.',
+  'adapt.deepTorpor.effect': 'Offline hasta {time} ({extra} más).',
+  'adapt.foxfire.name': 'Fuego de zorro',
+  'adapt.foxfire.desc':
+    'Algunos hongos brillan en la madera podrida. Solo cambia cómo se ve: los pulsos de la red brillan más.',
+  'adapt.foxfire.effect': 'Los pulsos brillan más.',
+  'hint.adaptations': 'Árbol completo. Las esporas que sobren ahora se invierten en adaptaciones.',
+
   // Autocompra
   'autobuy.title': 'Autocompra',
   'autobuy.threshold': 'Comprar si cuesta menos del {percent} de tus nutrientes',

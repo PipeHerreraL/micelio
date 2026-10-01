@@ -154,6 +154,8 @@ const PULSE_RATE_PER_DECADE = 0.8;
 const PULSE_SPEED = 110;
 const PULSE_FADE_S = 0.35;
 const PULSE_RADIUS = 7;
+/** Fuego de zorro: radio extra de los pulsos por rango (solo cosmético). */
+const FOXFIRE_GLOW_PER_RANK = 0.35;
 const PARTICLE_CAP = 200;
 const MOTES_MAX = 10;
 const SHIMMER_COUNT = 12;
@@ -430,6 +432,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   const pulseFade = new Float32Array(PULSE_CAP);
   const pulseOn = new Uint8Array(PULSE_CAP);
   let pulseActive = 0;
+  let pulseGlow = 1;
   let pulseRate = 0;
   // Empieza a medias para que el primer pulso no tarde un ciclo entero.
   let pulseAcc = 0.5;
@@ -1185,7 +1188,8 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   function updateAndDrawPulses(dt: number): void {
     if (pulseActive === 0) return;
     const speed = PULSE_SPEED * dpr;
-    const r = PULSE_RADIUS * dpr;
+    // Fuego de zorro (adaptación cosmética): pulsos más grandes y luminosos.
+    const r = PULSE_RADIUS * dpr * pulseGlow;
     ctx.globalCompositeOperation = 'lighter';
     for (let p = 0; p < PULSE_CAP; p++) {
       if (pulseOn[p] !== 1) continue;
@@ -1460,6 +1464,7 @@ export function createNetworkView(canvas: HTMLCanvasElement, options: { seed: nu
   // Lectura del estado
 
   function readState(state: GameState): void {
+    pulseGlow = 1 + FOXFIRE_GLOW_PER_RANK * state.adaptations.foxfire;
     let weighted = 0;
     let highest = -1;
     for (const [tier, id] of GENERATOR_IDS.entries()) {
