@@ -34,6 +34,11 @@ import { MUTATIONS } from '../src/data/mutations.ts';
 import { SPORULATE_REQUIREMENT } from '../src/data/prestige.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { catchDrop } from '../src/systems/rain.ts';
+import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
+
+// Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
+setLocale('es');
+setNotation('names');
 
 // ---------------------------------------------------------------------------------------
 // Perfiles y bot
@@ -420,7 +425,7 @@ const generatorTable = [
   '| - | --------- | -------------- | --------------------- | ---------- |',
   ...GENERATORS.map(
     (g, i) =>
-      `| ${i + 1} | \`${g.id}\` | ${g.baseCost.toExponential(2)} | ${g.baseProduction.toExponential(2)} | ${g.unlock.kind === 'always' ? 'inicio' : g.unlock.kind === 'sporulations' ? `${g.unlock.count} esporulación` : `mutación \`${g.unlock.id}\``} |`,
+      `| ${i + 1} | \`${g.id}\` | ${fmt(g.baseCost)} | ${fmt(g.baseProduction)} | ${g.unlock.kind === 'always' ? 'inicio' : g.unlock.kind === 'sporulations' ? `${g.unlock.count} esporulación` : `mutación \`${g.unlock.id}\``} |`,
   ),
 ];
 
@@ -439,7 +444,7 @@ const block = [
   '| ------- | -------- | ------- | ----- | ------ |',
   ...rows.map((r) => r.line),
   '',
-  `**Techo numérico:** el mayor valor visto en 10 esporulaciones fue ${maxValue.toExponential(2)} N (${ceilingOk ? 'por debajo' : '**por encima**'} de 1e300).`,
+  `**Techo numérico:** el mayor valor visto en 10 esporulaciones fue ${fmt(maxValue)} N (${ceilingOk ? 'muy por debajo' : '**por encima**'} del límite de 1e300 de \`number\`).`,
   '',
   `**Resultado:** ${rows.filter((r) => r.ok).length} de ${rows.length} objetivos cumplidos.`,
   '',
@@ -473,5 +478,5 @@ writeFileSync(path, next);
 
 console.log(rows.map((r) => r.line).join('\n'));
 console.log(
-  `Techo: ${maxValue.toExponential(2)} · ${rows.filter((r) => r.ok).length}/${rows.length} objetivos · ${elapsedMs} ms`,
+  `Techo: ${fmt(maxValue)} · ${rows.filter((r) => r.ok).length}/${rows.length} objetivos · ${elapsedMs} ms`,
 );

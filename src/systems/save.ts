@@ -31,7 +31,7 @@ export const BACKUP_KEY = 'micelio:save:backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface SaveFile {
   version: number;
@@ -47,7 +47,20 @@ export type Migration = (raw: RawObject) => RawObject;
  * Migraciones: `MIGRATIONS[n]` lleva un guardado de la versión n a la n + 1. Reciben el
  * objeto completo `{ version, savedAt, state }` y devuelven uno nuevo.
  */
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  /**
+   * 1 → 2: aparece la notación de nombres («1,5 millones») y pasa a ser la de por defecto.
+   * Quien tenía «suffix» lo tenía por defecto (en la versión 1 no había otra cosa que
+   * elegir de inicio), así que pasa a «names»; científica e ingeniería se respetan.
+   */
+  1: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    const settings = state && isObject(state.settings) ? state.settings : null;
+    if (!state || !settings) return raw;
+    const notation = settings.notation === 'suffix' ? 'names' : settings.notation;
+    return { ...raw, state: { ...state, settings: { ...settings, notation } } };
+  },
+};
 
 /** Lo mínimo de `Storage` que usamos; permite probar sin navegador. */
 export interface StorageLike {

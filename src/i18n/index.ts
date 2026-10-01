@@ -6,7 +6,7 @@
 import type { Locale, Notation } from '../core/state.ts';
 import { en } from './en.ts';
 import { es, type Catalog, type MessageKey } from './es.ts';
-import { formatNumber, formatScientific, suffixFor, type Suffix } from './format.ts';
+import { formatExact, formatNumber, roundTo, suffixFor, SUFFIXES, type Suffix } from './format.ts';
 
 export type { Catalog, MessageKey } from './es.ts';
 
@@ -22,7 +22,7 @@ export type Params = Record<string, string | number>;
 
 let locale: Locale = DEFAULT_LOCALE;
 let catalog: Catalog = es;
-let notation: Notation = 'suffix';
+let notation: Notation = 'names';
 let pluralRules = new Intl.PluralRules(locale);
 
 export function getLocale(): Locale {
@@ -84,34 +84,41 @@ export function formatCount(value: number): string {
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
 }
 
-/** Cantidad de balance formateada con el idioma y la notación activos. */
-export function fmt(value: number): string {
-  return formatNumber(value, locale, notation);
+/** Nombre del orden de magnitud en el idioma activo, en singular o plural según la mantisa. */
+function magnitudeName(suffix: Suffix, mantissa: number): string {
+  const category = pluralRules.select(mantissa);
+  return t(category === 'one' ? `num.name.${suffix}.one` : `num.name.${suffix}.other`);
 }
 
-const LONG_NAME_KEYS: Record<Suffix, MessageKey> = {
-  M: 'num.long.M',
-  B: 'num.long.B',
-  T: 'num.long.T',
-  Qa: 'num.long.Qa',
-  Qi: 'num.long.Qi',
-  Sx: 'num.long.Sx',
-  Sp: 'num.long.Sp',
-  Oc: 'num.long.Oc',
-  No: 'num.long.No',
-  Dc: 'num.long.Dc',
-};
+/** Cantidad de balance formateada con el idioma y la notación activos. */
+export function fmt(value: number): string {
+  return formatNumber(value, locale, notation, magnitudeName);
+}
 
 /**
- * Tooltip de un número grande: notación científica y nombre largo en el idioma activo
- * («1,23e9 · mil millones»). Null si el número no necesita explicación.
+ * Tooltip de un número grande (PROMPT.md §13): la cifra entera («1.234.567.890») y, si en
+ * pantalla va con sufijo corto, también su nombre («mil millones»). Null si no hace falta.
  */
 export function numberTooltip(value: number): string | null {
-  const suffix = notation === 'suffix' ? suffixFor(value) : null;
-  if (suffix) {
-    return t('num.tooltip', { scientific: formatScientific(value, locale), long: t(LONG_NAME_KEYS[suffix]) });
+  const suffix = suffixFor(value);
+  if (!suffix) return null;
+  const exact = formatExact(value, locale);
+  if (notation !== 'suffix') return exact;
+  const mantissa = Math.abs(value) / 10 ** (3 * (SUFFIXES.indexOf(suffix) + 2));
+  return t('num.tooltip', { exact, long: magnitudeName(suffix, roundTo(mantissa, 2)) });
+}
+
+/**
+ * Líneas de tooltip que explican los números grandes de una fila: «1,5 millones = 1.500.000».
+ * Ignora los que se muestran completos.
+ */
+export function numberDetails(...values: number[]): string[] {
+  const lines: string[] = [];
+  for (const value of values) {
+    const tip = numberTooltip(value);
+    if (tip) lines.push(`${fmt(value)} = ${tip}`);
   }
-  return null;
+  return lines;
 }
 
 // ---------------------------------------------------------------------------------------

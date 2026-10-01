@@ -13,8 +13,12 @@ export type { GeneratorId } from '../data/generators.ts';
 export type BuyAmount = 1 | 10 | 100 | 'max';
 export const BUY_AMOUNTS: readonly BuyAmount[] = [1, 10, 100, 'max'];
 
-export type Notation = 'suffix' | 'scientific' | 'engineering';
-export const NOTATIONS: readonly Notation[] = ['suffix', 'scientific', 'engineering'];
+/**
+ * names = «1,5 millones» (por defecto, estilo idle); suffix = «1,5 M»; scientific = «1,5e6»;
+ * engineering = exponentes de 3 en 3.
+ */
+export type Notation = 'names' | 'suffix' | 'scientific' | 'engineering';
+export const NOTATIONS: readonly Notation[] = ['names', 'suffix', 'scientific', 'engineering'];
 
 export type Locale = 'es' | 'en';
 export const LOCALES: readonly Locale[] = ['es', 'en'];
@@ -116,7 +120,7 @@ export function emptyAutobuy(): Record<GeneratorId, boolean> {
 export function defaultSettings(): Settings {
   return {
     locale: null,
-    notation: 'suffix',
+    notation: 'names',
     sound: true,
     // Volumen bajo por defecto (PROMPT.md §14).
     volume: 0.35,

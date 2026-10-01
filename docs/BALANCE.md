@@ -23,7 +23,7 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 5.3 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 5.4 s de cómputo). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -50,7 +50,7 @@ Perfil activo salvo que se indique otro. Tiempos de juego en min:s; mediana de l
 | Duración de la partida 7 de la campaña                           | ≥ 10 min                   | 13:51   | 7:23–20:01    | cumple |
 | Duración de la partida 8 de la campaña                           | ≥ 10 min                   | 10:26   | 4:59–14:21    | cumple |
 
-**Techo numérico:** el mayor valor visto en 10 esporulaciones fue 2.39e+13 N (por debajo de 1e300).
+**Techo numérico:** el mayor valor visto en 10 esporulaciones fue 23,9 billones N (muy por debajo del límite de 1e300 de `number`).
 
 **Resultado:** 18 de 18 objetivos cumplidos.
 
@@ -71,18 +71,18 @@ Perfil activo salvo que se indique otro. Tiempos de juego en min:s; mediana de l
 
 ### Generadores
 
-| #   | Generador       | Coste base (N) | Producción base (N/s) | Desbloqueo              |
-| --- | --------------- | -------------- | --------------------- | ----------------------- |
-| 1   | `hypha`         | 1.00e+1        | 1.00e-1               | inicio                  |
-| 2   | `rhizomorph`    | 1.20e+2        | 1.00e+0               | inicio                  |
-| 3   | `primordium`    | 1.30e+3        | 9.00e+0               | inicio                  |
-| 4   | `mushroom`      | 1.40e+4        | 5.50e+1               | inicio                  |
-| 5   | `fairyRing`     | 1.60e+5        | 3.20e+2               | inicio                  |
-| 6   | `mycorrhiza`    | 1.80e+6        | 1.80e+3               | inicio                  |
-| 7   | `motherTree`    | 2.20e+7        | 1.05e+4               | inicio                  |
-| 8   | `ancientForest` | 3.00e+8        | 6.50e+4               | inicio                  |
-| 9   | `malheur`       | 5.00e+9        | 4.20e+5               | 1 esporulación          |
-| 10  | `planetary`     | 9.00e+10       | 2.90e+6               | mutación `beyondForest` |
+| #   | Generador       | Coste base (N)  | Producción base (N/s) | Desbloqueo              |
+| --- | --------------- | --------------- | --------------------- | ----------------------- |
+| 1   | `hypha`         | 10              | 0,1                   | inicio                  |
+| 2   | `rhizomorph`    | 120             | 1                     | inicio                  |
+| 3   | `primordium`    | 1300            | 9                     | inicio                  |
+| 4   | `mushroom`      | 14.000          | 55                    | inicio                  |
+| 5   | `fairyRing`     | 160.000         | 320                   | inicio                  |
+| 6   | `mycorrhiza`    | 1,8 millones    | 1800                  | inicio                  |
+| 7   | `motherTree`    | 22 millones     | 10.500                | inicio                  |
+| 8   | `ancientForest` | 300 millones    | 65.000                | inicio                  |
+| 9   | `malheur`       | 5 mil millones  | 420.000               | 1 esporulación          |
+| 10  | `planetary`     | 90 mil millones | 2,9 millones          | mutación `beyondForest` |
 
 Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/upgrades.ts`.
 

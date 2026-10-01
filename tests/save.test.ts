@@ -138,7 +138,7 @@ function richState(): GameState {
 function saveTextWith(mutate: (s: GameState) => void): string {
   const s = richState();
   mutate(s);
-  return JSON.stringify({ version: 1, savedAt: SAVED_AT, state: s });
+  return JSON.stringify({ version: SAVE_VERSION, savedAt: SAVED_AT, state: s });
 }
 
 /** Base64 calculado con Buffer de Node: una implementación ajena a save.ts. */
@@ -171,7 +171,7 @@ describe('guardar y cargar', () => {
     expect(saveGame(storage, richState(), SAVED_AT)).toBe(true);
 
     const save = expectLoaded(loadGame(storage));
-    expect(save).toStrictEqual({ version: 1, savedAt: SAVED_AT, state: richState() });
+    expect(save).toStrictEqual({ version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() });
   });
 
   it('una partida nueva recién creada también sobrevive al viaje de ida y vuelta', () => {
@@ -190,7 +190,7 @@ describe('guardar y cargar', () => {
     const text = storage.data.get('micelio:save');
     expect(typeof text).toBe('string');
     const file = JSON.parse(text ?? '') as { version: unknown; savedAt: unknown; state: unknown };
-    expect(file.version).toBe(1);
+    expect(file.version).toBe(SAVE_VERSION);
     expect(file.savedAt).toBe(SAVED_AT);
     expect(file.state).toStrictEqual(richState());
   });
@@ -535,9 +535,8 @@ describe('guardados dañados', () => {
   });
 
   it('un guardado de una versión más nueva que el juego va a la copia de respaldo', () => {
-    // SAVE_VERSION es 1: un guardado de la versión 2 viene de un juego más nuevo.
-    expect(SAVE_VERSION).toBe(1);
-    const text = JSON.stringify({ version: 2, savedAt: SAVED_AT, state: richState() });
+    // Un guardado de la versión siguiente a la actual viene de un juego más nuevo.
+    const text = JSON.stringify({ version: SAVE_VERSION + 1, savedAt: SAVED_AT, state: richState() });
     expect(loadCorrupt(text)).toStrictEqual({ kind: 'corrupt', error: 'version', backedUp: true });
   });
 });
@@ -546,6 +545,23 @@ describe('guardados dañados', () => {
 // Migraciones
 
 describe('migraciones', () => {
+  it('la migración real 1 → 2 pasa la notación de sufijos (la de antes por defecto) a nombres', () => {
+    const v1 = (notation: string): string => {
+      const state = richState();
+      return JSON.stringify({
+        version: 1,
+        savedAt: SAVED_AT,
+        state: { ...state, settings: { ...state.settings, notation } },
+      });
+    };
+    const fromSuffix = parseSave(v1('suffix'));
+    expect(fromSuffix.ok && fromSuffix.save.state.settings.notation).toBe('names');
+    expect(fromSuffix.ok && fromSuffix.save.version).toBe(SAVE_VERSION);
+    // Quien eligió científica la conserva.
+    const fromScientific = parseSave(v1('scientific'));
+    expect(fromScientific.ok && fromScientific.save.state.settings.notation).toBe('scientific');
+  });
+
   /**
    * Guardado de la versión 1 de un formato imaginario en el que `stats` aún no tenía
    * `idleClickTime`: la migración 1 → 2 debe añadirlo para que el validador lo acepte.
@@ -692,7 +708,10 @@ describe('migraciones', () => {
 
   it('con la tabla real, un guardado actual se lee sin migrar', () => {
     const result = parseSave(serializeSave(richState(), SAVED_AT));
-    expect(result).toStrictEqual({ ok: true, save: { version: 1, savedAt: SAVED_AT, state: richState() } });
+    expect(result).toStrictEqual({
+      ok: true,
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
+    });
   });
 });
 
@@ -704,7 +723,7 @@ describe('exportar e importar', () => {
     const text = exportSave(richState(), SAVED_AT);
     expect(importSave(text)).toStrictEqual({
       ok: true,
-      save: { version: 1, savedAt: SAVED_AT, state: richState() },
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
     });
   });
 
@@ -737,7 +756,7 @@ describe('exportar e importar', () => {
     const text = b64(serializeSave(richState(), SAVED_AT));
     expect(importSave(text)).toStrictEqual({
       ok: true,
-      save: { version: 1, savedAt: SAVED_AT, state: richState() },
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
     });
   });
 
@@ -746,7 +765,7 @@ describe('exportar e importar', () => {
     const wrapped = `  ${text.slice(0, 40)}\n${text.slice(40, 90)}\r\n\t${text.slice(90)}  \n`;
     expect(importSave(wrapped)).toStrictEqual({
       ok: true,
-      save: { version: 1, savedAt: SAVED_AT, state: richState() },
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state: richState() },
     });
   });
 

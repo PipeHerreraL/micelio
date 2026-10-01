@@ -3,31 +3,59 @@
  * Funciones puras: reciben el idioma y la notación, así que se prueban sin DOM.
  *
  * - Hasta 999 999 se muestran completos.
- * - Desde 1e6, sufijos de juegos idle (M, B, T, Qa, Qi, Sx, Sp, Oc, No, Dc).
- * - Desde 1e36, notación científica siempre.
+ * - Desde 1e6, por defecto con el nombre del orden de magnitud al estilo de los juegos
+ *   idle («1,5 millones», «1.5 Million»); también con sufijos cortos (M, B, T…),
+ *   científica o ingeniería según Ajustes.
+ * - Los nombres llegan hasta 1e63 (ARCHITECTURE.md §4.24); desde 1e66, científica siempre.
+ * - Sin ceros de relleno: «1 millón», no «1,00 millones».
  */
 import type { Notation } from '../core/state.ts';
 
-/** Sufijos desde 1e6 (índice 0) hasta 1e33 (índice 9). Son iguales en todos los idiomas. */
-export const SUFFIXES = ['M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'] as const;
+/** Sufijos cortos desde 1e6 (índice 0) hasta 1e63 (índice 19). Iguales en todos los idiomas. */
+export const SUFFIXES = [
+  'M',
+  'B',
+  'T',
+  'Qa',
+  'Qi',
+  'Sx',
+  'Sp',
+  'Oc',
+  'No',
+  'Dc',
+  'Ud',
+  'Dd',
+  'Td',
+  'Qad',
+  'Qid',
+  'Sxd',
+  'Spd',
+  'Ocd',
+  'Nod',
+  'Vg',
+] as const;
 export type Suffix = (typeof SUFFIXES)[number];
 
-/** Desde aquí se usan sufijos (o la notación elegida). */
+/** Desde aquí se usan nombres o sufijos (o la notación elegida). */
 export const SUFFIX_FROM = 1e6;
-/** Desde aquí, científica siempre: no quedan sufijos. */
-export const SCIENTIFIC_FROM = 1e36;
+/** Desde aquí, científica siempre: se acabaron los nombres. */
+export const SCIENTIFIC_FROM = 1e66;
+
+/**
+ * Nombre del orden de magnitud para la notación de nombres. Lo da el catálogo del idioma;
+ * recibe la mantisa ya redondeada para elegir singular o plural («1 millón», «2 millones»).
+ */
+export type MagnitudeName = (suffix: Suffix, mantissa: number) => string;
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
-function numberFormat(locale: string, minFraction: number, maxFraction: number): Intl.NumberFormat {
-  const key = `${locale}|${minFraction}|${maxFraction}`;
+function numberFormat(locale: string, maxFraction: number): Intl.NumberFormat {
+  const key = `${locale}|${maxFraction}`;
   let f = formatters.get(key);
   if (!f) {
     // Agrupación por defecto del idioma: en español, 1234 va sin separador y 12.345 con él.
-    f = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: minFraction,
-      maximumFractionDigits: maxFraction,
-    });
+    // Sin decimales mínimos: «1 millón» y no «1,00 millones».
+    f = new Intl.NumberFormat(locale, { maximumFractionDigits: maxFraction });
     formatters.set(key, f);
   }
   return f;
@@ -47,7 +75,7 @@ function mantissaDecimals(mantissa: number): number {
   return 0;
 }
 
-function roundTo(value: number, decimals: number): number {
+export function roundTo(value: number, decimals: number): number {
   const f = 10 ** decimals;
   return Math.round(value * f) / f;
 }
@@ -81,13 +109,19 @@ function split(abs: number, step: 1 | 3): Split {
 
 function scientific(abs: number, locale: string, step: 1 | 3): string {
   const s = split(abs, step);
-  return `${numberFormat(locale, s.decimals, s.decimals).format(s.mantissa)}e${s.exponent}`;
+  return `${numberFormat(locale, s.decimals).format(s.mantissa)}e${s.exponent}`;
 }
 
 /**
  * Formatea una cantidad para mostrarla. `notation` solo afecta a valores desde 1e6.
+ * Con la notación `names` hace falta `nameOf`; sin él se usan los sufijos cortos.
  */
-export function formatNumber(value: number, locale: string, notation: Notation = 'suffix'): string {
+export function formatNumber(
+  value: number,
+  locale: string,
+  notation: Notation = 'names',
+  nameOf?: MagnitudeName,
+): string {
   if (Number.isNaN(value)) return '—';
   if (!Number.isFinite(value)) return value > 0 ? '∞' : '−∞';
   const sign = value < 0 ? '−' : '';
@@ -96,41 +130,53 @@ export function formatNumber(value: number, locale: string, notation: Notation =
   if (abs < SUFFIX_FROM) {
     const decimals = smallDecimals(abs);
     const rounded = roundTo(abs, decimals);
-    // 999 999.6 redondea a 1 000 000: ese ya se escribe con sufijo.
-    if (rounded < SUFFIX_FROM) return sign + numberFormat(locale, 0, decimals).format(rounded);
+    // 999 999.6 redondea a 1 000 000: ese ya se escribe con nombre o sufijo.
+    if (rounded < SUFFIX_FROM) return sign + numberFormat(locale, decimals).format(rounded);
   }
 
   if (abs >= SCIENTIFIC_FROM || notation === 'scientific') return sign + scientific(abs, locale, 1);
   if (notation === 'engineering') return sign + scientific(abs, locale, 3);
 
   const s = split(abs, 3);
-  if (s.exponent >= 36) return sign + scientific(abs, locale, 1);
   const suffix = SUFFIXES[s.exponent / 3 - 2];
-  // Decimales fijos («1,00 M», «12,3 M», «123 M»): con cifras tabulares el número no baila.
-  return `${sign}${numberFormat(locale, s.decimals, s.decimals).format(s.mantissa)}\u00a0${suffix ?? ''}`;
+  if (!suffix) return sign + scientific(abs, locale, 1);
+  const mantissa = numberFormat(locale, s.decimals).format(s.mantissa);
+  const label = notation === 'names' && nameOf ? nameOf(suffix, s.mantissa) : suffix;
+  return `${sign}${mantissa}\u00a0${label}`;
 }
 
-/** Sufijo que le corresponde a un valor en notación de sufijos, o null si no lleva. */
+/** Sufijo que le corresponde a un valor desde 1e6, o null si no lleva. */
 export function suffixFor(value: number): Suffix | null {
   const abs = Math.abs(value);
   if (!Number.isFinite(abs) || abs >= SCIENTIFIC_FROM) return null;
-  // Decide con el valor redondeado, igual que formatNumber: 999 999.6 se escribe «1.00 M»
+  // Decide con el valor redondeado, igual que formatNumber: 999 999.6 se escribe «1 M»
   // y necesita su tooltip (BUG-JOURNAL #1).
   if (abs < SUFFIX_FROM && roundTo(abs, smallDecimals(abs)) < SUFFIX_FROM) return null;
   const s = split(abs, 3);
-  if (s.exponent >= 36) return null;
   return SUFFIXES[s.exponent / 3 - 2] ?? null;
 }
 
-/** Notación científica completa para el tooltip de un número grande. */
+/** Notación científica completa («1,23e9»). */
 export function formatScientific(value: number, locale: string): string {
   if (!Number.isFinite(value) || value === 0) return formatNumber(value, locale, 'suffix');
   return (value < 0 ? '−' : '') + scientific(Math.abs(value), locale, 1);
 }
 
+/** Hasta aquí un número se puede escribir entero sin perder cifras en coma flotante. */
+const EXACT_UP_TO = 1e21;
+
+/**
+ * La cifra entera con separadores («1.234.567.890») para el tooltip de un número grande;
+ * por encima de 1e21 las cifras de un double ya no son exactas y se usa la científica.
+ */
+export function formatExact(value: number, locale: string): string {
+  if (!Number.isFinite(value) || Math.abs(value) >= EXACT_UP_TO) return formatScientific(value, locale);
+  return numberFormat(locale, 0).format(Math.round(value));
+}
+
 /** Entero con separadores del idioma (unidades, clics). */
 export function formatInteger(value: number, locale: string): string {
-  return numberFormat(locale, 0, 0).format(Math.floor(value));
+  return numberFormat(locale, 0).format(Math.floor(value));
 }
 
 /** Porcentaje: 0.125 → «12.5 %» o «12,5 %» según el idioma. */

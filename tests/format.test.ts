@@ -4,6 +4,7 @@ import { es } from '../src/i18n/es.ts';
 import {
   formatDate,
   formatDuration,
+  formatExact,
   formatInteger,
   formatNumber,
   formatPercent,
@@ -24,7 +25,7 @@ import {
   type Catalog,
 } from '../src/i18n/index.ts';
 
-// Entre la cifra y el sufijo va un espacio de no separación: «1.00 M» nunca se parte en dos líneas.
+// Entre la cifra y el nombre va un espacio de no separación: «1 M» nunca se parte en dos líneas.
 const NBSP = ' ';
 
 /**
@@ -43,7 +44,7 @@ function placeholders(text: string): string[] {
 // index.ts guarda idioma y notación en el módulo: cada prueba deja los valores de partida.
 afterEach(() => {
   setLocale('es');
-  setNotation('suffix');
+  setNotation('names');
 });
 
 describe('formatNumber: valores pequeños', () => {
@@ -87,110 +88,124 @@ describe('formatNumber: valores pequeños', () => {
   });
 });
 
-describe('formatNumber: cambio a sufijos en 1e6', () => {
-  it('999 999.6 redondea a un millón y ya se escribe con sufijo', () => {
-    // Redondeado a entero da 1 000 000 = 1e6, que es justo el umbral del sufijo M
-    expect(formatNumber(999999.6, 'en')).toBe(`1.00${NBSP}M`);
+describe('formatNumber: nombres desde 1e6 (estilo idle, notación por defecto)', () => {
+  // Misma regla que index.ts: singular solo para la mantisa 1.
+  const nameEs = (suffix: string, mantissa: number): string => {
+    const one: Record<string, string> = { M: 'millón', T: 'billón' };
+    const other: Record<string, string> = { M: 'millones', B: 'mil millones', T: 'billones' };
+    return (mantissa === 1 ? one[suffix] : undefined) ?? other[suffix] ?? suffix;
+  };
+
+  it('999 999.6 redondea a un millón y ya se escribe con nombre', () => {
+    expect(formatNumber(999999.6, 'es', 'names', nameEs)).toBe(`1${NBSP}millón`);
   });
 
-  it('un millón exacto se escribe «1.00 M» con espacio de no separación', () => {
-    expect(formatNumber(1e6, 'en')).toBe(`1.00${NBSP}M`);
-    expect(formatNumber(1e6, 'en')).not.toContain(' ');
+  it('sin ceros de relleno: 1.5e6 es «1,5 millones» y 2e9 «2 mil millones»', () => {
+    expect(formatNumber(1.5e6, 'es', 'names', nameEs)).toBe(`1,5${NBSP}millones`);
+    expect(formatNumber(2e9, 'es', 'names', nameEs)).toBe(`2${NBSP}mil millones`);
   });
 
-  it('la mantisa conserva tres cifras significativas: 1.23 B, 12.3 M y 123 M', () => {
-    // 1.234e9 / 1e9 = 1.234 → dos decimales → 1.23
-    expect(formatNumber(1.234e9, 'en')).toBe(`1.23${NBSP}B`);
-    // 12.345e6 / 1e6 = 12.345 → un decimal → 12.3
-    expect(formatNumber(12.345e6, 'en')).toBe(`12.3${NBSP}M`);
-    // 123.456e6 / 1e6 = 123.456 → sin decimales → 123
-    expect(formatNumber(123.456e6, 'en')).toBe(`123${NBSP}M`);
+  it('la mantisa conserva hasta tres cifras significativas: 1,23 / 12,3 / 123', () => {
+    expect(formatNumber(1.234e6, 'es', 'names', nameEs)).toBe(`1,23${NBSP}millones`);
+    expect(formatNumber(12.34e6, 'es', 'names', nameEs)).toBe(`12,3${NBSP}millones`);
+    expect(formatNumber(123.4e6, 'es', 'names', nameEs)).toBe(`123${NBSP}millones`);
   });
 
-  it('999.4 M se queda en M porque la mantisa redondea a 999', () => {
-    expect(formatNumber(999.4e6, 'en')).toBe(`999${NBSP}M`);
-  });
-
-  it('999.996 M redondea hacia arriba y pasa al sufijo siguiente: 1.00 B', () => {
-    // 999.996 sin decimales es 1000, que ya no cabe en M: 999.996e6 / 1e9 = 0.999996 → 1.00 B
-    expect(formatNumber(999.996e6, 'en')).toBe(`1.00${NBSP}B`);
-  });
-
-  it('cada potencia de mil desde 1e6 hasta 1e33 lleva su sufijo', () => {
-    const expected: [number, string][] = [
-      [1e6, 'M'],
-      [1e9, 'B'],
-      [1e12, 'T'],
-      [1e15, 'Qa'],
-      [1e18, 'Qi'],
-      [1e21, 'Sx'],
-      [1e24, 'Sp'],
-      [1e27, 'Oc'],
-      [1e30, 'No'],
-      [1e33, 'Dc'],
-    ];
-    for (const [value, suffix] of expected) {
-      expect(formatNumber(value, 'en')).toBe(`1.00${NBSP}${suffix}`);
-    }
-  });
-
-  it('en español la mantisa usa coma decimal: «1,23 M»', () => {
-    // 1.234e6 / 1e6 = 1.234 → 1,23
-    expect(formatNumber(1.234e6, 'es')).toBe(`1,23${NBSP}M`);
-    expect(formatNumber(1.234e9, 'es')).toBe(`1,23${NBSP}B`);
-  });
-
-  it('un negativo grande lleva el signo delante de la mantisa', () => {
-    // −1.5e6 → −1.50 M
-    expect(formatNumber(-1.5e6, 'en')).toBe(`−1.50${NBSP}M`);
+  it('sin función de nombres, la notación de nombres cae en los sufijos cortos', () => {
+    expect(formatNumber(1.5e9, 'en', 'names')).toBe(`1.5${NBSP}B`);
   });
 });
 
-describe('formatNumber: científica desde 1e36', () => {
-  it('9.999e35 redondea a 1.00e36 y, al no quedar sufijo, se escribe en científica', () => {
-    // 9.999e35 / 1e33 = 999.9 → 1000 Dc no existe; en científica 9.999 → 10.00 → 1.00e36
-    expect(formatNumber(9.999e35, 'en')).toBe('1.00e36');
+describe('formatNumber: sufijos cortos', () => {
+  it('un millón exacto se escribe «1 M», sin ceros de relleno', () => {
+    expect(formatNumber(1e6, 'en', 'suffix')).toBe(`1${NBSP}M`);
+    expect(formatNumber(999999.6, 'en', 'suffix')).toBe(`1${NBSP}M`);
   });
 
-  it('1e36 se escribe en científica aunque la notación sea de sufijos', () => {
-    expect(formatNumber(1e36, 'en', 'suffix')).toBe('1.00e36');
+  it('la mantisa conserva tres cifras significativas: 1.23 B, 12.3 M y 123 M', () => {
+    // 1.234e9 / 1e9 = 1.234 → 1.23; 12.34e6 / 1e6 = 12.34 → 12.3; 123.4e6 → 123
+    expect(formatNumber(1.234e9, 'en', 'suffix')).toBe(`1.23${NBSP}B`);
+    expect(formatNumber(12.34e6, 'en', 'suffix')).toBe(`12.3${NBSP}M`);
+    expect(formatNumber(123.4e6, 'en', 'suffix')).toBe(`123${NBSP}M`);
   });
 
-  it('por encima de 1e36 sigue siendo científica en cualquier notación', () => {
-    // 1.234e40 → 1.23e40
-    expect(formatNumber(1.234e40, 'en', 'suffix')).toBe('1.23e40');
-    expect(formatNumber(1.234e40, 'en', 'engineering')).toBe('1.23e40');
-    expect(formatNumber(1e300, 'en')).toBe('1.00e300');
+  it('999.996 M redondea hacia arriba y pasa al sufijo siguiente: 1 B', () => {
+    expect(formatNumber(999.996e6, 'en', 'suffix')).toBe(`1${NBSP}B`);
+  });
+
+  it('cada potencia de mil desde 1e6 hasta 1e63 lleva su sufijo', () => {
+    const expected = [
+      'M',
+      'B',
+      'T',
+      'Qa',
+      'Qi',
+      'Sx',
+      'Sp',
+      'Oc',
+      'No',
+      'Dc',
+      'Ud',
+      'Dd',
+      'Td',
+      'Qad',
+      'Qid',
+      'Sxd',
+      'Spd',
+      'Ocd',
+      'Nod',
+      'Vg',
+    ];
+    expected.forEach((suffix, i) => {
+      expect(formatNumber(10 ** (6 + 3 * i), 'en', 'suffix')).toBe(`1${NBSP}${suffix}`);
+    });
+  });
+
+  it('en español la mantisa usa coma decimal: «1,23 M»', () => {
+    expect(formatNumber(1.234e6, 'es', 'suffix')).toBe(`1,23${NBSP}M`);
+  });
+
+  it('un negativo grande lleva el signo delante de la mantisa', () => {
+    expect(formatNumber(-1.5e6, 'en', 'suffix')).toBe(`−1.5${NBSP}M`);
+  });
+});
+
+describe('formatNumber: científica desde 1e66', () => {
+  it('9.999e65 redondea a 1e66 y, al no quedar nombres, se escribe en científica', () => {
+    expect(formatNumber(9.999e65, 'en', 'suffix')).toBe('1e66');
+  });
+
+  it('1.23e70 se escribe en científica en cualquier notación', () => {
+    expect(formatNumber(1.234e70, 'en', 'suffix')).toBe('1.23e70');
+    expect(formatNumber(1.234e70, 'en', 'names')).toBe('1.23e70');
+    expect(formatNumber(1.234e70, 'en', 'engineering')).toBe('1.23e70');
   });
 
   it('la científica en español usa coma decimal', () => {
-    expect(formatNumber(1e36, 'es')).toBe('1,00e36');
+    expect(formatNumber(1.234e70, 'es', 'suffix')).toBe('1,23e70');
   });
 });
 
 describe('formatNumber: notaciones científica e ingeniería', () => {
-  it('en científica 1.5e6 se escribe «1.50e6»', () => {
-    expect(formatNumber(1.5e6, 'en', 'scientific')).toBe('1.50e6');
+  it('en científica 1.5e6 se escribe «1.5e6»', () => {
+    expect(formatNumber(1.5e6, 'en', 'scientific')).toBe('1.5e6');
   });
 
-  it('la científica corrige el redondeo a 10: 9.996e6 pasa a 1.00e7', () => {
-    // 9.996 con dos decimales es 10.00, que ya no es mantisa: 9.996e6 / 1e7 = 0.9996 → 1.00
-    expect(formatNumber(9.996e6, 'en', 'scientific')).toBe('1.00e7');
+  it('la científica corrige el redondeo a 10: 9.996e6 pasa a 1e7', () => {
+    expect(formatNumber(9.996e6, 'en', 'scientific')).toBe('1e7');
   });
 
-  it('en ingeniería 1.5e7 se escribe «15.0e6» (exponente múltiplo de 3)', () => {
-    // 1.5e7 / 1e6 = 15 → un decimal → 15.0
-    expect(formatNumber(1.5e7, 'en', 'engineering')).toBe('15.0e6');
+  it('en ingeniería 1.5e7 se escribe «15e6» (exponente múltiplo de 3)', () => {
+    expect(formatNumber(1.5e7, 'en', 'engineering')).toBe('15e6');
   });
 
-  it('en ingeniería 999.6e6 pasa a 1.00e9 en vez de mostrar «1000e6»', () => {
-    // 999.6 sin decimales es 1000: se sube a 1e9 → 0.9996 → 1.00
-    expect(formatNumber(999.6e6, 'en', 'engineering')).toBe('1.00e9');
+  it('en ingeniería 999.6e6 pasa a 1e9 en vez de mostrar «1000e6»', () => {
+    expect(formatNumber(999.6e6, 'en', 'engineering')).toBe('1e9');
   });
 
   it('la notación elegida no afecta a valores por debajo de 1e6', () => {
-    expect(formatNumber(999999, 'en', 'scientific')).toBe('999,999');
-    expect(formatNumber(12.34, 'en', 'engineering')).toBe('12.3');
+    expect(formatNumber(12345, 'en', 'scientific')).toBe('12,345');
+    expect(formatNumber(12345, 'en', 'engineering')).toBe('12,345');
   });
 });
 
@@ -210,13 +225,13 @@ describe('suffixFor', () => {
     expect(suffixFor(1e6)).toBe('M');
     expect(suffixFor(1.234e9)).toBe('B');
     expect(suffixFor(1e33)).toBe('Dc');
+    expect(suffixFor(1e63)).toBe('Vg');
   });
 
-  it('no hay sufijo por debajo de 1e6 ni desde 1e36', () => {
+  it('no hay sufijo por debajo de 1e6 ni desde 1e66', () => {
     expect(suffixFor(999999)).toBeNull();
-    expect(suffixFor(1e36)).toBeNull();
-    // 9.999e35 se escribe «1.00e36»: tampoco lleva sufijo
-    expect(suffixFor(9.999e35)).toBeNull();
+    expect(suffixFor(1e66)).toBeNull();
+    expect(suffixFor(9.999e65)).toBeNull();
     expect(suffixFor(Number.POSITIVE_INFINITY)).toBeNull();
   });
 
@@ -224,26 +239,27 @@ describe('suffixFor', () => {
     expect(suffixFor(999.996e6)).toBe('B');
   });
 
-  // BUG-JOURNAL #1: formatNumber escribe 999 999.6 como «1.00 M», y suffixFor lo descartaba
-  // antes de redondear, así que ese «1.00 M» se quedaba sin tooltip.
+  // BUG-JOURNAL #1: formatNumber escribe 999 999.6 como «1 M», y suffixFor lo descartaba
+  // antes de redondear, así que ese «1 M» se quedaba sin tooltip.
   it('el sufijo de 999 999.6 coincide con el «M» que muestra el formato', () => {
     expect(suffixFor(999999.6)).toBe('M');
   });
 });
 
-describe('formatScientific', () => {
-  it('da la notación científica completa con el separador del idioma', () => {
-    // 1.5e9 → mantisa 1.5 con dos decimales
-    expect(formatScientific(1.5e9, 'es')).toBe('1,50e9');
-    expect(formatScientific(1.5e9, 'en')).toBe('1.50e9');
-  });
-
-  it('el cero no se escribe en científica', () => {
-    expect(formatScientific(0, 'es')).toBe('0');
+describe('formatScientific y formatExact', () => {
+  it('da la notación científica con el separador del idioma', () => {
+    expect(formatScientific(1.5e9, 'es')).toBe('1,5e9');
+    expect(formatScientific(1.5e9, 'en')).toBe('1.5e9');
   });
 
   it('los negativos llevan el signo menos tipográfico', () => {
-    expect(formatScientific(-2e6, 'en')).toBe('−2.00e6');
+    expect(formatScientific(-2.5e7, 'en')).toBe('−2.5e7');
+  });
+
+  it('la cifra exacta se escribe entera con separadores hasta 1e21', () => {
+    expect(formatExact(1234567890, 'en')).toBe('1,234,567,890');
+    expect(formatExact(1234567890, 'es')).toBe('1.234.567.890');
+    expect(formatExact(2.5e21, 'en')).toBe('2.5e21');
   });
 });
 
@@ -396,46 +412,54 @@ describe('tp', () => {
 });
 
 describe('fmt', () => {
-  it('usa el idioma y la notación activos', () => {
+  it('por defecto escribe el nombre del orden de magnitud en el idioma activo', () => {
+    setLocale('es');
+    setNotation('names');
+    expect(fmt(1.5e6)).toBe(`1,5${NBSP}millones`);
+    expect(fmt(1e6)).toBe(`1${NBSP}millón`);
+    expect(fmt(2.3e9)).toBe(`2,3${NBSP}mil millones`);
+    expect(fmt(4e12)).toBe(`4${NBSP}billones`);
+    setLocale('en');
+    expect(fmt(1.5e6)).toBe(`1.5${NBSP}Million`);
+    expect(fmt(2.3e9)).toBe(`2.3${NBSP}Billion`);
+    expect(fmt(1e63)).toBe(`1${NBSP}Vigintillion`);
+  });
+
+  it('respeta la notación elegida', () => {
     setLocale('es');
     setNotation('engineering');
-    // 1.5e7 / 1e6 = 15 → 15,0e6
-    expect(fmt(1.5e7)).toBe('15,0e6');
+    expect(fmt(1.5e7)).toBe('15e6');
     setLocale('en');
     setNotation('suffix');
-    expect(fmt(1.5e9)).toBe(`1.50${NBSP}B`);
+    expect(fmt(1.5e9)).toBe(`1.5${NBSP}B`);
   });
 });
 
 describe('numberTooltip', () => {
-  it('en español da la científica y el nombre largo «mil millones» para 1.5e9', () => {
+  it('con nombres, el tooltip da la cifra entera', () => {
     setLocale('es');
-    const tooltip = numberTooltip(1.5e9);
-    expect(tooltip).toContain('1,50e9');
-    expect(tooltip).toContain('mil millones');
-    expect(tooltip).toBe('1,50e9 · mil millones');
+    setNotation('names');
+    expect(numberTooltip(1.5e9)).toBe('1.500.000.000');
   });
 
-  it('el nombre largo sigue al idioma activo', () => {
+  it('con sufijos cortos, da la cifra entera y el nombre largo «mil millones»', () => {
+    setLocale('es');
+    setNotation('suffix');
+    expect(numberTooltip(1.5e9)).toBe('1.500.000.000 · mil millones');
     setLocale('en');
-    expect(numberTooltip(1.5e9)).toBe(`1.50e9 · ${en['num.long.B']}`);
+    expect(numberTooltip(1.5e9)).toBe(`1,500,000,000 · ${en['num.name.B.other']}`);
   });
 
-  it('el último sufijo, Dc, también tiene nombre largo', () => {
+  it('el último nombre, el de 1e63, también existe', () => {
     setLocale('es');
-    expect(numberTooltip(1e33)).toBe('1,00e33 · mil quintillones');
+    setNotation('suffix');
+    expect(numberTooltip(1e63)).toBe('1e63 · mil decillones');
   });
 
   it('no hay tooltip para números que se muestran completos ni en científica', () => {
     setLocale('es');
     expect(numberTooltip(999999)).toBeNull();
-    expect(numberTooltip(1e36)).toBeNull();
-  });
-
-  it('con notación científica elegida el tooltip no añade nada', () => {
-    setLocale('es');
-    setNotation('scientific');
-    expect(numberTooltip(1.5e9)).toBeNull();
+    expect(numberTooltip(1e66)).toBeNull();
   });
 });
 
