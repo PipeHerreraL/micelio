@@ -1,6 +1,6 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 0.2.0._
+_Actualizado: 2026-10-01. Versión 0.3.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -20,7 +20,7 @@ bloque de trabajo, no en cada commit.
 | 0    | Plan, documentos raíz, repositorio y CI                                              | hecho          |
 | 1    | Núcleo jugable: estado, bucle, clic, 8 generadores, formato, guardado, offline, sim  | hecho (v0.1.0) |
 | 2    | Profundidad: mejoras, hitos, sinergias, logros, lluvia, estadísticas, noticias       | hecho (v0.2.0) |
-| 3    | Prestigio: Esporular, mutaciones, generadores 9 y 10, autocompra                     | sin empezar    |
+| 3    | Prestigio: Esporular, mutaciones, generadores 9 y 10, autocompra                     | hecho (v0.3.0) |
 | 4    | Pulido: canvas, sonido, responsive, accesibilidad, ajustes, exportar, inglés         | sin empezar    |
 | 5    | Balance y entrega: campaña en el simulador, BALANCE.md, README, GitHub Pages, v1.0.0 | sin empezar    |
 
@@ -102,22 +102,20 @@ El guardado envuelve el estado: `{ version, savedAt, state }` en `localStorage['
 
 ## Lo último que se hizo
 
-- **Fase 2 cerrada.** Pestañas Mejoras, Logros y Estadísticas; gota de lluvia como botón con
-  sus efectos y avisos; noticias del sotobosque; avisos de primera vez en contexto.
-- **Números con nombres de juego idle** a pedido del usuario: «1,5 millones», «1.5 Million»,
-  hasta 1e63, sin ceros de relleno (ARCHITECTURE.md §4.24). Guardado en versión 2 con migración.
-- Revisión adversarial de las fases 1 y 2: 21 hallazgos confirmados y corregidos; seis entran
-  en el diario de bugs (#2 a #7), dos con prueba de regresión y cuatro sin prueba automática
-  (requieren DOM o navegador: ver la tabla del diario).
-- 365 pruebas en verde; el simulador sigue cumpliendo 18 de 18 objetivos.
+- **Fase 3 cerrada.** Pestaña Esporular (esporas ahora, lo que falta para la siguiente,
+  progreso y confirmación con ganancia, bono actual frente al nuevo y lo que se pierde) y árbol
+  de mutaciones dibujado con conexiones y nodos en silueta. Generadores 9 y 10 con sus
+  desbloqueos; autocompra con interruptor por generador, umbral y mejoras.
+- Probado a mano en el navegador: esporular, comprar mutaciones y recargar. Prueba automática:
+  «se esporula, se compran mutaciones y todo sobrevive a una recarga».
+- Fase 2 cerrada antes (v0.2.0), con los números en formato de juego idle.
 
 ## Lo que sigue, en orden
 
-1. **Fase 3 — Prestigio:** pestañas Esporular y Mutaciones (ya escritas y probadas a mano),
-   generadores 9 y 10, autocompra en la interfaz.
-2. **Fase 4 — Pulido:** canvas de la red y sonido (módulos en construcción), Ajustes con
-   exportar/importar, responsive fino, accesibilidad y zoom al 200 %.
-3. **Fase 5 — Entrega:** revisión final, README, v1.0.0.
+1. **Fase 4 — Pulido:** integrar el canvas de la red y el sonido (módulos en construcción en
+   paralelo), pestaña Ajustes con exportar/importar y borrar partida (escrita), responsive fino,
+   accesibilidad y zoom al 200 %, movimiento reducido.
+2. **Fase 5 — Entrega:** revisión final adversarial, README, v1.0.0.
 
 ## Deuda conocida
 
