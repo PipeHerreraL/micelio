@@ -4,7 +4,7 @@
  * el ancho (escritorio, tableta, móvil); el DOM es el mismo.
  */
 import { availableUpgrades } from '../core/economy.ts';
-import type { GameState } from '../core/state.ts';
+import { hasSeen, type GameState } from '../core/state.ts';
 import { GENERATORS } from '../data/generators.ts';
 import { SPORULATE_REQUIREMENT, SPORULATE_TAB_REVEAL } from '../data/prestige.ts';
 import * as num from '../core/num.ts';
@@ -127,7 +127,9 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
       hud.update();
       tabs.update();
       drop.update();
-      const fresh = !anyGeneratorVisible(state);
+      // Interfaz de partida nueva: sin pestañas hasta el primer generador, salvo que Ajustes
+      // ya estuviera a mano (después de borrar la partida).
+      const fresh = !anyGeneratorVisible(state) && !hasSeen(state, 'tab.settings');
       main.classList.toggle('layout--fresh', fresh);
       if (!fresh) news.update(state, now);
     },

@@ -197,11 +197,14 @@ const settingsServices: SettingsServices = {
     // Los ajustes (idioma, sonido, movimiento) se conservan: son del jugador, no de la partida.
     const fresh = createState(randomSeed(), Date.now());
     fresh.settings = { ...store.state.settings };
+    // Ajustes sigue a mano tras borrar: quien borra suele querer importar un respaldo, y sin
+    // esto la interfaz volvía a la de partida nueva, sin pestañas (BUG-JOURNAL #13).
+    fresh.seen = ['tab.settings', 'tabVisited.settings'];
     store.replace(fresh);
     // Borrar también es decidir empezar de nuevo sobre un guardado dañado.
     liftCorruptBlock();
     const saved = saveNow();
-    currentTab = 'generators';
+    currentTab = 'settings';
     rebuildApp();
     // El botón de borrar se fue con la interfaz vieja: sin esto el foco cae en <body> y el
     // siguiente Espacio absorbe sin que el jugador sepa dónde está.
