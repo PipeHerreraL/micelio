@@ -23,7 +23,7 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 5.4 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 5.8 s de cómputo). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -81,8 +81,8 @@ Perfil activo salvo que se indique otro. Tiempos de juego en min:s; mediana de l
 | 6   | `mycorrhiza`    | 1,8 millones    | 1800                  | inicio                  |
 | 7   | `motherTree`    | 22 millones     | 10.500                | inicio                  |
 | 8   | `ancientForest` | 300 millones    | 65.000                | inicio                  |
-| 9   | `malheur`       | 5 mil millones  | 420.000               | 1 esporulación          |
-| 10  | `planetary`     | 90 mil millones | 2,9 millones          | mutación `beyondForest` |
+| 9   | `malheur`       | 5 mil millones  | 420.000               | 1 esporulación          |
+| 10  | `planetary`     | 90 mil millones | 2,9 millones          | mutación `beyondForest` |
 
 Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/upgrades.ts`.
 

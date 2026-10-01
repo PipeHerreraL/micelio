@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 0.3.0._
+_Actualizado: 2026-10-01. Versión 0.4.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 12 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -21,105 +21,43 @@ bloque de trabajo, no en cada commit.
 | 1    | Núcleo jugable: estado, bucle, clic, 8 generadores, formato, guardado, offline, sim  | hecho (v0.1.0) |
 | 2    | Profundidad: mejoras, hitos, sinergias, logros, lluvia, estadísticas, noticias       | hecho (v0.2.0) |
 | 3    | Prestigio: Esporular, mutaciones, generadores 9 y 10, autocompra                     | hecho (v0.3.0) |
-| 4    | Pulido: canvas, sonido, responsive, accesibilidad, ajustes, exportar, inglés         | sin empezar    |
-| 5    | Balance y entrega: campaña en el simulador, BALANCE.md, README, GitHub Pages, v1.0.0 | sin empezar    |
+| 4    | Pulido: canvas, sonido, responsive, accesibilidad, ajustes, exportar, inglés         | hecho (v0.4.0) |
+| 5    | Balance y entrega: campaña en el simulador, BALANCE.md, README, GitHub Pages, v1.0.0 | en curso       |
 
-## Plan antes de escribir código
+## Modelo de `GameState`
 
-### Modelo de `GameState`
-
-Un único objeto plano, serializable con `JSON.stringify`, sin clases ni funciones.
-Los valores derivados (N/s, valor del clic, multiplicadores) **no** viven aquí:
-se calculan en `src/core/selectors.ts` con caché por estado e invalidación explícita.
-
-```ts
-type GeneratorId =
-  | 'hypha'
-  | 'rhizomorph'
-  | 'primordium'
-  | 'mushroom'
-  | 'fairyRing'
-  | 'mycorrhiza'
-  | 'motherTree'
-  | 'ancientForest'
-  | 'malheur'
-  | 'planetary';
-
-interface GameState {
-  nutrients: number; // N actuales (tipo Num de src/core/num.ts)
-  runEarned: number; // N ganados en la partida
-  lifetimeEarned: number; // N ganados en toda la vida
-  owned: Record<GeneratorId, number>;
-  upgrades: string[]; // mejoras compradas en la partida
-  spores: { level: number; available: number };
-  mutations: string[]; // permanentes
-  achievements: string[]; // permanentes
-  effects: { kind: 'downpour' | 'storm'; remaining: number; duration: number }[];
-  rain: { nextIn: number; drop: { x: number; y: number; remaining: number } | null };
-  autobuy: {
-    generators: Record<GeneratorId, boolean>;
-    threshold: 0.1 | 0.5 | 1;
-    upgrades: boolean;
-    timer: number;
-  };
-  stats: {
-    runTime: number;
-    totalTime: number; // segundos jugados
-    startedAt: number;
-    runStartedAt: number; // marcas de tiempo (ms)
-    maxNps: number;
-    clicks: number;
-    drops: number;
-    sporulations: number;
-    idleClickTime: number; // segundos activos sin clic
-  };
-  settings: {
-    locale: 'es' | 'en' | null; // null = detectar
-    notation: 'suffix' | 'scientific' | 'engineering';
-    sound: boolean;
-    volume: number;
-    reducedMotion: boolean;
-    buyAmount: 1 | 10 | 100 | 'max';
-  };
-  seen: string[]; // revelación progresiva y avisos de primera vez
-  rngSeed: number; // estado del generador con semilla (mulberry32)
-}
-```
-
-El guardado envuelve el estado: `{ version, savedAt, state }` en `localStorage['micelio:save']`.
-
-### Archivos y orden
-
-1. Documentos raíz, configuración (Vite, TS estricto, ESLint, Prettier, Vitest), CI y repositorio.
-2. `src/core/num.ts`, `rng.ts`, `state.ts`, `formulas.ts`, `selectors.ts`, `events.ts`, `actions.ts`, `tick.ts`.
-3. `src/data/generators.ts` (luego `upgrades.ts`, `achievements.ts`, `mutations.ts`, `news.ts`, `rain.ts`).
-4. `src/i18n/es.ts`, `en.ts`, `index.ts` (traducción) y `format.ts` (números, duraciones, fechas).
-5. `src/systems/save.ts`, `offline.ts` (luego `rain.ts`, `autobuy.ts`, `achievements.ts`).
-6. `src/ui/` (componentes mínimos, pestañas, tooltips, modales, avisos), `src/main.ts` (arranque y bucle).
-7. `scripts/simulate.ts` con el perfil activo.
-8. `tests/` por cada fórmula del núcleo.
-9. Fases 2 a 5 en el orden de la tabla de arriba.
+Un único objeto plano y serializable; la definición al día está en `src/core/state.ts`. Los
+valores derivados (N/s, valor del clic, multiplicadores) no viven en el estado: se calculan en
+`src/core/selectors.ts` con caché por estado e invalidación explícita (ARCHITECTURE.md §4.6).
+El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 2.
 
 ## Lo último que se hizo
 
-- **Fase 3 cerrada.** Pestaña Esporular (esporas ahora, lo que falta para la siguiente,
-  progreso y confirmación con ganancia, bono actual frente al nuevo y lo que se pierde) y árbol
-  de mutaciones dibujado con conexiones y nodos en silueta. Generadores 9 y 10 con sus
-  desbloqueos; autocompra con interruptor por generador, umbral y mejoras.
-- Probado a mano en el navegador: esporular, comprar mutaciones y recargar. Prueba automática:
-  «se esporula, se compran mutaciones y todo sobrevive a una recarga».
-- Fase 2 cerrada antes (v0.2.0), con los números en formato de juego idle.
+- **Fase 4 cerrada.** Canvas de la red (corte del suelo, ramificación con semilla, setas,
+  anillos y árboles madre, pulsos, lluvia, esporulación orquestada) y sonido sintetizado.
+  Pestaña Ajustes con idioma y notación al instante, sonido y volumen, reducir movimiento,
+  exportar e importar con confirmación y borrar partida.
+- **Revisión adversarial final** (6 dimensiones, 54 hallazgos, 36 confirmados y corregidos):
+  accesibilidad con teclado, avisos detrás de modales, textos que concuerdan, guardado
+  bloqueado, columnas de escritorio, cifras tabulares. Bugs #8 a #12 en el diario.
+- **Definición de terminado, partida real con el acelerador de desarrollo** (×1000): cinco
+  esporulaciones seguidas, diez mutaciones compradas y nueve gotas atrapadas sin errores; la
+  consola del build de producción queda limpia.
+- 374 pruebas en verde; el simulador cumple 18 de 18 objetivos; JS de 52 kB comprimido.
 
 ## Lo que sigue, en orden
 
-1. **Fase 4 — Pulido:** integrar el canvas de la red y el sonido (módulos en construcción en
-   paralelo), pestaña Ajustes con exportar/importar y borrar partida (escrita), responsive fino,
-   accesibilidad y zoom al 200 %, movimiento reducido.
-2. **Fase 5 — Entrega:** revisión final adversarial, README, v1.0.0.
+1. **Cerrar la fase 5** con `v1.0.0`: el balance, el README y Pages ya están al día.
+2. **Probar en Firefox y Safari reales** (escritorio y móvil): solo se probó en Chromium.
+3. **Cubrir con pruebas** los bugs de la tabla «sin nada que los sostenga» del diario: casi todos
+   piden una prueba de navegador (Playwright sería la herramienta; hoy no es dependencia).
 
 ## Deuda conocida
 
-- Ninguna todavía.
+- Sin pruebas de navegador reales: los bugs #4, #6, #7, #9, #10, #11 y #12 solo están cubiertos
+  por revisión manual.
+- Los 60 fps se midieron como coste de JS por frame (0,06 ms de media en el canvas), no con un
+  perfil de navegador en un móvil de gama media.
 
 ## Cómo se entrega el trabajo
 

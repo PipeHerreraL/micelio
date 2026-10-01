@@ -1,6 +1,6 @@
 {
   "name": "micelio",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Juego idle para navegador: una red de hongos que crece bajo el suelo del bosque.",
   "license": "MIT",
