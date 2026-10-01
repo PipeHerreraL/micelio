@@ -141,15 +141,29 @@ interface RunRecord {
 
 interface CampaignResult {
   runs: RunRecord[];
+  /** Esporas disponibles sin gastar al terminar la campaña. */
+  unspent: number;
+  /** Esporas ganadas en toda la campaña. */
+  earnedSpores: number;
   /** Tiempo acumulado (s) hasta el primer Gigante de Malheur. */
   firstMalheurAt: number | null;
   maxValue: number;
 }
 
+/**
+ * Cuándo esporula la campaña:
+ * - doubling: cuando la ganancia es al menos max(10, nivel actual) (PROMPT.md §17). Duplica el
+ *   nivel en cada partida, así que es la regla más agresiva.
+ * - rate: cuando las esporas por minuto de la partida dejan de subir, que es lo que haría un
+ *   jugador que optimiza (docs/ROADMAP.md, fase 6).
+ */
+type SporulatePolicy = 'doubling' | 'rate';
+
 interface RunOptions {
   profile: Profile;
   /** Cuándo termina la partida: al poder esporular (partida suelta) o según la campaña. */
   stopWhen: 'available' | 'campaign';
+  policy?: SporulatePolicy;
   maxSeconds: number;
   elapsedBefore: number;
   onMalheur?: (cumulative: number) => void;
@@ -168,6 +182,9 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
     maxValue: 0,
   };
   for (const def of GENERATORS) if (state.owned[def.id] > 0) record.firstOwned[def.id] = 0;
+  // Política «rate»: el mejor ritmo de esporas por segundo visto en esta partida.
+  let bestRate = 0;
+  let bestAt = 0;
 
   for (let t = 0; t < options.maxSeconds; t += 1) {
     const cps = options.profile.clicksPerSecond(t);
@@ -196,8 +213,20 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
     }
     if (options.stopWhen === 'campaign' && canSporulate(state)) {
       const gain = sporeGain(state);
-      // La campaña esporula cuando la ganancia es al menos max(10, nivel actual).
-      if (gain >= Math.max(10, state.spores.level)) {
+      let go: boolean;
+      if (options.policy === 'rate') {
+        // Esporula cuando el ritmo lleva 30 s por debajo de su máximo: ya pasó el pico.
+        const rate = gain / (t + 1);
+        if (rate > bestRate) {
+          bestRate = rate;
+          bestAt = t + 1;
+        }
+        go = gain >= 1 && rate < bestRate * 0.995 && t + 1 - bestAt >= 30;
+      } else {
+        // La campaña esporula cuando la ganancia es al menos max(10, nivel actual).
+        go = gain >= Math.max(10, state.spores.level);
+      }
+      if (go) {
         record.duration = t + 1;
         record.sporesGained = gain;
         sporulate(state, { now: START_TIME + (options.elapsedBefore + t + 1) * 1000 });
@@ -222,7 +251,7 @@ function firstRun(seed: number, profile: Profile): RunRecord {
 }
 
 /** Campaña: esporula según la regla y compra mutaciones en orden, hasta `sporulations`. */
-function campaign(seed: number, sporulations: number): CampaignResult {
+function campaign(seed: number, sporulations: number, policy: SporulatePolicy = 'doubling'): CampaignResult {
   const state = newGame(seed);
   const runs: RunRecord[] = [];
   let elapsed = 0;
@@ -232,6 +261,7 @@ function campaign(seed: number, sporulations: number): CampaignResult {
     const run = playRun(state, {
       profile: PROFILES.active,
       stopWhen: 'campaign',
+      policy,
       maxSeconds: 12 * 3600,
       elapsedBefore: elapsed,
       onMalheur: (at) => {
@@ -244,7 +274,13 @@ function campaign(seed: number, sporulations: number): CampaignResult {
     if (run.sporesGained === 0) break;
     buyMutationsInOrder(state);
   }
-  return { runs, firstMalheurAt, maxValue };
+  return {
+    runs,
+    firstMalheurAt,
+    maxValue,
+    unspent: state.spores.available,
+    earnedSpores: runs.reduce((sum, r) => sum + r.sporesGained, 0),
+  };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -308,6 +344,10 @@ const started = performance.now();
 const active = SEEDS.map((seed) => firstRun(seed, PROFILES.active));
 const passive = SEEDS.map((seed) => firstRun(seed, PROFILES.passive));
 const campaigns = SEEDS.map((seed) => campaign(seed, 10));
+// Campañas largas: 20 esporulaciones con cada política, para ver el final del juego.
+const LONG_RUNS = 20;
+const longDoubling = SEEDS.map((seed) => campaign(seed, LONG_RUNS, 'doubling'));
+const longRate = SEEDS.map((seed) => campaign(seed, LONG_RUNS, 'rate'));
 
 const first = (id: GeneratorId) => active.map((r) => r.firstOwned[id] ?? null);
 const run1Available = active.map((r) => r.sporulateAvailableAt);
@@ -431,6 +471,30 @@ const generatorTable = [
 
 const upgradeCount = UPGRADES.length;
 
+/** Mediana de la duración de la partida i y de las horas acumuladas hasta su final. */
+function longColumn(results: readonly CampaignResult[], i: number): { duration: string; hours: string } {
+  const durations = results.map((c) => c.runs[i]?.duration).filter((d): d is number => d !== undefined);
+  const cumulative = results
+    .filter((c) => c.runs.length > i)
+    .map((c) => c.runs.slice(0, i + 1).reduce((sum, r) => sum + r.duration, 0));
+  return { duration: clock(median(durations)), hours: hours(median(cumulative)) };
+}
+
+const longTable = [
+  '| Partida | Regla max(10, nivel): duración | Acumulado | Regla del mejor ritmo: duración | Acumulado |',
+  '| ------- | ------------------------------ | --------- | ------------------------------- | --------- |',
+];
+for (let i = 0; i < LONG_RUNS; i += 1) {
+  const a = longColumn(longDoubling, i);
+  const b = longColumn(longRate, i);
+  longTable.push(`| ${i + 1} | ${a.duration} | ${a.hours} | ${b.duration} | ${b.hours} |`);
+}
+const unspentShare = (results: readonly CampaignResult[]): string => {
+  const shares = results.map((c) => (c.earnedSpores > 0 ? c.unspent / c.earnedSpores : 0));
+  return `${Math.round(median(shares) * 100)} %`;
+};
+const longCeiling = Math.max(...longDoubling.map((c) => c.maxValue), ...longRate.map((c) => c.maxValue));
+
 const block = [
   '<!-- sim:start -->',
   '',
@@ -451,6 +515,14 @@ const block = [
   '### Campaña (perfil activo, 10 esporulaciones)',
   '',
   ...campaignTable,
+  '',
+  `### Campaña larga (perfil activo, ${LONG_RUNS} esporulaciones)`,
+  '',
+  'Mediana de 9 semillas por partida. La regla max(10, nivel) es la de PROMPT.md §17; la del mejor ritmo esporula cuando las esporas por minuto de la partida dejan de subir.',
+  '',
+  ...longTable,
+  '',
+  `Esporas sin gastar al final (mediana, sobre las ganadas): ${unspentShare(longDoubling)} con max(10, nivel) y ${unspentShare(longRate)} con el mejor ritmo. Techo de las campañas largas: ${fmt(longCeiling)} N.`,
   '',
   '### Generadores',
   '',

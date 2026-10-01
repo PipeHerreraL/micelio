@@ -23,7 +23,7 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 5.8 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 19.6 s de cómputo). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -68,6 +68,35 @@ Perfil activo salvo que se indique otro. Tiempos de juego en min:s; mediana de l
 | 8       | 10:26              | 972                       | 962              | 12                    |
 | 9       | 8:00               | 2028                      | 1941             | 12                    |
 | 10      | 5:53               | 4083                      | 4037             | 12                    |
+
+### Campaña larga (perfil activo, 20 esporulaciones)
+
+Mediana de 9 semillas por partida. La regla max(10, nivel) es la de PROMPT.md §17; la del mejor ritmo esporula cuando las esporas por minuto de la partida dejan de subir.
+
+| Partida | Regla max(10, nivel): duración | Acumulado | Regla del mejor ritmo: duración | Acumulado |
+| ------- | ------------------------------ | --------- | ------------------------------- | --------- |
+| 1       | 40:56                          | 0.68 h    | 42:08                           | 0.70 h    |
+| 2       | 27:29                          | 1.14 h    | 22:19                           | 1.03 h    |
+| 3       | 29:52                          | 1.59 h    | 20:27                           | 1.36 h    |
+| 4       | 29:46                          | 2.13 h    | 20:07                           | 1.68 h    |
+| 5       | 27:54                          | 2.45 h    | 17:08                           | 2.04 h    |
+| 6       | 16:30                          | 2.78 h    | 22:42                           | 2.33 h    |
+| 7       | 13:51                          | 3.00 h    | 16:35                           | 2.56 h    |
+| 8       | 10:26                          | 3.24 h    | 15:11                           | 2.80 h    |
+| 9       | 8:00                           | 3.33 h    | 12:48                           | 3.11 h    |
+| 10      | 5:53                           | 3.42 h    | 14:52                           | 3.33 h    |
+| 11      | 5:28                           | 3.50 h    | 12:40                           | 3.55 h    |
+| 12      | 3:29                           | 3.57 h    | 12:03                           | 3.70 h    |
+| 13      | 3:58                           | 3.65 h    | 11:03                           | 3.91 h    |
+| 14      | 2:59                           | 3.74 h    | 9:46                            | 4.10 h    |
+| 15      | 2:46                           | 3.79 h    | 9:40                            | 4.24 h    |
+| 16      | 3:13                           | 3.83 h    | 10:05                           | 4.33 h    |
+| 17      | 4:12                           | 3.91 h    | 9:56                            | 4.56 h    |
+| 18      | 6:01                           | 4.01 h    | 8:49                            | 4.71 h    |
+| 19      | 7:04                           | 4.10 h    | 9:44                            | 4.87 h    |
+| 20      | 11:24                          | 4.27 h    | 11:57                           | 5.02 h    |
+
+Esporas sin gastar al final (mediana, sobre las ganadas): 100 % con max(10, nivel) y 24 % con el mejor ritmo. Techo de las campañas largas: 41,7 trillones N.
 
 ### Generadores
 
