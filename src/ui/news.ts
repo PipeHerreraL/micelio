@@ -49,17 +49,23 @@ export function createNewsTicker(): NewsTicker {
   const text = h('p', { class: 'news__text' });
   const root = h('div', { class: 'news' }, [h('p', { class: 'news__label', text: t('news.label') }), text]);
   let nextAt = 0;
+  /** Cuándo se puede volver a pedir los textos: tras un fallo, no antes del turno siguiente. */
+  let retryAt = 0;
   const recent: string[] = [];
 
   return {
     root,
     update(state, now) {
       if (now < nextAt) return;
-      // Los textos llegan aparte (i18n/news): hasta que haya alguno, se vuelve a mirar en el
-      // siguiente refresco sin gastar el turno de la noticia.
+      // Los textos llegan aparte (i18n/news). Hasta que lleguen los del idioma activo no se gasta
+      // el turno de la noticia ni sale una en el idioma anterior; se vuelve a mirar en el
+      // siguiente refresco. Una descarga fallida no se repite en cada refresco (BUG-JOURNAL #17).
       const locale = getLocale();
-      if (!isNewsCatalogReady(locale)) void ensureNewsCatalog(locale).catch(() => undefined);
-      if (newsText(NEWS[0]?.id ?? '', state.forest.biome) === '') return;
+      if (!isNewsCatalogReady(locale) && now >= retryAt) {
+        retryAt = now + NEWS_INTERVAL * 1000;
+        void ensureNewsCatalog(locale).catch(() => undefined);
+      }
+      if (!isNewsCatalogReady(locale)) return;
       nextAt = now + NEWS_INTERVAL * 1000;
       const pool = NEWS.filter((n) => unlocked(state, n));
       // Al azar entre las desbloqueadas, evitando repetir las últimas que se vieron. En un bioma,
