@@ -1,6 +1,7 @@
 /**
  * Pestaña Estadísticas (PROMPT.md §13): nutrientes de la partida y de vida, N/s máximo,
- * clics, gotas, esporulaciones, tiempo jugado (partida y total) y fecha de inicio.
+ * clics, gotas, esporulaciones, tiempo jugado (partida y total) y fecha de inicio. Con el
+ * plasmodio (fase 9), una sección suya: Rastro ganado, placas cartografiadas y pulsos dados.
  */
 import { formatDate, formatDuration } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, numberTooltip, t, tp, type MessageKey } from '../i18n/index.ts';
@@ -8,6 +9,8 @@ import type { GameState } from '../core/state.ts';
 import { Disposer, h, setHidden, setText } from './dom.ts';
 import { focusableWhileTooltip } from './hud.ts';
 import { isActOneClosed } from '../core/forest.ts';
+import { PLATES } from '../data/plasmodium-plates.ts';
+import { mappedCount, type PlasmodiumState } from '../partners/plasmodium/state.ts';
 import { biomeName } from './biome-text.ts';
 import { visibleAchievements } from './tab-achievements.ts';
 import type { Store } from './store.ts';
@@ -49,6 +52,21 @@ const ROWS: readonly StatRow[] = [
   { label: 'stats.startedAt', value: (s) => formatDate(s.stats.startedAt, getLocale()) },
 ];
 
+interface PartnerRow {
+  label: MessageKey;
+  value: (p: PlasmodiumState) => string;
+  raw?: (p: PlasmodiumState) => number;
+}
+
+const PLASMODIUM_ROWS: readonly PartnerRow[] = [
+  { label: 'stats.plasmodium.trailEarned', value: (p) => fmt(p.trailEarned), raw: (p) => p.trailEarned },
+  {
+    label: 'stats.plasmodium.plates',
+    value: (p) => `${formatCount(mappedCount(p))} / ${formatCount(PLATES.length)}`,
+  },
+  { label: 'stats.plasmodium.pulses', value: (p) => formatCount(p.stats.pulses) },
+];
+
 export function createStatsTab(store: Store): TabView {
   const disposer = new Disposer();
   const values: HTMLElement[] = [];
@@ -68,6 +86,46 @@ export function createStatsTab(store: Store): TabView {
       return [label, value];
     }),
   );
+  // Plasmodio: solo con el socio en la partida.
+  const partnerValues: HTMLElement[] = [];
+  const partnerTitle = h('h3', {
+    class: 'settings__title history__title',
+    text: t('stats.plasmodium'),
+    attrs: { hidden: true },
+  });
+  const partnerList = h(
+    'dl',
+    { class: 'stats', attrs: { hidden: true } },
+    PLASMODIUM_ROWS.flatMap((row) => {
+      const value = h('dd', { class: 'stats__value tabular' });
+      partnerValues.push(value);
+      if (row.raw) {
+        const raw = row.raw;
+        attachTooltip(
+          value,
+          () => {
+            const p = store.state.partners.plasmodium;
+            return p ? numberTooltip(raw(p)) : null;
+          },
+          disposer,
+        );
+      }
+      return [h('dt', { class: 'stats__label', text: t(row.label) }), value];
+    }),
+  );
+  const updatePartner = (state: GameState): void => {
+    const p = state.partners.plasmodium;
+    setHidden(partnerTitle, p === null);
+    setHidden(partnerList, p === null);
+    if (p === null) return;
+    PLASMODIUM_ROWS.forEach((row, i) => {
+      const node = partnerValues[i];
+      if (!node) return;
+      setText(node, row.value(p));
+      if (row.raw) focusableWhileTooltip(node, numberTooltip(row.raw(p)) !== null);
+    });
+  };
+
   // Últimas partidas: se rehace solo cuando termina una (cambia la longitud del historial).
   const historyList = h('ol', { class: 'history' });
   const historyEmpty = h('p', { class: 'tab__intro', text: t('stats.history.empty') });
@@ -91,6 +149,8 @@ export function createStatsTab(store: Store): TabView {
   const root = h('div', { class: 'tab tab--stats' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('stats.title') })]),
     list,
+    partnerTitle,
+    partnerList,
     h('h3', { class: 'settings__title history__title', text: t('stats.history.title') }),
     historyEmpty,
     historyList,
@@ -110,6 +170,7 @@ export function createStatsTab(store: Store): TabView {
         setText(node, row.value(store.state));
         if (row.raw) focusableWhileTooltip(node, numberTooltip(row.raw(store.state)) !== null);
       });
+      updatePartner(store.state);
       if (store.state.history.length !== historyBuiltFor) {
         historyBuiltFor = store.state.history.length;
         buildHistory(store.state);

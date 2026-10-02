@@ -2,6 +2,11 @@
  * Pestaña Esporular (PROMPT.md §10): cuántas esporas darías ahora, cuántos nutrientes
  * faltan para la siguiente, el progreso hacia el requisito y la confirmación con lo que se
  * gana, el bono actual frente al nuevo y lo que se pierde.
+ *
+ * Camino corto (fase 9, con dos placas del plasmodio cartografiadas): bajo «Esporularías ahora»,
+ * el ritmo de esporas de la partida, ahora y con la siguiente espora. Solo informa: no recomienda
+ * cuándo esporular, porque la regla del mejor ritmo no es la mejor para colonizar
+ * (ARCHITECTURE.md §4.28).
  */
 import { canSporulate, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
 import * as num from '../core/num.ts';
@@ -9,9 +14,11 @@ import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
 import { sporulateRequirement } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
-import { formatPercent } from '../i18n/format.ts';
+import type { GameState } from '../core/state.ts';
+import { formatDuration, formatPercent } from '../i18n/format.ts';
 import { fmt, formatCount, getLocale, t, tp } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
+import { partnerPerks } from '../systems/partners.ts';
 import { createHint } from './hint.ts';
 import { createWindSection } from './wind.ts';
 import { uiIcon } from './icons.ts';
@@ -24,6 +31,43 @@ function bonusPercent(level: number, threshold: number): string {
   return formatPercent(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1, getLocale(), 0);
 }
 
+export interface SporeRates {
+  /** Esporas por minuto de partida si se esporulara ahora; null si aún no se gana ninguna. */
+  now: number | null;
+  /** Cuándo llega la siguiente espora al ritmo actual y el ritmo entonces; null sin producción. */
+  next: { seconds: number; perMinute: number } | null;
+}
+
+/**
+ * Ritmo de esporas de la partida (Camino corto), puro del estado. El nivel de esporas es la suma
+ * de lo esporulado en este bosque, así que E(L) ≥ nivel y la siguiente espora suma exactamente una
+ * a la ganancia. Antes del primer segundo de partida se cuenta 1 s: nunca se divide por 0.
+ */
+export function sporeRates(state: GameState): SporeRates {
+  const gained = sporeGain(state);
+  const runTime = state.stats.runTime;
+  const now = gained > 0 ? (gained / Math.max(1, runTime)) * 60 : null;
+  const production = num.toNumber(derived(state).production);
+  if (!(production > 0)) return { now, next: null };
+  const seconds = num.toNumber(nutrientsToNextSpore(state)) / production;
+  if (!Number.isFinite(seconds)) return { now, next: null };
+  return { now, next: { seconds, perMinute: ((gained + 1) / Math.max(1, runTime + seconds)) * 60 } };
+}
+
+const rateFormats = new Map<string, Intl.NumberFormat>();
+
+/** Esporas por minuto con dos decimales por debajo de 10 y uno por encima, en el idioma activo. */
+function formatRate(value: number): string {
+  const digits = value < 10 ? 2 : 1;
+  const key = `${getLocale()}|${digits}`;
+  let f = rateFormats.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat(getLocale(), { maximumFractionDigits: digits });
+    rateFormats.set(key, f);
+  }
+  return f.format(value);
+}
+
 export function createSporulateTab(store: Store): TabView {
   const disposer = new Disposer();
   const level = h('p', { class: 'spore__level tabular' });
@@ -31,6 +75,13 @@ export function createSporulateTab(store: Store): TabView {
   const maturity = h('p', { class: 'spore__maturity', attrs: { hidden: true } });
   const gain = h('p', { class: 'spore__gain tabular' });
   const next = h('p', { class: 'spore__next tabular' });
+  const rate = h('p', { class: 'spore__rate-now tabular' });
+  const rateNext = h('p', { class: 'spore__rate-next tabular' });
+  const rateBox = h('div', { class: 'spore__rate', attrs: { hidden: true } }, [
+    rate,
+    rateNext,
+    h('p', { class: 'spore__rate-source', text: t('sporulate.rate.source') }),
+  ]);
   const requirement = h('p', { class: 'spore__requirement tabular' });
   const progressFill = h('span', { class: 'bar__fill' });
   const progressLabel = h('span', { class: 'tabular' });
@@ -46,7 +97,7 @@ export function createSporulateTab(store: Store): TabView {
     hint.root,
     h('p', { class: 'tab__intro', text: t('sporulate.intro') }),
     h('div', { class: 'spore__summary' }, [level, maturity, available]),
-    h('div', { class: 'spore__now' }, [gain, next]),
+    h('div', { class: 'spore__now' }, [gain, next, rateBox]),
     h('div', { class: 'spore__progress' }, [
       requirement,
       h('div', { class: 'spore__bar-row' }, [
@@ -93,6 +144,27 @@ export function createSporulateTab(store: Store): TabView {
     confirm();
   });
 
+  function updateRates(state: GameState): void {
+    const shown = partnerPerks(state).sporeRate;
+    setHidden(rateBox, !shown);
+    if (!shown) return;
+    const rates = sporeRates(state);
+    setText(
+      rate,
+      rates.now === null ? t('sporulate.rate.none') : t('sporulate.rate', { value: formatRate(rates.now) }),
+    );
+    setHidden(rateNext, rates.next === null);
+    if (rates.next) {
+      setText(
+        rateNext,
+        t('sporulate.rate.next', {
+          time: formatDuration(rates.next.seconds, getLocale()),
+          value: formatRate(rates.next.perMinute),
+        }),
+      );
+    }
+  }
+
   function update(): void {
     const state = store.state;
     const ready = canSporulate(state);
@@ -110,6 +182,7 @@ export function createSporulateTab(store: Store): TabView {
     setText(available, tp('sporulate.available', state.spores.available));
     setText(gain, tp('sporulate.gain', sporeGain(state)));
     setText(next, t('sporulate.next', { value: fmt(nutrientsToNextSpore(state)) }));
+    updateRates(state);
     const required = sporulateRequirement(state);
     const fraction = num.toNumber(num.div(state.runEarned, required));
     setText(requirement, t('sporulate.requirement', { value: fmt(required) }));

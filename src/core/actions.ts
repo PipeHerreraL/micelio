@@ -50,10 +50,12 @@ import type { Num } from './num.ts';
 import { DISPERSE_RESET, resetFields, SPORULATE_RESET } from './resets.ts';
 import { derived, invalidate } from './selectors.ts';
 import {
+  AUTOBUY_MODES,
   createState,
   hasMutation,
   hasUpgrade,
   isTreeComplete,
+  type AutobuyMode,
   type AutobuyThreshold,
   type BuyAmount,
   type GameState,
@@ -331,6 +333,15 @@ export function setAutobuyThreshold(state: GameState, payload: { threshold: Auto
 
 export function setAutobuyUpgrades(state: GameState, payload: { on: boolean }): void {
   state.autobuy.upgrades = payload.on;
+}
+
+/**
+ * Cómo elige la autocompra (Poda, fase 9). Se guarda aunque la ventaja falte: sin ella,
+ * systems/autobuy.ts trata «payback» como el umbral. Un modo desconocido no cambia nada.
+ */
+export function setAutobuyMode(state: GameState, payload: { mode: AutobuyMode }): void {
+  if (!AUTOBUY_MODES.includes(payload.mode)) return;
+  state.autobuy.mode = payload.mode;
 }
 
 /** Marca algo como visto (revelación progresiva o aviso de primera vez). */

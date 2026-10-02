@@ -2444,3 +2444,46 @@ button {
     transform: translate(-50%, 0);
   }
 }
+
+/* ------------------------------------------------------------------------------------ */
+/* Fase 9: correspondencias (Poda, Camino corto, logros y estadísticas del plasmodio) */
+
+/* Poda: ocupa su propia fila dentro de la barra de autocompra. */
+.autobuy__mode {
+  flex: 1 1 100%;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.autobuy__desc {
+  color: var(--micelio-tenue);
+  font-size: 0.85rem;
+  max-width: 60ch;
+}
+
+.autobuy__saving {
+  font-size: 0.9rem;
+}
+
+/* Camino corto: bajo «Esporularías ahora», con la línea de origen más tenue. */
+.spore__rate {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+}
+
+.spore__rate-source {
+  color: var(--micelio-tenue);
+  font-size: 0.85rem;
+}
+
+/* Logros del plasmodio: grupo aparte bajo la lista del hongo. */
+.ach-partner {
+  margin-top: 1.5rem;
+}
+
+/* Destino de «Ver en Logros» (tabindex=-1): mismo foco que los títulos de Viento. */
+.ach-partner__title:focus-visible {
+  outline: 2px solid var(--rebozuelo);
+  outline-offset: 3px;
+}

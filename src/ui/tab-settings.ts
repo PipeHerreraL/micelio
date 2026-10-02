@@ -208,6 +208,9 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
         // Desde la fase 8 la partida vive en un bioma: se dice cuál, para no reemplazar a ciegas.
         t('settings.import.confirm.biome', { name: biomeName(save.state.forest.biome) }),
         t('settings.import.confirm.date', { date: formatDate(save.savedAt, getLocale()) }),
+        // Importar es indulgente con los socios: uno que no valida vuelve a empezar, y se dice
+        // antes de confirmar (la red se importa entera).
+        ...(result.partnersReset.length > 0 ? [t('settings.import.confirm.partnerReset')] : []),
         h('p', { class: 'modal__warning', text: t('settings.import.confirm.warning') }),
       ],
       actions: [

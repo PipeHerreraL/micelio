@@ -4,7 +4,9 @@
  * así que no llega al build de producción.
  */
 import { gain } from '../core/economy.ts';
+import { emit } from '../core/events.ts';
 import * as num from '../core/num.ts';
+import { mixSeed } from '../core/rng.ts';
 import type { GameState } from '../core/state.ts';
 import { t } from '../i18n/index.ts';
 import { applyBackground } from '../systems/offline.ts';
@@ -13,6 +15,10 @@ import { checkActOne, checkColonization } from '../systems/journey.ts';
 import { invalidate } from '../core/selectors.ts';
 import { COLONIZE_LEVEL } from '../data/biomes.ts';
 import { MUTATION_IDS } from '../data/mutations.ts';
+import { STABLE_SECONDS } from '../data/plasmodium.ts';
+// Solo en desarrollo: este panel no llega al build, así que puede cargar el modelo del socio.
+import { gainTrail } from '../partners/plasmodium/advance.ts';
+import { frontier, plasmodiumCore, plateDef } from '../partners/plasmodium/state.ts';
 import { h } from './dom.ts';
 import type { Store } from './store.ts';
 
@@ -69,6 +75,23 @@ export function createDevPanel(store: Store, controls: DevControls): HTMLElement
       state.spores.level = Math.max(state.spores.level, COLONIZE_LEVEL);
       checkColonization(state, Date.now());
       invalidate(state);
+    }),
+    // Socios (fase 9): traer al plasmodio sin esperar a su regla de llegada, como
+    // checkPartnerUnlocks (misma semilla y mismo evento, así sale la lámina).
+    act(t('dev.partner'), (state) => {
+      if (state.partners.plasmodium !== null) return;
+      state.partners.plasmodium = plasmodiumCore.create(mixSeed(state.rngSeed, plasmodiumCore.seedSalt));
+      emit({ type: 'partnerUnlocked', partner: 'plasmodium' });
+    }),
+    // Deja la frontera lista para fructificar con un guardado válido: el Rastro sube con gainTrail
+    // (ganado ≥ disponible y cartografía, como exige el validador) y la estabilidad queda llena. El
+    // siguiente segundo de modelo fructifica si la red cumple el objetivo.
+    act(t('dev.plate'), (state) => {
+      const p = state.partners.plasmodium;
+      if (!p || frontier(p) !== p.plate) return;
+      gainTrail(p, num.max(num.ZERO, num.sub(plateDef(p.plate).trailGoal, p.mapping)));
+      p.stableFor = STABLE_SECONDS;
+      p.goalMet = true;
     }),
   ]);
 }

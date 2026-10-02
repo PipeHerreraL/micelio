@@ -6,6 +6,7 @@ import {
   buyGenerator,
   markSeen,
   setAutobuyGenerator,
+  setAutobuyMode,
   setAutobuyThreshold,
   setBuyAmount,
 } from '../core/actions.ts';
@@ -15,12 +16,23 @@ import {
   previewGenerator,
   quoteGenerator,
   secondsUntil,
+  type PurchaseCandidate,
 } from '../core/economy.ts';
 import { nextMilestone, previousMilestone } from '../core/formulas.ts';
 import * as num from '../core/num.ts';
 import { derived } from '../core/selectors.ts';
-import { AUTOBUY_THRESHOLDS, BUY_AMOUNTS, hasSeen, type BuyAmount, type GameState } from '../core/state.ts';
+import {
+  AUTOBUY_MODES,
+  AUTOBUY_THRESHOLDS,
+  BUY_AMOUNTS,
+  hasSeen,
+  type AutobuyMode,
+  type BuyAmount,
+  type GameState,
+} from '../core/state.ts';
 import { GENERATORS, getGenerator, type GeneratorId } from '../data/generators.ts';
+import { isPaybackActive, paybackTarget } from '../systems/autobuy.ts';
+import { partnerPerks } from '../systems/partners.ts';
 import { formatDuration, formatPercent } from '../i18n/format.ts';
 import {
   fmt,
@@ -48,6 +60,18 @@ type RowState = 'hidden' | 'silhouette' | 'full';
 const nameKey = (id: GeneratorId): MessageKey => `gen.${id}.name` as MessageKey;
 const flavorKey = (id: GeneratorId): MessageKey => `gen.${id}.flavor` as MessageKey;
 const unitKey = (id: GeneratorId): PluralKey => `gen.${id}.unit` as PluralKey;
+
+const MODE_KEYS: Readonly<Record<AutobuyMode, MessageKey>> = {
+  threshold: 'autobuy.mode.threshold',
+  payback: 'autobuy.mode.payback',
+};
+
+/** Nombre de lo que la Poda compraría: un generador o una mejora. */
+function candidateName(candidate: PurchaseCandidate): string {
+  return candidate.kind === 'generator'
+    ? t(nameKey(candidate.id))
+    : t(`upg.${candidate.id}.name` as MessageKey);
+}
 
 /** Estado de revelación de un generador. Una vez revelado, no vuelve a ocultarse. */
 export function revealState(state: GameState, id: GeneratorId): RowState {
@@ -120,10 +144,43 @@ export function createGeneratorsTab(store: Store): TabView {
     thresholdGroup.append(button);
   }
   const thresholdText = h('p', { class: 'autobuy__text' });
+
+  // Poda (fase 9, con una placa del plasmodio cartografiada): cómo elige la autocompra.
+  const modeButtons = new Map<AutobuyMode, HTMLButtonElement>();
+  const modeGroup = h('div', {
+    class: 'segmented segmented--small',
+    attrs: {
+      role: 'group',
+      'aria-label': t('autobuy.mode.label'),
+      'aria-describedby': 'autobuy-payback-desc',
+    },
+  });
+  for (const mode of AUTOBUY_MODES) {
+    const button = h('button', {
+      class: 'segmented__option',
+      text: t(MODE_KEYS[mode]),
+      attrs: { type: 'button', 'aria-pressed': 'false' },
+    });
+    disposer.listen(button, 'click', () => {
+      store.dispatch(setAutobuyMode, { mode });
+    });
+    modeButtons.set(mode, button);
+    modeGroup.append(button);
+  }
+  const paybackStatus = h('p', { class: 'autobuy__saving tabular', attrs: { hidden: true } });
+  const modeBox = h('div', { class: 'autobuy__mode', attrs: { hidden: true } }, [
+    modeGroup,
+    h('p', { class: 'autobuy__desc', id: 'autobuy-payback-desc', text: t('autobuy.payback.desc') }),
+    paybackStatus,
+  ]);
+  /** Segundo de juego del último «Ahorrando para»: se recalcula como mucho una vez por segundo. */
+  let paybackShownAt = Number.NaN;
+
   const autobuyBar = h('div', { class: 'autobuy', attrs: { hidden: true } }, [
     h('h3', { class: 'autobuy__title', text: t('autobuy.title') }),
     thresholdText,
     thresholdGroup,
+    modeBox,
   ]);
 
   const list = h('ul', { class: 'gen-list' });
@@ -338,14 +395,40 @@ export function createGeneratorsTab(store: Store): TabView {
     }
   }
 
-  function update(): void {
-    const state = store.state;
-    for (const [amount, button] of amountButtons) {
-      setAttr(button, 'aria-pressed', state.settings.buyAmount === amount ? 'true' : 'false');
+  function updateAutobuy(state: GameState): void {
+    const perk = partnerPerks(state).autobuyByPayback;
+    // Sin la ventaja, un modo «payback» guardado se comporta como el umbral: se ve el umbral.
+    const payback = isPaybackActive(state);
+    setHidden(modeBox, !perk);
+    // En modo amortización el umbral no se aplica: su texto y su grupo se ocultan.
+    setHidden(thresholdText, payback);
+    setHidden(thresholdGroup, payback);
+    setHidden(paybackStatus, !payback);
+    if (perk) {
+      for (const [mode, button] of modeButtons) {
+        setAttr(button, 'aria-pressed', state.autobuy.mode === mode ? 'true' : 'false');
+      }
     }
-    const autobuy = hasAutobuyGenerators(state);
-    setHidden(autobuyBar, !autobuy);
-    if (autobuy) {
+    if (payback) {
+      // bestPurchase calcula los derivados de cada candidato: una vez por segundo basta (la
+      // autocompra también decide una vez por segundo).
+      const second = Math.floor(state.stats.totalTime);
+      if (second !== paybackShownAt) {
+        paybackShownAt = second;
+        const target = paybackTarget(state);
+        setText(
+          paybackStatus,
+          target === null
+            ? t('autobuy.payback.idle')
+            : t('autobuy.payback.saving', {
+                name: candidateName(target),
+                time: formatDuration(secondsUntil(state, target.cost), getLocale()),
+              }),
+        );
+      }
+    } else {
+      // Al volver al modo amortización se recalcula en el acto, sin esperar al segundo siguiente.
+      paybackShownAt = Number.NaN;
       setText(
         thresholdText,
         t('autobuy.threshold', { percent: formatPercent(state.autobuy.threshold, getLocale(), 0) }),
@@ -354,6 +437,16 @@ export function createGeneratorsTab(store: Store): TabView {
         setAttr(button, 'aria-pressed', state.autobuy.threshold === threshold ? 'true' : 'false');
       }
     }
+  }
+
+  function update(): void {
+    const state = store.state;
+    for (const [amount, button] of amountButtons) {
+      setAttr(button, 'aria-pressed', state.settings.buyAmount === amount ? 'true' : 'false');
+    }
+    const autobuy = hasAutobuyGenerators(state);
+    setHidden(autobuyBar, !autobuy);
+    if (autobuy) updateAutobuy(state);
     intro.update(
       GENERATORS.some((g) => revealState(state, g.id) === 'full') &&
         GENERATORS.every((g) => state.owned[g.id] === 0),
