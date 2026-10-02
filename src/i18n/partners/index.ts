@@ -60,6 +60,11 @@ export function isPartnerCatalogReady(id: PartnerId, locale: Locale): boolean {
   return loaded.has(keyOf(id, locale));
 }
 
+/** Hay algún catálogo del socio en uso: el del idioma activo o, mientras no llega, el anterior. */
+export function hasPartnerCatalog(id: PartnerId): boolean {
+  return active.has(id);
+}
+
 /** Pone a mano un catálogo ya cargado (pruebas: happy-dom no resuelve import() del trozo). */
 export function providePartnerCatalog(id: PartnerId, locale: Locale, catalog: PartnerCatalog): void {
   loaded.set(keyOf(id, locale), catalog);

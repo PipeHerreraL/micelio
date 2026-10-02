@@ -228,9 +228,9 @@ export const PLATES: readonly PlateDef[] = [
   },
   // Fusión: sal en las 61 aristas. Los 13 sitios con x < 3,5 empiezan habituados (el plasmodio de la
   // izquierda ya cruzó sal) y el de la derecha solo aprende al fundirse (η = 0, ζ = 0,3). Medido
-  // sobre esta placa: con la referencia cumple a los 384 pasos, los dos copos fijos se separan en el
-  // paso 1 y se funden en el 235; sin contagio no cumple nunca. Semilla del generador: 41; celda
-  // mínima 70 px.
+  // sobre esta placa: con la referencia, los dos copos fijos se separan en el paso 1 y se funden en
+  // el 235, cuando empieza a cumplir, y lleva 60 pasos seguidos cumpliendo en el 384; sin contagio no
+  // cumple nunca. Semilla del generador: 41; celda mínima 70 px.
   // prettier-ignore
   {
     id: 'fusion',

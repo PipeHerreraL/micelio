@@ -23,6 +23,7 @@ import {
   GAMMA,
   I0_SCALE,
   LIGHT_LAMBDA,
+  MAX_STEP,
   MEMORY_FACTOR,
   NOFLOW,
   SUBSTANCE_BETA,
@@ -138,7 +139,8 @@ export function modelStep(p: PlasmodiumState, g: PlateGraph): boolean {
   const dt = delta(p);
   const memory = p.upgrades.memory > 0;
 
-  p.step += 1;
+  // Con el tope, el turno no puede quedarse clavado (MAX_STEP); escrito así, un NaN también vuelve.
+  p.step = p.step < MAX_STEP ? p.step + 1 : 1;
   const source = work.foods[p.step % F] ?? 0;
   const i0 = I0_SCALE * Math.sqrt(F - 1) * flowFactor(p, p.plate);
   const ok = solve(p, g, F, source, i0);

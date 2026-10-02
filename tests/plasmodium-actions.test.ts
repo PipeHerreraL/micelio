@@ -3,6 +3,7 @@ import { drain } from '../src/core/events.ts';
 import { computeDerived, invalidate } from '../src/core/selectors.ts';
 import { createState, type GameState } from '../src/core/state.ts';
 import { PLASMODIUM_ACHIEVEMENT_IDS } from '../src/data/plasmodium.ts';
+import { PLATES } from '../src/data/plasmodium-plates.ts';
 import {
   buyPlasmodiumUpgrade,
   openPlate,
@@ -14,8 +15,19 @@ import {
 } from '../src/partners/plasmodium/actions.ts';
 import { openPlateRate, stepSecond } from '../src/partners/plasmodium/advance.ts';
 import { measure } from '../src/partners/plasmodium/metrics.ts';
-import { previewScore, MEETS_BONUS } from '../src/partners/plasmodium/preview.ts';
-import { createPlasmodium, effectiveFlow, type PlasmodiumState } from '../src/partners/plasmodium/state.ts';
+import {
+  previewScore,
+  MEETS_BONUS,
+  suggestHorizon,
+  suggestSite,
+} from '../src/partners/plasmodium/preview.ts';
+import {
+  createPlasmodium,
+  effectiveFlow,
+  spreadConductivity,
+  startHabituation,
+  type PlasmodiumState,
+} from '../src/partners/plasmodium/state.ts';
 
 /** Acciones del jugador sobre el plasmodio (docs/ROADMAP.md, fase 9). */
 
@@ -195,6 +207,18 @@ describe('mejoras', () => {
 });
 
 describe('previsualizar', () => {
+  it('en una placa sin copos fijos, la Quimiotaxis sugiere el primer copo cerca del centro, no en una esquina', () => {
+    const { p } = game();
+    p.upgrades.chemotaxis = 1;
+    const def = PLATES[0];
+    if (!def) throw new Error('falta el Tronco');
+    const distance = (i: number): number =>
+      Math.hypot((def.x[i] ?? 0) - def.cols / 2, (def.y[i] ?? 0) - def.rows / 2);
+    const nearest = def.x.map((_, i) => i).sort((a, b) => distance(a) - distance(b))[0];
+    expect(suggestSite(p)).toBe(nearest);
+    expect(suggestSite(p)).not.toBe(0);
+  });
+
   it('puntúa una colocación sin tocar el plasmodio: la de referencia cumple tras 600 pasos', () => {
     const { p } = game();
     const before = structuredClone(p);
@@ -202,5 +226,36 @@ describe('previsualizar', () => {
     expect(good).toBeGreaterThan(MEETS_BONUS);
     expect(p).toEqual(before);
     expect(previewScore(p, [7], [], 50)).toBeLessThan(MEETS_BONUS);
+  });
+
+  it('la Quimiotaxis mira tanto más lejos cuanto menos Humedad: 338 pasos con 0, 225 con 1, 150 con 2', () => {
+    const { p } = game();
+    expect(suggestHorizon(p)).toBe(338);
+    p.upgrades.humidity = 1;
+    expect(suggestHorizon(p)).toBe(225);
+    p.upgrades.humidity = 2;
+    expect(suggestHorizon(p)).toBe(150);
+  });
+
+  it('con Humedad 0 y sin Avena, seguir la Quimiotaxis copo a copo en la Fusión cumple antes de 10 min', () => {
+    // Con 150 pasos fijos ningún cuarto copo llegaba a fundir los dos plasmodios: la red sugerida
+    // no cumplía nunca (0 de 20 temblores en 30 min).
+    const { state, p } = game();
+    for (let i = 0; i < 4; i += 1) Object.assign(p.plates[i] ?? {}, { map: { ...MAP } });
+    p.plate = 4;
+    p.conductivity = spreadConductivity(p, 4);
+    p.habituation = startHabituation(4);
+    p.upgrades.chemotaxis = 1;
+    let elapsed = 0;
+    for (let site = suggestSite(p); site !== null; site = suggestSite(p)) {
+      placeItem(state, { site, tool: 'food' });
+      for (let t = 0; t < 30; t += 1, elapsed += 1) stepSecond(p);
+    }
+    expect(p.plates[4]?.foods).toHaveLength(4);
+    while (p.stableFor < 60 && elapsed < 600) {
+      stepSecond(p);
+      elapsed += 1;
+    }
+    expect(p.stableFor).toBe(60);
   });
 });

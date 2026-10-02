@@ -182,6 +182,21 @@ describe('tiempo del socio', () => {
     expect(t.partners.plasmodium?.pendingMs).toBe(10 * 3600 * 1000);
   });
 
+  it('con el pendiente ya en su tope, volver tras 10 h no anuncia que el plasmodio creció', () => {
+    // Pasa si el modelo no llegó a cargar en la sesión anterior: el pendiente quedó en 8 h.
+    const s = withPartner();
+    if (s.partners.plasmodium) s.partners.plasmodium.pendingMs = 8 * 3600 * 1000;
+    expect(applyPartnersElapsed(s, 10 * 3600, 'offline')).toEqual([]);
+    expect(s.partners.plasmodium?.pendingMs).toBe(8 * 3600 * 1000);
+
+    // Con 6 h pendientes solo caben 2 h de modelo: al 50 %, 4 h de ausencia.
+    const t = withPartner();
+    if (t.partners.plasmodium) t.partners.plasmodium.pendingMs = 6 * 3600 * 1000;
+    expect(applyPartnersElapsed(t, 10 * 3600, 'offline')).toEqual([
+      { partner: 'plasmodium', seconds: 4 * 3600, efficiency: 0.5, capped: true },
+    ]);
+  });
+
   it('en segundo plano cuenta al 100 %', () => {
     const s = withPartner();
     applyPartnersElapsed(s, 120, 'background');

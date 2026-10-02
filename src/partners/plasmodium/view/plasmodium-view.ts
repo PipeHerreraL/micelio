@@ -23,7 +23,6 @@ import {
   PULSE_COOLDOWN,
   PULSE_STEPS,
   PULSE_TRAIL_SECONDS,
-  SECRET_PLASMODIUM_ACHIEVEMENTS,
   SHORT_PATH_MAPPED,
   STABLE_SECONDS,
   type PlasmodiumUpgradeId,
@@ -39,6 +38,7 @@ import { announce } from '../../../ui/live.ts';
 import { closeModal, isModalOpen, openModal } from '../../../ui/modal.ts';
 import type { PartnerView, PartnerViewOptions } from '../../../ui/partner-view.ts';
 import type { Store } from '../../../ui/store.ts';
+import { noteGoalAnnounced } from '../../../ui/partner-notice-gate.ts';
 import { attachTooltip } from '../../../ui/tooltip.ts';
 import {
   buyPlasmodiumUpgrade,
@@ -88,12 +88,66 @@ const RESPREAD_CONFIRM_MS = 8000;
 const PLACE_ANNOUNCE_GAP_MS = 1000;
 /** «Ampliar» solo si la placa ampliada crece al menos un 20 %. */
 const EXPAND_MIN_GROWTH = 1.2;
+/** Ancho máximo del diálogo de la placa ampliada: el mismo que `.modal--plate` en plasmodium.css. */
+const EXPANDED_DIALOG_MAX = 920;
+/** Lo que el diálogo no deja a la placa a lo alto: título, relleno, herramientas y «Cerrar». */
+const EXPANDED_CHROME_HEIGHT = 260;
+/** Alto de la cabecera fija del móvil si ui/app.ts aún no publicó --hud-h (el contador solo). */
+const HUD_FALLBACK = 64;
+/** En la placa ampliada, como mucho un aviso de objetivo cada 10 s (el tope de ui/partner-notice-gate.ts). */
+const GOAL_ANNOUNCE_GAP_MS = 10_000;
 
 function decimal(value: number, digits = 2): string {
   return new Intl.NumberFormat(getLocale(), {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(value);
+}
+
+/*
+ * El objetivo muestra la calidad truncada a 2 decimales y la longitud redondeada hacia arriba,
+ * para que lo que se ve nunca contradiga a la decisión (que usa el valor sin redondear): con una
+ * calidad de 0,6588 se leía «0,66 (objetivo: 0,66 o más) · falta» (BUG-JOURNAL #1; revisión de la
+ * fase 9, F2). El 1e-9 absorbe el error de coma flotante: 0,58 × 100 da 57,999…, y un 0,58 que
+ * cumple debe verse 0,58, no 0,57.
+ */
+function floorHundredths(value: number): number {
+  return Math.floor(value * 100 + 1e-9) / 100;
+}
+
+function ceilHundredths(value: number): number {
+  return Math.ceil(value * 100 - 1e-9) / 100;
+}
+
+/** Tamaño de 1rem en px (el relleno del diálogo va en rem y el jugador puede cambiar la letra). */
+function remPx(): number {
+  return Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+}
+
+/**
+ * Espacio de la placa ampliada. El diálogo mide como mucho 920 px y deja 1rem de margen por lado
+ * (plasmodium.css, `.modal--plate`); dentro, 1,5rem de relleno por lado y 1 px de borde
+ * (styles.css, `.modal__frame` y `.modal`). Es la misma cuenta para disponer la placa ampliada y
+ * para decidir si «Ampliar» sirve: con dos cuentas, la placa se salía del diálogo (UI-2).
+ */
+function expandedSize(): { width: number; height: number } {
+  const rem = remPx();
+  const dialog = Math.min(EXPANDED_DIALOG_MAX, window.innerWidth - 2 * rem);
+  return {
+    width: Math.max(0, dialog - 3 * rem - 2),
+    height: Math.max(200, window.innerHeight - EXPANDED_CHROME_HEIGHT),
+  };
+}
+
+/**
+ * Alto real de la cabecera fija del móvil. ui/app.ts lo publica en --hud-h, en el estilo de :root
+ * (el contador crece con «Esporularías ahora» y «Faltan…» hasta 104–107 px); la barra pegajosa usa
+ * la misma variable. Se lee del estilo en línea, no del calculado: se consulta en cada refresco y
+ * así no fuerza un recálculo de estilos.
+ */
+function hudHeight(): number {
+  const value = Number.parseFloat(document.documentElement.style.getPropertyValue('--hud-h'));
+  return Number.isFinite(value) && value > 0 ? value : HUD_FALLBACK;
 }
 
 function plateName(index: number): string {
@@ -117,6 +171,8 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
   let listChosen = readPreference(PLATE_VIEW_KEY) === 'list';
   let reducedMotion = options.reducedMotion;
   let layout: PlateLayout | null = null;
+  /** Alto de la cabecera con el que se midió la placa en el móvil (availableSize). */
+  let layoutHud = HUD_FALLBACK;
   let builtKey = '';
   let expanded = false;
   let expandToken = 0;
@@ -131,7 +187,13 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     at: number;
   } | null = null;
   let stall = { signature: '', since: 0 };
-  let fused = { value: false, since: 0, shown: false };
+  // value: lo que mide el modelo; display: lo que se dice, que solo cambia tras 10 s de modelo
+  // estable (decisión 3). Con un solo campo, pasados los primeros 10 s cada cambio se veía al
+  // instante y en la Fusión el texto alternaba cada pocos segundos (UI-10).
+  let fused = { value: false, since: 0, shown: false, display: false };
+  /** Último objetivo anunciado en la placa ampliada y cuándo; null si ninguno desde que se abrió. */
+  let goalSaid: { met: boolean; at: number } | null = null;
+  let goalTimer: number | undefined;
   let respreadArmed = false;
   let respreadTimer: number | undefined;
   let lastStep = -1;
@@ -417,6 +479,34 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     else announce(message);
   }
 
+  /**
+   * Con la placa ampliada (un <dialog>) la región global es inerte y main.ts calla hasta que se
+   * cierre (ui/partner-notice-gate.ts), así que los cambios de objetivo se dicen en la región propia
+   * (revisión de la fase 9, F3). Se dice el estado vigente y no el del evento: si el objetivo cambia
+   * dos veces dentro del tope, el aviso aplazado lee el actual y calla si volvió al ya dicho.
+   */
+  function sayGoal(): void {
+    goalTimer = undefined;
+    const p = state();
+    if (!p || !expanded || goalSaid?.met === p.goalMet) return;
+    const now = performance.now();
+    const wait = (goalSaid?.at ?? Number.NEGATIVE_INFINITY) + GOAL_ANNOUNCE_GAP_MS - now;
+    if (wait > 0) {
+      goalTimer = window.setTimeout(sayGoal, wait);
+      return;
+    }
+    goalSaid = { met: p.goalMet, at: now };
+    say(pt(p.goalMet ? 'goal.met' : 'goal.lost'));
+    // Al cerrar el diálogo, main.ts no lo repetirá.
+    noteGoalAnnounced(p.goalMet);
+  }
+
+  function cancelGoalTimer(): void {
+    if (goalTimer !== undefined) window.clearTimeout(goalTimer);
+    goalTimer = undefined;
+  }
+  disposer.add(cancelGoalTimer);
+
   function activateSite(site: number): void {
     const p = state();
     if (!p) return;
@@ -443,6 +533,9 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
   }
 
   function disarmRespread(): void {
+    // «Cancelar» se oculta: si tenía el foco (la confirmación se retiró sola a los 8 s), pasa antes
+    // a «Extender de nuevo», o caería en <body> (BUG-JOURNAL #5 y #8; UI-4).
+    if (respreadCancel.contains(document.activeElement)) respreadButton.focus();
     respreadArmed = false;
     if (respreadTimer !== undefined) window.clearTimeout(respreadTimer);
     respreadTimer = undefined;
@@ -495,17 +588,14 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
   // Disposición y placa ampliada
 
   function availableSize(): { width: number; height: number } {
-    if (expanded) {
-      return {
-        width: Math.min(window.innerWidth - 48, 880),
-        height: Math.max(200, window.innerHeight - 260),
-      };
-    }
+    if (expanded) return expandedSize();
     const width = plateHome.clientWidth;
     let height: number;
     if (window.innerWidth < 768) {
-      // Contador fijo arriba, barra de pestañas abajo y las herramientas encima de la placa.
-      height = window.innerHeight - 64 - 72 - toolbar.offsetHeight - 24;
+      // Cabecera fija arriba (la medida, no 64: la barra pegajosa se pega bajo ella; UI-5), barra
+      // de pestañas abajo y las herramientas encima de la placa.
+      layoutHud = hudHeight();
+      height = window.innerHeight - layoutHud - 72 - toolbar.offsetHeight - 24;
     } else {
       const panel = root.closest<HTMLElement>('.tabs__panels');
       const visible = panel && window.innerWidth >= 1024 ? panel.clientHeight : window.innerHeight;
@@ -530,18 +620,22 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     toggleClass(plateFrame, 'is-image', list);
     render.setLayout(next);
     render.resize();
+    // La lista se muestra antes de rehacer los sitios y se oculta después: si el foco estaba en un
+    // sitio, build() lo pasa a la primera fila, y un <ol> aún oculto no lo recibe (UI-4).
+    if (list) setHidden(sites.list, false);
     sites.build({ ...next, list }, helpId);
-    setHidden(sites.list, !list);
+    if (!list) setHidden(sites.list, true);
     setHidden(narrowNote, !next.list);
     setText(listButton, pt(list ? 'plate.map' : 'plate.list'));
     setHidden(listButton, next.list);
-    // «Ampliar» solo si la placa ampliada crece de verdad.
-    const big = computeLayout(
-      p.plate,
-      Math.min(window.innerWidth - 48, 880),
-      Math.max(200, window.innerHeight - 260),
-    );
-    setHidden(expandButton, expanded || big.list || big.cell < next.cell * EXPAND_MIN_GROWTH);
+    // «Ampliar» se decide con la placa del panel. Ampliada, la cuenta se haría consigo misma y
+    // ocultaría el botón al que vuelve el foco al cerrar (UI-1). La regla del 20 % solo compara
+    // dos placas interactivas: si en el panel va en lista y ampliada no, ampliar sirve (UI-6).
+    if (!expanded) {
+      const size = expandedSize();
+      const big = computeLayout(p.plate, size.width, size.height);
+      setHidden(expandButton, big.list || (!next.list && big.cell < next.cell * EXPAND_MIN_GROWTH));
+    }
     sites.update(p, tool, suggestion);
   }
 
@@ -560,6 +654,8 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     expandToken += 1;
     const token = expandToken;
     builtKey = '';
+    // Lo que el jugador ya oyó antes de ampliar no se repite dentro.
+    goalSaid = { met: p.goalMet, at: Number.NEGATIVE_INFINITY };
     openModal({
       title: pt('plate.expanded.title', { name: plateName(p.plate) }),
       body: [plateBlock],
@@ -568,11 +664,17 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
       onClose: () => {
         if (token !== expandToken) return;
         expanded = false;
+        cancelGoalTimer();
+        goalSaid = null;
+        setText(localLive, '');
         plateHome.append(plateBlock);
         builtKey = '';
         relayout();
         requestAnimationFrame(() => {
-          expandButton.focus();
+          // Si en el panel «Ampliar» ya no sirve (la ventana cambió mientras tanto), el foco va al
+          // título: un botón oculto lo dejaría en <body> (UI-1).
+          if (expandButton.hidden) title.focus();
+          else expandButton.focus();
         });
       },
     });
@@ -790,7 +892,8 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
 
   let atlasKey = '';
   function updateAtlas(p: PlasmodiumState): void {
-    const key = `${p.plate}|${mappedCount(p)}|${p.plates.map((r) => (r.map ? r.map.score.toFixed(4) : '-')).join(',')}|${getLocale()}`;
+    // El Agar entra en la clave: «En cultivo» lo multiplica y se compra muchas veces por placa (UI-3).
+    const key = `${p.plate}|${mappedCount(p)}|${p.plates.map((r) => (r.map ? r.map.score.toFixed(4) : '-')).join(',')}|${p.upgrades.agar}|${getLocale()}`;
     if (key === atlasKey) return;
     const keepFocus = atlasList.contains(document.activeElement);
     atlasKey = key;
@@ -909,24 +1012,29 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     if (def.objective === 'quality') {
       lines.push(
         conditionLine(
-          pt('goal.quality', { value: decimal(snap.quality), target: decimal(def.threshold) }),
+          pt('goal.quality', {
+            value: decimal(floorHundredths(snap.quality)),
+            target: decimal(def.threshold),
+          }),
           snap.quality >= def.threshold,
         ),
       );
     } else {
-      const shortest = Number.isFinite(snap.cost) ? decimal(snap.cost) : '—';
+      const shortest = Number.isFinite(snap.cost) ? decimal(ceilHundredths(snap.cost)) : '—';
+      // El umbral con 2 decimales, como el valor: «1,10 … falta» junto a «objetivo: 1,1» no se lee.
       lines.push(
         conditionLine(
-          pt('goal.shortest', { value: shortest, target: decimal(def.threshold, 1) }),
+          pt('goal.shortest', { value: shortest, target: decimal(def.threshold) }),
           snap.cost <= def.threshold,
         ),
       );
     }
     const infoLines: string[] = [];
     // Con menos de dos copos unidos no hay coste ni tolerancia que contar (ni un «∞» en pantalla).
+    // En el Laberinto el coste es la misma cifra que la longitud: se redondea igual.
     if (snap.joined >= 2 && Number.isFinite(snap.cost)) {
       infoLines.push(
-        pt('goal.cost', { value: decimal(snap.cost) }),
+        pt('goal.cost', { value: decimal(ceilHundredths(snap.cost)) }),
         pt('goal.tolerance', { value: formatPercent(snap.tolerance, locale, 0) }),
       );
     }
@@ -934,7 +1042,7 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
       infoLines.push(pt('goal.habituation.quinine', { value: formatPercent(snap.habituation, locale, 0) }));
     if (def.substance === 'salt') {
       infoLines.push(pt('goal.habituation.salt', { value: formatPercent(snap.habituation, locale, 0) }));
-      if (fused.shown) infoLines.push(pt(fused.value ? 'goal.fused' : 'goal.notFused'));
+      if (fused.shown) infoLines.push(pt(fused.display ? 'goal.fused' : 'goal.notFused'));
     }
     const key = [...lines.map((l) => l.textContent), ...infoLines].join('|');
     if (key !== goalKey) {
@@ -949,6 +1057,9 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     setProgress(holdBar, p.stableFor / STABLE_SECONDS);
     const next = p.plate + 1 < PLATES.length ? p.plate + 1 : null;
     const lingering = p.lingerFor > 0 && next !== null;
+    // La placa se abrió sola con el foco en «Preparar la placa»: pasa al título antes de ocultar
+    // el botón, o caería en <body> (BUG-JOURNAL #5 y #8; UI-4).
+    if (!lingering && prepareButton.contains(document.activeElement)) title.focus();
     setHidden(lingerText, !lingering);
     setHidden(prepareButton, !lingering);
     if (next !== null && p.lingerFor > 0) {
@@ -973,9 +1084,13 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
       search = null;
       render.setSuggestion(null);
       stall = { signature: '', since: p.stats.modelSeconds };
-      fused = { value: false, since: p.stats.modelSeconds, shown: false };
+      fused = { value: false, since: p.stats.modelSeconds, shown: false, display: false };
       // La placa cambió bajo el teclado (p. ej. se abrió sola): el foco no cae en <body>.
       if (focusInside) sites.focusFirst();
+    } else if (!expanded && window.innerWidth < 768 && hudHeight() !== layoutHud) {
+      // La cabecera del móvil cambió de alto sin cambiar el ancho del panel (el observador no
+      // salta): la celda se vuelve a medir bajo ella.
+      relayout();
     }
     const snap = measure(p);
     render.sync(p, snap);
@@ -1061,9 +1176,14 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
       for (let e = 0; e < p.conductivity.length; e += 1)
         if ((p.conductivity[e] ?? 0) > D_ALIVE) signature += `${e},`;
       if (signature !== stall.signature) stall = { signature, since: p.stats.modelSeconds };
-      if (snap.fused !== fused.value)
-        fused = { value: snap.fused, since: p.stats.modelSeconds, shown: fused.shown };
-      if (p.stats.modelSeconds - fused.since >= FUSED_STEADY_SECONDS) fused.shown = true;
+      if (snap.fused !== fused.value) {
+        fused.value = snap.fused;
+        fused.since = p.stats.modelSeconds;
+      }
+      if (p.stats.modelSeconds - fused.since >= FUSED_STEADY_SECONDS) {
+        fused.display = fused.value;
+        fused.shown = true;
+      }
     }
     const stalled = !snap.meets && snap.foods >= 2 && p.stats.modelSeconds - stall.since >= STALL_SECONDS;
     let hint = '';
@@ -1082,12 +1202,14 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     updateLinks(p);
     updateAtlas(p);
     const earned = PLASMODIUM_ACHIEVEMENT_IDS.filter((id) => p.achievements.includes(id)).length;
-    const total =
-      PLASMODIUM_ACHIEVEMENT_IDS.length -
-      SECRET_PLASMODIUM_ACHIEVEMENTS.filter((id) => !p.achievements.includes(id)).length;
+    // El total cuenta los secretos, como la pestaña Logros (tab-achievements.ts): restarlos daba
+    // «0 de 7» aquí y «0 de 8» allí, y el total saltaba al ganar el secreto (UI-8).
     setText(
       achievementsText,
-      pt('achievements.line', { count: formatCount(earned), total: formatCount(total) }),
+      pt('achievements.line', {
+        count: formatCount(earned),
+        total: formatCount(PLASMODIUM_ACHIEVEMENT_IDS.length),
+      }),
     );
   }
 
@@ -1103,6 +1225,7 @@ export function createPartnerView(store: Store, options: PartnerViewOptions): Pa
     onEvent(event: GameEvent) {
       if (event.type !== 'plasmodium') return;
       render.onEvent(event);
+      if (event.kind === 'goal' && expanded && goalTimer === undefined) sayGoal();
       if (event.kind === 'fruited' && expanded) {
         // Tras los esporangios (2 s; al instante con reducir movimiento) se cierra la placa
         // ampliada para que salga la lámina. Solo si el modal abierto sigue siendo el suyo.

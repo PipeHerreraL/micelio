@@ -274,6 +274,39 @@ describe('Rastro, estabilidad y fructificar', () => {
     expect(p.plate).toBe(1);
   });
 
+  it('la espera de la apertura sola no abre una placa sin la anterior cartografiada', () => {
+    // Solo la trae un guardado editado (el validador ya la deja en 0); el modelo se defiende igual.
+    const p = atPlate(0);
+    p.lingerFor = 5;
+    seconds(p, 6);
+    expect(p.plate).toBe(0);
+    expect(p.lingerFor).toBe(0);
+  });
+
+  it('con un contador de pasos enorme la fuente sigue rotando y la referencia del Tronco cumple', () => {
+    // Desde 2^53, step + 1 ya no cambia: sin tope, la fuente quedaba fija y no cumplía nunca.
+    const p = atPlate(0);
+    p.step = 2 ** 53;
+    seconds(p, 600);
+    expect(p.stableFor).toBe(60);
+    expect(p.step).toBeLessThan(1000);
+  });
+
+  it('con las cinco placas cartografiadas, mejorar un mapa sin pulsar otorga Paciencia de protista', () => {
+    const p = atPlate(0);
+    for (const record of p.plates) record.map = { ...MAP, score: 0.1 };
+    p.pulsedHere = true;
+    seconds(p, 600);
+    expect(p.plates[0]?.map?.score).toBeGreaterThan(0.1);
+    expect(p.achievements).not.toContain('noPulse');
+
+    const q = atPlate(0);
+    for (const record of q.plates) record.map = { ...MAP, score: 0.1 };
+    seconds(q, 600);
+    expect(q.plates[0]?.map?.score).toBeGreaterThan(0.1);
+    expect(q.achievements).toContain('noPulse');
+  });
+
   it('un valor no finito en la red la vuelve a cubrir y avisa una vez', () => {
     const p = atPlate(0);
     p.conductivity[3] = Number.NaN;

@@ -937,7 +937,7 @@ export const es = {
   'pach.cutProof.name': 'A prueba de cortes',
   'pach.cutProof.desc': 'Une tres copos o más con la red estable y una tolerancia a cortes del 100 %.',
   'pach.noPulse.name': 'Paciencia de protista',
-  'pach.noPulse.desc': 'Cartografía una placa sin dar ni un pulso desde que la abriste.',
+  'pach.noPulse.desc': 'Cartografía una placa, o mejora su mapa, sin dar ni un pulso desde que la abriste.',
 
   // Poda (autocompra)
   'autobuy.mode.label': 'Cómo elige la autocompra',

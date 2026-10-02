@@ -11,7 +11,16 @@
 
 .plasmodium {
   display: grid;
+  /* Una columna del ancho del panel, nunca del contenido: si el lienzo (de ancho explícito)
+     pudiera ensancharla, relayout() mediría su propio ancho y la placa no volvería a encogerse
+     tras ampliarla o al estrechar la ventana (revisión de la fase 9, UI-1). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.6rem;
+}
+
+.plate__home,
+.plate {
+  min-width: 0;
 }
 
 .partner__title {
@@ -56,7 +65,9 @@
   background: var(--plasmodio);
 }
 
-/* Herramientas y pulso: encima de la placa; en móvil, pegajosas bajo el contador fijo. */
+/* Herramientas y pulso: encima de la placa; en móvil, pegajosas bajo la cabecera fija. Su alto
+   real (104–107 px con «Esporularías ahora») lo publica ui/app.ts en --hud-h; con 64 px fijos la
+   cabecera tapaba «Copo de avena» (UI-5). availableSize() usa la misma medida. */
 .plasmodium__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -69,7 +80,7 @@
 @media (max-width: 767.98px) {
   .plate__home .plasmodium__toolbar {
     position: sticky;
-    top: 64px;
+    top: var(--hud-h, 64px);
     z-index: 5;
   }
 }
@@ -272,9 +283,11 @@
   height: 18px;
 }
 
-/* Placa ampliada: el bloque de la placa se mueve dentro del diálogo. */
-.modal--plate .modal__frame {
-  max-width: min(100vw - 1rem, 920px);
+/* Placa ampliada: el bloque de la placa se mueve dentro del diálogo. El tope es del <dialog>
+   (.modal lo deja en 32rem): con él en .modal__frame la placa se salía por la derecha (UI-2).
+   EXPANDED_DIALOG_MAX en plasmodium-view.ts debe valer lo mismo. */
+.modal.modal--plate {
+  max-width: min(920px, calc(100vw - 2rem));
 }
 
 .modal--plate .plate__frame {

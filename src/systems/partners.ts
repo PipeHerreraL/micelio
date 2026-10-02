@@ -91,16 +91,18 @@ export function advancePartners(state: GameState, ms: number): void {
 
 export interface ElapsedNote {
   partner: PartnerId;
-  /** Segundos que recibió el socio (tras su tope, antes de la eficiencia). */
+  /** Segundos que recibió el socio (tras su tope y el del pendiente, antes de la eficiencia). */
   seconds: number;
   efficiency: number;
+  /** Si algún tope dejó fuera parte del hueco. */
   capped: boolean;
 }
 
 /**
  * Tiempo aplicado de golpe (al abrir el juego o al volver de segundo plano), con el tope y la
  * eficiencia de cada socio. main.ts lo llama antes que el de la red: un socio que llega al final
- * del tiempo de la red no recibe el tiempo en que no existía. Devuelve lo apuntado (informe).
+ * del tiempo de la red no recibe el tiempo en que no existía. Devuelve lo apuntado (informe): un
+ * socio que no recibió nada no tiene nota.
  */
 export function applyPartnersElapsed(
   state: GameState,
@@ -113,14 +115,21 @@ export function applyPartnersElapsed(
     const p = state.partners[id];
     if (p === null) continue;
     const rule = PARTNER_CORES[id].elapsedRule(p, mode);
-    const applied = Math.min(seconds, rule.capSeconds);
-    addPending(state, id, Math.round(applied * rule.efficiency * 1000), mode);
-    notes.push({
-      partner: id,
-      seconds: applied,
-      efficiency: rule.efficiency,
-      capped: seconds > rule.capSeconds,
-    });
+    const requested = Math.round(Math.min(seconds, rule.capSeconds) * rule.efficiency * 1000);
+    // La nota dice lo que de verdad se apuntó: addPending vuelve a recortar contra lo que ya
+    // estaba pendiente (p. ej. un modelo que no llegó a cargar en la sesión anterior), y anunciar
+    // horas que el tope descartó sería falso.
+    const before = p.pendingMs;
+    addPending(state, id, requested, mode);
+    const added = p.pendingMs - before;
+    if (added > 0) {
+      notes.push({
+        partner: id,
+        seconds: added / 1000 / rule.efficiency,
+        efficiency: rule.efficiency,
+        capped: seconds > rule.capSeconds || added < requested,
+      });
+    }
     if (partnerRuntime(id)) runModel(state, id, 0);
   }
   return notes;

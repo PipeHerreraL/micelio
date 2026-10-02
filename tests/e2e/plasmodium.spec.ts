@@ -51,6 +51,23 @@ async function openPartners(page: Page): Promise<void> {
   await expect(page.locator('.plate__site').first()).toBeVisible();
 }
 
+/**
+ * Cuánto se sale la placa por la derecha: del panel de Socios, de la página y de la ventana. Todo
+ * a 0 cuando la placa cabe.
+ */
+function plateOverflow(page: Page): Promise<{ panel: number; page: number; frame: number }> {
+  return page.evaluate(() => {
+    const panel = document.querySelector<HTMLElement>('#panel-partners');
+    const frame = document.querySelector<HTMLElement>('.plate__home .plate__frame');
+    const root = document.documentElement;
+    return {
+      panel: panel ? Math.max(0, panel.scrollWidth - panel.clientWidth) : -1,
+      page: Math.max(0, root.scrollWidth - root.clientWidth),
+      frame: frame ? Math.max(0, Math.round(frame.getBoundingClientRect().right - root.clientWidth)) : -1,
+    };
+  });
+}
+
 test('una partida sin el plasmodio no descarga su código', async ({ page }, info) => {
   test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
   const lazy = lazyChunks();
@@ -283,4 +300,123 @@ test('en el móvil, deslizar sobre la placa desplaza la página', async ({ page 
   await swipeUp(cdp, box.x + box.width / 2, Math.min(box.y + box.height / 2, 600), 200);
   await page.waitForTimeout(400);
   expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(before + 50);
+});
+
+test('ampliar la placa y cerrarla la devuelve al ancho del panel, con el foco en «Ampliar»', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'La placa ampliada se prueba en escritorio.');
+  await seedSave(page, plasmodiumState());
+  await page.goto('./');
+  await openPartners(page);
+  const expand = page.getByRole('button', { name: 'Ampliar la placa' });
+  await expand.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.locator('.plate__site').first()).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  // El lienzo vuelve con el tamaño ampliado: si ensanchara la columna, relayout() mediría ese
+  // ancho y la placa se quedaría desbordando el panel, con «Ampliar» oculto y el foco en <body>.
+  await expect.poll(() => plateOverflow(page)).toEqual({ panel: 0, page: 0, frame: 0 });
+  await expect(expand).toBeFocused();
+});
+
+test('al estrechar la ventana, la placa se encoge con el panel', async ({ page }, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await seedSave(page, plasmodiumState());
+  await page.goto('./');
+  await openPartners(page);
+  await page.setViewportSize({ width: 1280, height: 760 });
+  await expect.poll(() => plateOverflow(page)).toEqual({ panel: 0, page: 0, frame: 0 });
+});
+
+for (const { plate, name, width, height } of [
+  // A 1280 × 760 el Archipiélago va en lista en el panel: «Ampliar» es la forma de jugarlo con
+  // sitios (revisión de la fase 9, UI-6).
+  { plate: 2, name: 'Archipiélago', width: 1280, height: 760 },
+  // El Puente ampliado mide 672 px: más que los 32rem de un diálogo normal (UI-2).
+  { plate: 3, name: 'Puente amargo', width: 1440, height: 900 },
+]) {
+  test(`a ${width} × ${height}, el ${name} se puede ampliar y ampliado cabe en el diálogo`, async ({
+    page,
+  }, info) => {
+    test.skip(isMobile(info.project.name), 'La placa ampliada se prueba en escritorio.');
+    await page.setViewportSize({ width, height });
+    await seedSave(
+      page,
+      plasmodiumState(() => undefined, plate),
+    );
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Socios/ }).click();
+    await expect(page.locator('.plate__frame')).toBeVisible();
+    await page.getByRole('button', { name: 'Ampliar la placa' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.locator('.plate__site').first()).toBeVisible();
+    // Cabe sin desplazarse en horizontal y la placa se ve al tamaño para el que se dispuso: ni
+    // cortada por la derecha ni estrujada por el diálogo (que movería los sitios entre sí).
+    await expect
+      .poll(() =>
+        dialog.evaluate((node) => {
+          const box = node.getBoundingClientRect();
+          const frame = node.querySelector<HTMLElement>('.plate__frame');
+          const pulse = node.querySelector('.plasmodium__pulse');
+          const frameBox = frame?.getBoundingClientRect();
+          return {
+            scroll: node.scrollWidth - node.clientWidth,
+            frameInside: frameBox !== undefined && frameBox.right <= box.right,
+            frameAsLaidOut:
+              frameBox !== undefined &&
+              Math.abs(frameBox.width - Number.parseFloat(frame?.style.width ?? '0')) < 1,
+            pulseInside: (pulse?.getBoundingClientRect().right ?? Number.POSITIVE_INFINITY) <= box.right,
+          };
+        }),
+      )
+      .toEqual({ scroll: 0, frameInside: true, frameAsLaidOut: true, pulseInside: true });
+  });
+}
+
+test('con el foco en un sitio, si la ventana se estrecha hasta la lista, el foco pasa a la lista', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'El teclado se prueba en escritorio.');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await seedSave(
+    page,
+    plasmodiumState(() => undefined, 2),
+  );
+  await page.goto('./');
+  await openPartners(page);
+  await page.locator('.plate__site').first().focus();
+  // A 1100 × 600 el Archipiélago (celdas de 76 px) no cabe en el panel en ninguna orientación.
+  await page.setViewportSize({ width: 1100, height: 600 });
+  await expect(page.locator('.plate__list')).toBeVisible();
+  await expect(page.locator('.plate__list .plate__row-button').first()).toBeFocused();
+});
+
+test('en el móvil, la barra pegajosa queda bajo la cabecera y «Copo de avena» recibe el toque', async ({
+  page,
+}, info) => {
+  test.skip(!isMobile(info.project.name), 'Solo en móvil.');
+  await page.setViewportSize({ width: 360, height: 800 });
+  await seedSave(page, plasmodiumState());
+  await page.goto('./');
+  await openPartners(page);
+  // La placa sube hasta 20 px del borde: la barra de herramientas, que va encima, queda pegada.
+  await page.evaluate(() => {
+    const home = document.querySelector('.plate__home');
+    if (home) window.scrollTo(0, home.getBoundingClientRect().top + window.scrollY - 20);
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const hud = document.querySelector('.layout__hud')?.getBoundingClientRect();
+        const food = document.querySelector('.plasmodium__tool')?.getBoundingClientRect();
+        if (!hud || !food) return null;
+        const hit = document.elementFromPoint(food.left + food.width / 2, food.top + food.height / 2);
+        return { underHud: food.top >= hud.bottom - 1, onFood: Boolean(hit?.closest('.plasmodium__tool')) };
+      }),
+    )
+    .toEqual({ underHud: true, onFood: true });
 });

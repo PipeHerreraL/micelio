@@ -87,6 +87,27 @@ export function isTabAvailable(id: TabId, state: GameState): boolean {
   }
 }
 
+/**
+ * Escribe en `--hud-h` (en :root) la altura real de la cabecera. En el móvil es fija y crece con
+ * «Esporularías ahora» y «Faltan…» (104–107 px medidos, no 64): la barra pegajosa de la placa del
+ * plasmodio y el cálculo de su celda la leen para no quedar debajo. Solo escribe si cambia.
+ * Devuelve la función que deja de observar.
+ */
+function trackHudHeight(hudBox: HTMLElement): () => void {
+  let written = -1;
+  const observer = new ResizeObserver(() => {
+    // Hacia arriba: medio píxel de menos dejaría el borde de la barra bajo la cabecera.
+    const height = Math.ceil(hudBox.getBoundingClientRect().height);
+    if (height === written) return;
+    written = height;
+    document.documentElement.style.setProperty('--hud-h', `${height}px`);
+  });
+  observer.observe(hudBox);
+  return () => {
+    observer.disconnect();
+  };
+}
+
 export function createApp(host: HTMLElement, store: Store, options: AppOptions): App {
   const hud = createHud(store, options.onAbsorb);
   const views: TabView[] = [
@@ -103,6 +124,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
   const tabs = createTabs(store, views, isTabAvailable, options.initialTab, options.onTabChange);
   const news = createNewsTicker();
   const hudBox = h('div', { class: 'layout__hud' }, [hud.counter]);
+  const stopHudHeight = trackHudHeight(hudBox);
   const coreBox = h('div', { class: 'layout__core' }, [hud.core]);
   const effectsBox = h('div', { class: 'layout__effects' }, [hud.effects]);
   const caption = createBiomeCaption(store);
@@ -171,6 +193,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
       tabs.setReducedMotion(on);
     },
     destroy() {
+      stopHudHeight();
       hud.destroy();
       tabs.destroy();
       drop.destroy();

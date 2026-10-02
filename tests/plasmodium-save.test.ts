@@ -235,6 +235,53 @@ describe('validación del plasmodio', () => {
     expect(loads((p) => Object.assign(p, { goalMet: 'sí' }))).toBe(false);
   });
 
+  it('la apertura sola pendiente en una placa sin mapa, o en la última, carga en 0 sin rechazar el guardado', () => {
+    // Sin esto, el modelo abría una placa no disponible y cada guardado devolvía el socio a este
+    // mismo bloque: su progreso no se guardaba nunca.
+    const lingerAfterLoad = (mutate: (p: PlasmodiumState) => void): number | undefined => {
+      const p = richPlasmodium();
+      mutate(p);
+      const result = parseSave(textOf(withPlasmodium(p)));
+      if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+      return result.save.state.partners.plasmodium?.lingerFor;
+    };
+    // El Laberinto, abierto y sin cartografiar.
+    expect(lingerAfterLoad((p) => (p.lingerFor = 5))).toBe(0);
+    // La Fusión cartografiada: no hay placa siguiente.
+    expect(
+      lingerAfterLoad((p) => {
+        for (const record of p.plates)
+          record.map = { score: 2, quality: 0.7, cost: 1.2, tolerance: 0.8, alive: 9, joined: 3 };
+        p.plate = 4;
+        p.conductivity = spreadConductivity(p, 4);
+        p.habituation = startHabituation(4);
+        p.lingerFor = 5;
+      }),
+    ).toBe(0);
+    // El Tronco cartografiado y abierto: la espera es legítima y se conserva.
+    expect(
+      lingerAfterLoad((p) => {
+        p.plate = 0;
+        p.conductivity = spreadConductivity(p, 0);
+        p.habituation = startHabituation(0);
+        p.lingerFor = 30;
+      }),
+    ).toBe(30);
+  });
+
+  it('un contador de pasos imposible carga reiniciado en 0 sin rechazar el guardado', () => {
+    const stepAfterLoad = (step: number): number | undefined => {
+      const p = richPlasmodium();
+      p.step = step;
+      const result = parseSave(textOf(withPlasmodium(p)));
+      if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+      return result.save.state.partners.plasmodium?.step;
+    };
+    expect(stepAfterLoad(2 ** 53)).toBe(0);
+    expect(stepAfterLoad(1e300)).toBe(0);
+    expect(stepAfterLoad(1e9)).toBe(1e9);
+  });
+
   it('una red de otra longitud repara la placa abierta sin perder Rastro, mapas ni logros', () => {
     const p = richPlasmodium();
     p.conductivity = p.conductivity.slice(0, 5);

@@ -925,7 +925,7 @@ export const en: Catalog = {
   'pach.cutProof.name': 'Cut-proof',
   'pach.cutProof.desc': 'Link three or more flakes with a stable network and a cut tolerance of 100%.',
   'pach.noPulse.name': 'Protist patience',
-  'pach.noPulse.desc': 'Map a plate without sending a single pulse since you opened it.',
+  'pach.noPulse.desc': 'Map a plate, or improve its map, without sending a single pulse since you opened it.',
 
   'autobuy.mode.label': 'How autobuy chooses',
   'autobuy.mode.threshold': 'By threshold',

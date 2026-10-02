@@ -117,6 +117,7 @@ export function createPlateSites(handlers: SiteHandlers): PlateSites {
   let rows: { text: HTMLElement; button: HTMLButtonElement }[] = [];
   let points: { x: number; y: number }[] = [];
   let plate = -1;
+  let portrait = false;
   let current = 0;
   let lastLabels: string[] = [];
 
@@ -160,6 +161,7 @@ export function createPlateSites(handlers: SiteHandlers): PlateSites {
       if (!def) return;
       if (layout.plate !== plate) current = 0;
       plate = layout.plate;
+      portrait = layout.orientation === 'portrait';
       const n = def.x.length;
       points = Array.from({ length: n }, (_, i) => sitePosition(layout, i));
       setAttr(
@@ -248,12 +250,17 @@ export function createPlateSites(handlers: SiteHandlers): PlateSites {
           toggleClass(button, 'is-suggested', suggested);
           const row = rows[site];
           if (row) {
+            // «Fila, columna» de la imagen que se ve al lado. Girada (toScreen: x' = filas − y,
+            // y' = x), la fila sale de la x de la placa y la columna de la y contada desde la
+            // derecha; con las de los datos, «fila 1, columna 1» caía arriba a la derecha (UI-7).
+            const x = Math.floor(def.x[site] ?? 0);
+            const y = Math.floor(def.y[site] ?? 0);
             const parts = [
               pt('site.row', {
                 n: formatCount(site + 1),
                 position: pt('site.position', {
-                  row: formatCount(Math.floor(def.y[site] ?? 0) + 1),
-                  col: formatCount(Math.floor(def.x[site] ?? 0) + 1),
+                  row: formatCount(portrait ? x + 1 : y + 1),
+                  col: formatCount(portrait ? def.rows - y : x + 1),
                 }),
                 content: contentText,
                 tubes: partnerPlural('plasmodium', 'site.tubes', tubes),

@@ -56,7 +56,7 @@ import { createNetworkView, type NetworkView } from './render/network.ts';
 import { createStore, type Store } from './ui/store.ts';
 import { biomeAdaptationName, biomeName } from './ui/biome-text.ts';
 import { openChapter, pendingChapter, type ChapterNav } from './ui/chapter.ts';
-import { isModalOpen } from './ui/modal.ts';
+import { isModalOpen, onModalClosed } from './ui/modal.ts';
 import type { DestinationId } from './data/biomes.ts';
 import { formatFactor } from './i18n/format.ts';
 import { createSettingsTab, type SettingsServices } from './ui/tab-settings.ts';
@@ -64,9 +64,9 @@ import { achievementDescription, achievementName } from './ui/tab-achievements.t
 import type { TabId } from './ui/tabs.ts';
 import { createToastContainer, removeToast, toast, type ToastOptions } from './ui/toasts.ts';
 import { installTooltipGlobalHandlers, refreshTooltip } from './ui/tooltip.ts';
-import { ensurePartnerCatalog, isPartnerCatalogReady, setPartnerPseudo } from './i18n/partners/index.ts';
+import { ensurePartnerCatalog, setPartnerPseudo } from './i18n/partners/index.ts';
 import { PARTNER_IDS, type PartnerId } from './partners/ids.ts';
-import { partnerRuntime, unregisterPartnerRuntime, type PartnerEvent } from './partners/registry.ts';
+import type { PartnerEvent } from './partners/registry.ts';
 import { mappedCount } from './partners/plasmodium/state.ts';
 import {
   advancePartners,
@@ -75,7 +75,14 @@ import {
   setPartnerErrorHandler,
   type ElapsedNote,
 } from './systems/partners.ts';
-import { loadPartner, markPartnerFailed, schedulePartnerPreload } from './ui/partner-loader.ts';
+import {
+  loadPartner,
+  partnerChapterReady,
+  partnerNoticeFor,
+  reportPartnerFailure,
+  schedulePartnerPreload,
+} from './ui/partner-loader.ts';
+import { createPartnerNoticeGate } from './ui/partner-notice-gate.ts';
 
 const TICK_MS = TICK_SECONDS * 1000;
 /** Refresco de números en pantalla: como máximo 10 Hz (PROMPT.md §5). */
@@ -592,26 +599,34 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   partnerUnlocked: 'chord',
 };
 
-/** Último aviso de cada tipo de un socio (ms): como mucho uno cada 10 s de objetivo o de mapa. */
-const partnerNoticeAt = new Map<string, number>();
-const PARTNER_NOTICE_GAP_MS = 10_000;
-
-function handlePartnerEvent(event: PartnerEvent): void {
-  // Guardar justo después de cartografiar una placa, como al esporular.
-  if (event.kind === 'fruited') saveNow();
-  const notice = partnerRuntime(event.type)?.notice(event) ?? null;
-  if (!notice) return;
-  if (event.kind === 'goal' || event.kind === 'mapImproved') {
-    const now = performance.now();
-    const last = partnerNoticeAt.get(event.kind) ?? Number.NEGATIVE_INFINITY;
-    if (now - last < PARTNER_NOTICE_GAP_MS) return;
-    partnerNoticeAt.set(event.kind, now);
-  }
+/** Aviso de un evento del socio; false si no salió nada. */
+function deliverPartnerNotice(event: PartnerEvent): boolean {
+  // El aviso es código del socio: si lanza, el socio se da de baja y el bucle sigue.
+  const notice = partnerNoticeFor(event);
+  if (!notice) return false;
   if (notice.tone) {
     toast(notice.text, { kind: notice.tone, ...(notice.title ? { title: notice.title } : {}) });
   }
   if (notice.cue) sound.play(notice.cue);
   if (notice.announce) announce(notice.title ?? notice.text);
+  return true;
+}
+
+/** Objetivo y mapa: uno de cada tipo cada 10 s como mucho, nunca tras un modal ni caducado. */
+const partnerNotices = createPartnerNoticeGate({
+  now: () => performance.now(),
+  modalOpen: isModalOpen,
+  goalMet: () => store.state.partners.plasmodium?.goalMet ?? null,
+  deliver: deliverPartnerNotice,
+});
+onModalClosed(() => {
+  partnerNotices.modalClosed();
+});
+
+function handlePartnerEvent(event: PartnerEvent): void {
+  // Guardar justo después de cartografiar una placa, como al esporular.
+  if (event.kind === 'fruited') saveNow();
+  partnerNotices.offer(event);
 }
 
 function handleEvent(event: GameEvent): void {
@@ -753,10 +768,9 @@ function showPendingChapter(): void {
   if (chapterShowing || isModalOpen() || (network?.isTransitioning() ?? false)) return;
   const chapter = pendingChapter(store.state);
   if (!chapter) return;
-  if (chapter.kind === 'plate' && !isPartnerCatalogReady('plasmodium', getLocale())) {
-    void loadPartner('plasmodium', getLocale());
-    return;
-  }
+  // La lámina de una placa espera al catálogo del idioma (pedido una vez) o, si no llega, sale con
+  // el anterior.
+  if (chapter.kind === 'plate' && !partnerChapterReady('plasmodium', getLocale())) return;
   chapterShowing = true;
   openChapter(store, chapter, chapterNav, {
     onClosed: () => {
@@ -887,16 +901,9 @@ globalDisposer.listen(document, 'keydown', (e) => {
 });
 
 // Un error del modelo de un socio no para el bucle ni hace perder la partida: se avisa una vez,
-// el modelo se da de baja (su tiempo vuelve a quedar pendiente) y el panel ofrece recargar.
-const reportedPartnerErrors = new Set<PartnerId>();
-setPartnerErrorHandler((id, error) => {
-  if (!reportedPartnerErrors.has(id)) {
-    reportedPartnerErrors.add(id);
-    console.error(`Micelio: el modelo del socio ${id} falló.`, error);
-  }
-  unregisterPartnerRuntime(id);
-  markPartnerFailed(id);
-});
+// el modelo se da de baja (su tiempo vuelve a quedar pendiente) y el panel ofrece recargar. La
+// vista (tab-partners.ts) y los avisos (deliverPartnerNotice) usan el mismo camino.
+setPartnerErrorHandler(reportPartnerFailure);
 // Con el idioma ya decidido: el catálogo del socio se pide junto con su modelo en la precarga.
 for (const id of PARTNER_IDS) {
   if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);

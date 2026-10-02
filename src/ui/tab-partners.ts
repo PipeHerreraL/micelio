@@ -3,14 +3,28 @@
  * (ARCHITECTURE.md §4.11). Cada socio tiene su sección; su vista llega aparte la primera vez que
  * se abre la pestaña (ui/partner-loader.ts). Mientras tanto, la sección dice que se está
  * preparando; si el código no llega, lo dice y ofrece recargar.
+ *
+ * El código de la vista corre dentro del bucle de la red (update, frame, onEvent) y usa el del
+ * modelo (medir la red, la Quimiotaxis): cada llamada va protegida. Si lanza, el socio se da de
+ * baja y la sección queda en el estado de fallo; el bucle sigue. Tras un fallo no se reintenta
+ * solo: el panel ofrece recargar la página.
  */
 import type { GameEvent } from '../core/events.ts';
+import type { Locale } from '../core/state.ts';
 import { getLocale, t } from '../i18n/index.ts';
+import { isPartnerCatalogReady } from '../i18n/partners/index.ts';
 import { PARTNER_IDS, type PartnerId } from '../partners/ids.ts';
 import { Disposer, h, setHidden } from './dom.ts';
 import { createHint } from './hint.ts';
-import { loadPartner, loadPartnerView, onPartnerLoadChange, partnerLoadStatus } from './partner-loader.ts';
-import type { PartnerView, PartnerViewOptions } from './partner-view.ts';
+import { isModalOpen } from './modal.ts';
+import {
+  loadPartner,
+  loadPartnerView,
+  onPartnerLoadChange,
+  partnerLoadStatus,
+  reportPartnerFailure,
+} from './partner-loader.ts';
+import type { PartnerView, PartnerViewModule, PartnerViewOptions } from './partner-view.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 
@@ -26,6 +40,10 @@ interface Section {
   id: PartnerId;
   root: HTMLElement;
   view: PartnerView | null;
+  /** El módulo de la vista, para rehacerla cuando llega el catálogo del idioma activo. */
+  module: PartnerViewModule | null;
+  /** Idioma del catálogo con que nació la vista; null si nació con el de reserva. */
+  viewLocale: Locale | null;
   viewFailed: boolean;
   requested: boolean;
   /** Estado que se pintó la última vez (para rehacer solo al cambiar). */
@@ -52,6 +70,8 @@ export function createPartnersTab(
     sectionsHost,
   ]);
   const sections = new Map<PartnerId, Section>();
+  /** La pestaña se destruyó (cambio de idioma): una vista que llegue tarde ya no se monta. */
+  let disposed = false;
 
   const viewOptions: PartnerViewOptions = {
     reducedMotion: options.reducedMotion(),
@@ -113,36 +133,90 @@ export function createPartnersTab(
         attrs: { role: 'status', 'aria-busy': 'true' },
       }),
     );
+    refocus();
   }
 
-  /** Pide el modelo, el catálogo y la vista la primera vez que la pestaña se ve con el socio. */
+  /** Quita la vista sin dejar que un fallo al destruirla salga de aquí. */
+  function dropView(section: Section): void {
+    const view = section.view;
+    section.view = null;
+    try {
+      view?.destroy();
+    } catch {
+      // Lo que no llegue a soltar (listeners sobre su propio DOM) se va con la sección.
+    }
+  }
+
+  /** El código del socio lanzó: se da de baja (una vez en la consola) y la sección dice que falló. */
+  function fail(section: Section, error: unknown): void {
+    section.viewFailed = true;
+    dropView(section);
+    reportPartnerFailure(section.id, error);
+    paint(section);
+  }
+
+  /** Crea la vista con el catálogo que haya y la pinta; un fallo deja la sección en error. */
+  function mountView(section: Section, module: PartnerViewModule): void {
+    section.module = module;
+    const locale = getLocale();
+    let view: PartnerView;
+    try {
+      view = module.createPartnerView(store, viewOptions);
+    } catch (error) {
+      fail(section, error);
+      return;
+    }
+    section.view = view;
+    section.viewLocale = isPartnerCatalogReady(section.id, locale) ? locale : null;
+    paint(section);
+    try {
+      view.update();
+    } catch (error) {
+      fail(section, error);
+    }
+  }
+
+  /**
+   * Pide el modelo, el catálogo y la vista la primera vez que la pestaña se ve con el socio. La
+   * vista espera al catálogo del idioma activo: sus rótulos fijos se escriben una vez y, si naciera
+   * con el anterior, quedarían mezclados (loadPartner no rechaza; sin catálogo nuevo, nace con el
+   * de reserva y se rehace cuando llegue).
+   */
   function request(section: Section): void {
     if (section.requested) return;
     section.requested = true;
-    void loadPartner(section.id, getLocale());
-    loadPartnerView(section.id)
-      .then((module) => {
-        section.view = module.createPartnerView(store, viewOptions);
-        paint(section);
-        section.view.update();
+    Promise.all([loadPartnerView(section.id), loadPartner(section.id, getLocale())])
+      .then(([module]) => {
+        if (disposed || sections.get(section.id) !== section) return;
+        mountView(section, module);
       })
       .catch((error: unknown) => {
+        // Sin reintento automático: la sección dice que falló y ofrece recargar la página.
         console.error(`Micelio: no se pudo cargar la vista del socio ${section.id}.`, error);
         section.viewFailed = true;
-        section.requested = false;
         paint(section);
       });
   }
 
   disposer.add(
     onPartnerLoadChange(() => {
-      for (const section of sections.values()) {
-        // Tras un fallo del modelo se puede volver a intentar al abrir la pestaña otra vez.
-        if (partnerLoadStatus(section.id) === 'failed') section.requested = section.view !== null;
-        paint(section);
-      }
+      for (const section of sections.values()) paint(section);
     }),
   );
+
+  /**
+   * Llegó el catálogo del idioma activo después que la vista (nació con el de reserva): se rehace
+   * para que cambien sus rótulos fijos. Con un modal abierto espera: puede ser la placa ampliada de
+   * esta misma vista.
+   */
+  function refreshCatalog(section: Section): void {
+    const locale = getLocale();
+    if (!section.view || !section.module || section.viewLocale === locale) return;
+    if (!isPartnerCatalogReady(section.id, locale) || isModalOpen()) return;
+    dropView(section);
+    section.shown = null;
+    mountView(section, section.module);
+  }
 
   function update(): void {
     hint.update(sections.size > 0);
@@ -150,7 +224,7 @@ export function createPartnersTab(
       if (store.state.partners[id] === null) {
         const existing = sections.get(id);
         if (existing) {
-          existing.view?.destroy();
+          dropView(existing);
           existing.root.remove();
           sections.delete(id);
         }
@@ -162,6 +236,8 @@ export function createPartnersTab(
           id,
           root: h('section', { class: 'partner', attrs: { 'aria-labelledby': `partner-${id}-title` } }),
           view: null,
+          module: null,
+          viewLocale: null,
           viewFailed: false,
           requested: false,
           shown: null,
@@ -170,9 +246,17 @@ export function createPartnersTab(
         sectionsHost.append(section.root);
       }
       paint(section);
-      if (partnerLoadStatus(id) !== 'ready') void loadPartner(id, getLocale());
+      // Una sola petición por sección: tras un fallo, pedir en cada refresco rehacía el panel a
+      // 10 Hz y el foco del botón «Recargar» caía a <body>.
       request(section);
-      if (section.shown === 'view') section.view?.update();
+      refreshCatalog(section);
+      if (section.shown === 'view' && section.view) {
+        try {
+          section.view.update();
+        } catch (error) {
+          fail(section, error);
+        }
+      }
     }
     setHidden(sectionsHost, sections.size === 0);
   }
@@ -182,17 +266,32 @@ export function createPartnersTab(
     root,
     update,
     frame(now) {
-      for (const section of sections.values()) if (section.shown === 'view') section.view?.frame(now);
+      for (const section of sections.values()) {
+        if (section.shown !== 'view' || !section.view) continue;
+        try {
+          section.view.frame(now);
+        } catch (error) {
+          fail(section, error);
+        }
+      }
     },
     onEvent(event) {
-      for (const section of sections.values()) section.view?.onEvent(event);
+      for (const section of sections.values()) {
+        if (!section.view) continue;
+        try {
+          section.view.onEvent(event);
+        } catch (error) {
+          fail(section, error);
+        }
+      }
     },
     setReducedMotion(on) {
       viewOptions.reducedMotion = on;
       for (const section of sections.values()) section.view?.setReducedMotion(on);
     },
     destroy() {
-      for (const section of sections.values()) section.view?.destroy();
+      disposed = true;
+      for (const section of sections.values()) dropView(section);
       hint.destroy();
       disposer.dispose();
     },

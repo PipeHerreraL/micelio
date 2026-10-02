@@ -30,6 +30,7 @@ import {
   agarFactor,
   cultureRate,
   frontier,
+  isPlateAvailable,
   plateDef,
   spreadConductivity,
   startHabituation,
@@ -122,7 +123,9 @@ export function stepSecond(p: PlasmodiumState, batch: Batch | null = null): Plat
   p.pulseIn = Math.max(0, p.pulseIn - 1);
   if (p.lingerFor > 0) {
     p.lingerFor = Math.max(0, p.lingerFor - 1);
-    if (p.lingerFor === 0 && p.plate + 1 < PLATES.length) {
+    // Defensa: solo abre la siguiente si está disponible (un guardado editado podía traer la espera
+    // en una placa sin mapa; state.ts ya la deja en 0 al validar).
+    if (p.lingerFor === 0 && isPlateAvailable(p, p.plate + 1)) {
       openPlateInternal(p, p.plate + 1, true);
       p.stats.modelSeconds += 1;
       return measure(p);
@@ -146,6 +149,9 @@ export function stepSecond(p: PlasmodiumState, batch: Batch | null = null): Plat
       record.map = mapOf(snap);
       if (batch) batch.mapImproved += 1;
       else emit({ type: 'plasmodium', kind: 'mapImproved', plate: p.plate });
+      // También aquí: si solo se diera al cartografiar, quien pulsó en las cinco placas antes de
+      // fructificar lo perdería para siempre (y, como es secreto, sin saber por qué).
+      if (!p.pulsedHere) grantPlasmodiumAchievement(p, 'noPulse');
     }
     // A prueba de cortes: con la red estable, 3 copos o más unidos y ningún tubo imprescindible.
     if (snap.joined >= 3 && snap.tolerance >= 1) grantPlasmodiumAchievement(p, 'cutProof');
@@ -179,7 +185,7 @@ function flatSeconds(p: PlasmodiumState, seconds: number): void {
   if (p.lingerFor > 0) {
     const opens = p.lingerFor <= seconds;
     p.lingerFor = Math.max(0, p.lingerFor - seconds);
-    if (opens && p.plate + 1 < PLATES.length) openPlateInternal(p, p.plate + 1, true);
+    if (opens && isPlateAvailable(p, p.plate + 1)) openPlateInternal(p, p.plate + 1, true);
   }
 }
 

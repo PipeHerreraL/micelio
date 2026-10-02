@@ -26,6 +26,7 @@ import {
   HUMIDITY_FACTOR,
   LINGER_SECONDS,
   MAX_PENDING_MS,
+  MAX_STEP,
   MODEL_SECOND_MS,
   MOIST_SECONDS,
   OFFLINE_CAP_SECONDS,
@@ -349,6 +350,15 @@ export function validatePlasmodium(raw: unknown): PlasmodiumState | null {
   if (!isIntIn(raw.clockMs, 0, MODEL_SECOND_MS - 1)) return null;
   if (!isIntIn(raw.pendingMs, 0, MAX_PENDING_MS)) return null;
   if (!isCount(raw.step)) return null;
+  // En juego, la espera de la apertura sola solo empieza al fructificar la placa abierta y si hay
+  // otra detrás (advance.ts). Un guardado editado puede traerla sin mapa: el modelo abriría una
+  // placa no disponible, que el validador rechaza, y cada guardado devolvería el socio a este mismo
+  // bloque para siempre. Se deja en 0 en vez de rechazar: solo se pierde la apertura sola.
+  const lingerFor =
+    raw.lingerFor > 0 && (!plates[plate]?.map || plate + 1 >= PLATES.length) ? 0 : raw.lingerFor;
+  // step solo reparte el turno de la fuente (flow.ts): volver a 0 es inocuo. Un valor enorme, que
+  // solo trae un guardado editado, dejaría la fuente fija (desde 2^53, step + 1 ya no cambia).
+  const step = raw.step > MAX_STEP ? 0 : raw.step;
   const s = raw.stats;
   if (!isObject(s) || !isCount(s.pulses) || !isCount(s.placements) || !isNonNegative(s.modelSeconds))
     return null;
@@ -381,12 +391,12 @@ export function validatePlasmodium(raw: unknown): PlasmodiumState | null {
     goalMet: raw.goalMet,
     pulseIn: raw.pulseIn,
     moistFor: raw.moistFor,
-    lingerFor: raw.lingerFor,
+    lingerFor,
     pulsedHere: raw.pulsedHere,
     upgrades,
     achievements,
     clockMs: raw.clockMs,
-    step: raw.step,
+    step,
     stats: { pulses: s.pulses, placements: s.placements, modelSeconds: s.modelSeconds },
     rngSeed: raw.rngSeed,
   };
