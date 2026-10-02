@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Arranque en Android 7 a 11: el fondo del juego y la imagen centrada a su tamaño. Como fondo
+     directo, drawable/splash se estiraba hasta llenar la pantalla y el núcleo salía alargado. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/micelio_humus" />
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/splash" />
+    </item>
+</layer-list>

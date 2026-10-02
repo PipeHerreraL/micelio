@@ -12,7 +12,13 @@ const config: CapacitorConfig = {
   webDir: 'dist-native',
   // El fondo del juego mientras carga la página: sin destello blanco.
   backgroundColor: '#261C15',
-  // Tampoco se cambian el esquema ni el host (https://localhost): son el origen del guardado.
+  // Tampoco se cambian el esquema ni el host: https://localhost es el origen del guardado. Se fijan
+  // aunque sean los de por defecto: Capacitor ya cambió el esquema por defecto una vez (de http a
+  // https), y con él las apps perdieron su localStorage.
+  server: {
+    androidScheme: 'https',
+    hostname: 'localhost',
+  },
   android: {},
   plugins: {
     // De borde a borde (Android 15+): las zonas seguras llegan al CSS (--sat, --sab…) y los iconos

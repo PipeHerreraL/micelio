@@ -2,9 +2,17 @@ apply plugin: 'com.android.application'
 
 // Micelio (ARCHITECTURE.md §4.31): la versión sale de package.json, la misma que la web.
 // versionCode = mayor·10000 + menor·100 + parche (1.5.0 → 10500): siempre sube entre versiones,
-// y Android no deja instalar una versión con un versionCode menor encima de otra.
+// y Android no deja instalar una versión con un versionCode menor encima de otra. Por eso la menor
+// y el parche no pasan de 99 (1.4.100 daría lo mismo que 1.5.0).
 def micelioVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
-def micelioParts = micelioVersion.tokenize('.').collect { it as int }
+def micelioMatch = (micelioVersion =~ /^(\d+)\.(\d+)\.(\d+)$/)
+if (!micelioMatch.matches()) {
+    throw new GradleException("La versión ${micelioVersion} de package.json no es mayor.menor.parche.")
+}
+def micelioParts = (1..3).collect { micelioMatch.group(it) as int }
+if (micelioParts[1] > 99 || micelioParts[2] > 99) {
+    throw new GradleException("La versión ${micelioVersion} no cabe en el versionCode: menor y parche hasta 99.")
+}
 def micelioVersionCode = micelioParts[0] * 10000 + micelioParts[1] * 100 + micelioParts[2]
 
 // Firma de las versiones publicadas: el almacén de claves y su contraseña llegan por variables
@@ -40,6 +48,13 @@ android {
         }
     }
     buildTypes {
+        // Otro paquete para la de depuración (la que se compila en cada cambio, con una clave de
+        // depuración distinta en cada máquina): se instala al lado de la app y nunca impide instalar
+        // encima la versión publicada.
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
         release {
             if (micelioKeystore) signingConfig signingConfigs.release
             minifyEnabled false

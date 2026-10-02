@@ -17,9 +17,9 @@
         <item name="android:windowBackground">@color/micelio_humus</item>
     </style>
 
-    <!-- Arranque: en Android 12+ el sistema pone el icono sobre este color; antes, drawable/splash. -->
+    <!-- Arranque: en Android 12+ el sistema pone el icono sobre este color; antes, drawable/launch_splash. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@drawable/launch_splash</item>
         <item name="windowSplashScreenBackground">@color/micelio_humus</item>
     </style>
 </resources>
