@@ -1,4 +1,4 @@
-# Clave de firma de la app de Android (ARCHITECTURE.md §4.31). Se ejecuta UNA vez, a mano:
+﻿# Clave de firma de la app de Android (ARCHITECTURE.md §4.31). Se ejecuta UNA vez, a mano:
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\android-keystore.ps1
 #
@@ -28,10 +28,21 @@ if (Test-Path $keystore) {
   exit 1
 }
 
-foreach ($tool in 'keytool', 'gh') {
-  if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) {
-    throw "Falta '$tool' en el PATH (keytool viene con Java; gh es el GitHub CLI)."
-  }
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+  throw "Falta 'gh' (el GitHub CLI) en el PATH."
+}
+
+# keytool viene con cualquier Java (también un JRE 8): primero el del PATH, luego JAVA_HOME y las
+# carpetas de instalación habituales.
+$keytool = (Get-Command keytool -ErrorAction SilentlyContinue).Source
+if (-not $keytool) {
+  $roots = @($env:JAVA_HOME, "$env:ProgramFiles\Java", "$env:ProgramFiles\Eclipse Adoptium",
+    "$env:ProgramFiles\Microsoft", "$env:ProgramFiles\Android\Android Studio\jbr") | Where-Object { $_ -and (Test-Path $_) }
+  $keytool = $roots | ForEach-Object { Get-ChildItem $_ -Recurse -Depth 3 -Filter keytool.exe -ErrorAction SilentlyContinue } |
+    Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $keytool) {
+  throw "No se encontró keytool: instala Java (por ejemplo, winget install EclipseAdoptium.Temurin.21.JDK)."
 }
 
 New-Item -ItemType Directory -Force -Path $Folder | Out-Null
@@ -46,7 +57,7 @@ $env:MICELIO_KEYSTORE_PASSWORD = $password
 try {
   # PKCS12 con la misma contraseña para el almacén y la clave (lo que espera android/app/build.gradle).
   # 10 000 días: Android pide que la clave dure más de 25 años.
-  keytool -genkeypair -keystore $keystore -storetype PKCS12 -alias micelio `
+  & $keytool -genkeypair -keystore $keystore -storetype PKCS12 -alias micelio `
     -keyalg RSA -keysize 2048 -validity 10000 `
     -dname 'CN=Micelio, O=PipeHerreraL, C=CO' `
     -storepass:env MICELIO_KEYSTORE_PASSWORD -keypass:env MICELIO_KEYSTORE_PASSWORD

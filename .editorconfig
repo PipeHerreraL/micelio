@@ -7,3 +7,7 @@ indent_style = space
 indent_size = 2
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+# Windows PowerShell 5.1 lee como ANSI los scripts sin BOM (las tildes salen rotas).
+[*.ps1]
+charset = utf-8-bom
