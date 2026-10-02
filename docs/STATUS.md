@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 1.4.0._
+_Actualizado: 2026-10-02. Versión 1.4.1._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 19 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 21 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -34,6 +34,11 @@ la fase 9, `state.partners` guarda los socios (el plasmodio, con su placa, su re
 su estado y su validación viven en `src/partners/`.
 
 ## Lo último que se hizo
+
+- **v1.4.1, peticiones del usuario en el móvil:** al bajar a las pestañas aparece un «núcleo de
+  bolsillo» abajo a la derecha para seguir absorbiendo (BUG-JOURNAL #20), y comprar un generador
+  o una mejora ya no hace saltar la lista: los botones miden lo mismo lleguen o no, y la mejora
+  comprada se queda un momento como «Comprada» antes de plegarse (#21). ARCHITECTURE.md §4.30.
 
 - **Fase 9 de la hoja de ruta (El Plasmodio, v1.4.0):** a los 5 min de la primera partida tras
   el Acto I llega el plasmodio de _Physarum polycephalum_, el primer **socio**, con su pestaña
