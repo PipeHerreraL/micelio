@@ -1,6 +1,6 @@
 /**
  * Láminas del viaje (docs/ROADMAP.md, fase 8): el fin del Acto I, la llegada a cada bioma y su
- * colonización. La cola se calcula del estado, no de los eventos: así sale igual tras el
+ * colonización; y las de los socios (fase 9): su llegada y cada placa cartografiada. La cola se calcula del estado, no de los eventos: así sale igual tras el
  * progreso offline, una migración o una recarga con la lámina abierta (vuelve a salir hasta que
  * se cierra, y entonces queda en `seen`).
  */
@@ -8,18 +8,34 @@ import { markSeen } from '../core/actions.ts';
 import { destinations, isActOneClosed, isColonized } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
 import { COLONIZE_LEVEL, LINEAGE_FACTOR, type DestinationId } from '../data/biomes.ts';
-import { formatFactor } from '../i18n/format.ts';
+import { PLATES } from '../data/plasmodium-plates.ts';
+import { formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
+import { partnerText } from '../i18n/partners/index.ts';
+import type { PartnerId } from '../partners/ids.ts';
 import { biomeRules } from './biome-text.ts';
 import { h } from './dom.ts';
 import { openModal, type ModalAction } from './modal.ts';
 import type { Store } from './store.ts';
 
 export type Chapter =
-  { kind: 'act1' } | { kind: 'arrive'; biome: DestinationId } | { kind: 'colonize'; biome: DestinationId };
+  | { kind: 'act1' }
+  | { kind: 'arrive'; biome: DestinationId }
+  | { kind: 'colonize'; biome: DestinationId }
+  | { kind: 'partner'; partner: PartnerId }
+  | { kind: 'plate'; plate: number };
 
 export function chapterSeenKey(chapter: Chapter): string {
-  return chapter.kind === 'act1' ? 'chapter.act1' : `chapter.${chapter.kind}.${chapter.biome}`;
+  switch (chapter.kind) {
+    case 'act1':
+      return 'chapter.act1';
+    case 'partner':
+      return `chapter.partner.${chapter.partner}`;
+    case 'plate':
+      return `chapter.plate.${PLATES[chapter.plate]?.id ?? chapter.plate}`;
+    default:
+      return `chapter.${chapter.kind}.${chapter.biome}`;
+  }
 }
 
 /** Bioma de cada tramo del viaje, del primer destino al actual. */
@@ -40,6 +56,15 @@ export function pendingChapter(state: GameState): Chapter | null {
     queue.push({ kind: 'arrive', biome });
     if (isColonized(state, biome)) queue.push({ kind: 'colonize', biome });
   }
+  // Socios: su llegada y, por orden, cada placa cartografiada (calculado del estado: sale igual
+  // tras el progreso offline o una recarga).
+  const p = state.partners.plasmodium;
+  if (p) {
+    queue.push({ kind: 'partner', partner: 'plasmodium' });
+    p.plates.forEach((record, plate) => {
+      if (record.map) queue.push({ kind: 'plate', plate });
+    });
+  }
   return queue.find((chapter) => !hasSeen(state, chapterSeenKey(chapter))) ?? null;
 }
 
@@ -50,6 +75,8 @@ export interface ChapterNav {
   toAdaptations(biome: DestinationId): void;
   /** Tras la lámina de llegada: el foco va al núcleo (el elemento anterior ya no existe). */
   toCore(): void;
+  /** A la pestaña Socios (y, si se pide, abre esa placa del plasmodio). */
+  toPartner(id: PartnerId, openPlate?: number): void;
 }
 
 export interface ChapterOptions {
@@ -66,7 +93,7 @@ export function openChapter(
   options: ChapterOptions = {},
 ): void {
   const state = store.state;
-  let choice: 'close' | 'wind' | 'adaptations' | 'begin' = 'close';
+  let choice: 'close' | 'wind' | 'adaptations' | 'begin' | 'partner' | 'nextPlate' = 'close';
   const actions: ModalAction[] = [];
   const body: (Node | string)[] = [];
   let kicker: string;
@@ -161,6 +188,70 @@ export function openChapter(
       }
       break;
     }
+    case 'partner': {
+      kicker = t('chapter.partner.kicker');
+      title = t('chapter.plasmodium.arrive.title');
+      biome = 'natal';
+      body.push(
+        t('chapter.plasmodium.arrive.line1'),
+        h('p', { class: 'modal__quote', text: t('chapter.plasmodium.arrive.line2') }),
+        t('chapter.plasmodium.arrive.line3'),
+        t('chapter.plasmodium.arrive.line4'),
+      );
+      // El foco en «Ahora no»: la lámina puede salir justo después de una compra.
+      actions.push({ label: t('chapter.later'), kind: 'quiet', autofocus: true });
+      actions.push({
+        label: t('chapter.toPlate'),
+        kind: 'primary',
+        onSelect: () => {
+          choice = 'partner';
+          return undefined;
+        },
+      });
+      break;
+    }
+    case 'plate': {
+      const def = PLATES[chapter.plate];
+      const pt = (key: string, params?: Record<string, string | number>): string =>
+        partnerText('plasmodium', key, params);
+      const id = def?.id ?? 'log';
+      const map = state.partners.plasmodium?.plates[chapter.plate]?.map ?? null;
+      const locale = getLocale();
+      kicker = pt('chapter.kicker', { n: formatCount(chapter.plate + 1), total: formatCount(PLATES.length) });
+      title = pt(`chapter.${id}.title`);
+      biome = undefined;
+      body.push(
+        pt(`chapter.${id}.line1`),
+        h('p', { class: 'modal__quote', text: pt(`chapter.${id}.line2`) }),
+      );
+      if (map) {
+        body.push(
+          pt('chapter.map', {
+            alive: formatCount(map.alive),
+            cost: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(map.cost),
+            tolerance: formatPercent(map.tolerance, locale, 0),
+          }),
+        );
+      }
+      if (id === 'log' || id === 'maze')
+        body.push(pt('chapter.unlock', { what: pt(`chapter.${id}.unlock`) }));
+      const next = PLATES[chapter.plate + 1];
+      if (next) body.push(pt('chapter.next', { name: pt(`plate.${next.id}.name`) }));
+      else body.push(pt('chapter.fusion.end'));
+      const offerNext = next !== undefined && !options.reread;
+      actions.push({ label: pt('chapter.stay'), kind: offerNext ? 'quiet' : 'primary', autofocus: true });
+      if (offerNext) {
+        actions.push({
+          label: pt('chapter.toNext'),
+          kind: 'primary',
+          onSelect: () => {
+            choice = 'nextPlate';
+            return undefined;
+          },
+        });
+      }
+      break;
+    }
   }
 
   openModal({
@@ -176,7 +267,11 @@ export function openChapter(
       // Se navega en el cuadro siguiente: el <dialog> devuelve el foco al cerrarse y lo pisaría.
       requestAnimationFrame(() => {
         if (choice === 'wind') nav.toWind();
-        else if (choice === 'adaptations' && chapter.kind !== 'act1') nav.toAdaptations(chapter.biome);
+        else if (choice === 'adaptations' && (chapter.kind === 'arrive' || chapter.kind === 'colonize')) {
+          nav.toAdaptations(chapter.biome);
+        } else if (choice === 'partner' && chapter.kind === 'partner') nav.toPartner(chapter.partner);
+        else if (choice === 'nextPlate' && chapter.kind === 'plate')
+          nav.toPartner('plasmodium', chapter.plate + 1);
         else if (chapter.kind === 'arrive' && !options.reread) nav.toCore();
       });
     },

@@ -629,6 +629,29 @@ export function saveGame(storage: StorageLike | null, state: GameState, now: num
   }
 }
 
+/**
+ * Preferencias de la interfaz que no son partida (p. ej. ver la placa como lista): se guardan
+ * aparte y un fallo del almacenamiento no importa; todo acceso a localStorage pasa por este
+ * archivo (AGENTS.md).
+ */
+export const PLATE_VIEW_KEY = 'micelio:plateView';
+
+export function readPreference(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writePreference(key: string, value: string): void {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Sin almacenamiento: la preferencia dura lo que la sesión.
+  }
+}
+
 /** Borra la partida (Ajustes → Borrar partida). */
 export function wipeGame(storage: StorageLike | null): void {
   if (!storage) return;

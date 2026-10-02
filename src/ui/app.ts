@@ -24,7 +24,10 @@ import { createMutationsTab } from './tab-mutations.ts';
 import { createSporulateTab } from './tab-sporulate.ts';
 import { createStatsTab } from './tab-stats.ts';
 import { createUpgradesTab } from './tab-upgrades.ts';
+import { createPartnersTab, type PartnersTabOptions } from './tab-partners.ts';
 import { createTabs, type TabId, type TabView, type Tabs } from './tabs.ts';
+import { PARTNER_IDS } from '../partners/ids.ts';
+import type { GameEvent } from '../core/events.ts';
 
 export interface App {
   root: HTMLElement;
@@ -36,6 +39,10 @@ export interface App {
   tabs: Tabs;
   /** Refresco de la interfaz (como máximo 10 Hz). `now` en ms. */
   update(now: number): void;
+  /** Cada frame (la placa del plasmodio con Socios a la vista). */
+  frame(now: number): void;
+  onEvent(event: GameEvent): void;
+  setReducedMotion(on: boolean): void;
   destroy(): void;
 }
 
@@ -47,6 +54,8 @@ export interface AppOptions {
   extraViews?: (store: Store) => TabView[];
   /** Adónde llevan las láminas del viaje al cerrarse (también al releerlas en la Crónica). */
   nav: ChapterNav;
+  /** Lo que la pestaña Socios necesita de fuera (fase 9). */
+  partners: PartnersTabOptions;
 }
 
 function anyGeneratorVisible(state: GameState): boolean {
@@ -73,6 +82,8 @@ export function isTabAvailable(id: TabId, state: GameState): boolean {
       return state.stats.sporulations > 0;
     case 'chronicle':
       return isActOneClosed(state);
+    case 'partners':
+      return PARTNER_IDS.some((id) => state.partners[id] !== null);
   }
 }
 
@@ -84,6 +95,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     createSporulateTab(store),
     createMutationsTab(store),
     createChronicleTab(store, options.nav),
+    createPartnersTab(store, options.partners),
     createAchievementsTab(store),
     createStatsTab(store),
     ...(options.extraViews?.(store) ?? []),
@@ -148,6 +160,15 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
       const fresh = !anyGeneratorVisible(state) && !hasSeen(state, 'tab.settings');
       main.classList.toggle('layout--fresh', fresh);
       if (!fresh) news.update(state, now);
+    },
+    frame(now) {
+      tabs.frame(now);
+    },
+    onEvent(event) {
+      tabs.onEvent(event);
+    },
+    setReducedMotion(on) {
+      tabs.setReducedMotion(on);
     },
     destroy() {
       hud.destroy();

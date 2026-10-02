@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { disperse, sporulate } from '../src/core/actions.ts';
 import { drain } from '../src/core/events.ts';
@@ -121,6 +122,24 @@ describe('migración 5 → 6', () => {
     const raw = JSON.parse(v5Text(createState(9, NOW))) as { state: Record<string, unknown> };
     raw.state.autobuy = 'nada';
     expect(parseSave(JSON.stringify(raw))).toEqual({ ok: false, error: 'invalid' });
+  });
+});
+
+describe('guardado de la 1.4', () => {
+  /**
+   * Un guardado versión 6 real (tests/fixtures/save-v6.json, hecho con la 1.4). Si la forma del
+   * estado cambia sin subir la versión y sin migración, esta prueba falla: así ninguna partida
+   * de la 1.4 se pierde al actualizar (crítica de la fase 9, hallazgo 14).
+   */
+  it('carga sin cambios y vuelve a guardarse idéntico, con el plasmodio y su red', () => {
+    const text = readFileSync(new URL('./fixtures/save-v6.json', import.meta.url), 'utf8');
+    const raw = JSON.parse(text) as { savedAt: number; state: unknown };
+    const result = parseSave(text);
+    if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+    expect(result.partnersReset).toEqual([]);
+    expect(result.save.state).toEqual(raw.state);
+    expect(result.save.state.partners.plasmodium?.plates[0]?.foods).toEqual([7, 1, 16, 18]);
+    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual(JSON.parse(text));
   });
 });
 

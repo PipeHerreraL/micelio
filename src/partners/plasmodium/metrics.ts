@@ -13,6 +13,7 @@
  * - Puntuación = copos unidos × calidad: el Rastro de la placa sale de aquí.
  */
 import { D_ALIVE, D_DRYING, STABLE_SECONDS } from '../../data/plasmodium.ts';
+import { FUSION_SPLIT_X } from '../../data/plasmodium-plates.ts';
 import { plateGraph, type PlateGraph } from './graph.ts';
 import { loadFoods } from './flow.ts';
 import type { PlasmodiumState } from './state.ts';
@@ -221,7 +222,7 @@ function habituationShown(p: Readonly<PlasmodiumState>, g: PlateGraph): number {
     if (!g.substance[e]) continue;
     if (g.def.substance === 'salt' && !((p.conductivity[e] ?? 0) > D_ALIVE)) continue;
     for (const v of [g.ea[e] ?? 0, g.eb[e] ?? 0]) {
-      if (g.def.substance === 'salt' && (g.x[v] ?? 0) < 3.5) continue;
+      if (g.def.substance === 'salt' && (g.x[v] ?? 0) < FUSION_SPLIT_X) continue;
       sum += hab[v] ?? 0;
       count += 1;
     }

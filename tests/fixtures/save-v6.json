@@ -1,0 +1,194 @@
+{
+  "version": 6,
+  "savedAt": 1790812860000,
+  "state": {
+    "nutrients": 0,
+    "runEarned": 0,
+    "lifetimeEarned": 20000000000000,
+    "owned": {
+      "hypha": 40,
+      "rhizomorph": 0,
+      "primordium": 0,
+      "mushroom": 0,
+      "fairyRing": 0,
+      "mycorrhiza": 0,
+      "motherTree": 0,
+      "ancientForest": 0,
+      "malheur": 0,
+      "planetary": 0
+    },
+    "upgrades": [],
+    "spores": {
+      "level": 2100,
+      "available": 340
+    },
+    "mutations": [
+      "soilMemory",
+      "lightChitin",
+      "deepAbsorption",
+      "rainScent",
+      "winterSleep",
+      "instinct",
+      "perfectStorm",
+      "ancientSymbiosis",
+      "beyondForest",
+      "wingedSpores",
+      "higherInstinct",
+      "inheritance"
+    ],
+    "achievements": ["own.planetary.1", "own.hypha.1"],
+    "effects": [],
+    "rain": {
+      "nextIn": 210,
+      "drop": null
+    },
+    "autobuy": {
+      "generators": {
+        "hypha": false,
+        "rhizomorph": false,
+        "primordium": false,
+        "mushroom": false,
+        "fairyRing": false,
+        "mycorrhiza": false,
+        "motherTree": false,
+        "ancientForest": false,
+        "malheur": false,
+        "planetary": false
+      },
+      "threshold": 0.5,
+      "upgrades": false,
+      "mode": "threshold"
+    },
+    "stats": {
+      "runTime": 420,
+      "totalTime": 14000,
+      "startedAt": 1790812800000,
+      "runStartedAt": 1790812800000,
+      "maxNps": 0,
+      "clicks": 0,
+      "drops": 0,
+      "sporulations": 13,
+      "idleClickTime": 0
+    },
+    "settings": {
+      "locale": null,
+      "notation": "names",
+      "sound": true,
+      "volume": 0.35,
+      "reducedMotion": false,
+      "buyAmount": 1
+    },
+    "seen": [],
+    "rngSeed": 1404,
+    "history": [],
+    "adaptations": {
+      "apicalBody": 0,
+      "sclerotium": 0,
+      "hydraulicLift": 0,
+      "deepTorpor": 0,
+      "foxfire": 0
+    },
+    "sporeFloor": 0,
+    "forest": {
+      "biome": "natal",
+      "leg": 0,
+      "earned": 20000000000000,
+      "arrivedAt": 1790812800000,
+      "arrivalSporulations": 0,
+      "arrivalPlayTime": 0
+    },
+    "chronicle": [
+      {
+        "biome": "natal",
+        "leg": 0,
+        "arrivedAt": 1790812800000,
+        "colonizedAt": null,
+        "sporulations": 12,
+        "playTime": 14000,
+        "leftAt": null,
+        "levelReached": null
+      }
+    ],
+    "biomeAdaptations": {
+      "rockEating": 0,
+      "seedlingNetwork": 0,
+      "trehalose": 0,
+      "gongylidia": 0,
+      "leafcutters": 0,
+      "rootMat": 0
+    },
+    "partners": {
+      "plasmodium": {
+        "pendingMs": 45000,
+        "plate": 0,
+        "plates": [
+          {
+            "foods": [7, 1, 16, 18],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          }
+        ],
+        "conductivity": [
+          0.4215811333515307, 0.0001, 0.0001, 0.0001, 0.0001, 0.5432177670707891, 0.0001, 0.0001, 0.0001,
+          0.0001, 0.0001, 0.0001, 0.0001, 0.4010626167880744, 0.41758071827995125, 0.0001, 0.0001, 0.0001,
+          0.0001, 0.0001, 0.40099612066086676, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
+          0.5235920466847294, 0.0001, 0.0001, 0.0001, 0.0001, 0.4215368274529, 0.0001, 0.3510954716310787,
+          0.0001, 0.0001, 0.0001, 0.0001
+        ],
+        "habituation": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "trail": 1234.5,
+        "trailEarned": 98765.25,
+        "mapping": 4321,
+        "stableFor": 60,
+        "goalMet": true,
+        "pulseIn": 0,
+        "moistFor": 0,
+        "lingerFor": 0,
+        "pulsedHere": false,
+        "upgrades": {
+          "agar": 3,
+          "oats": 0,
+          "lamps": 0,
+          "humidity": 0,
+          "dormancy": 0,
+          "chemotaxis": 0,
+          "memory": 0
+        },
+        "achievements": ["firstOat"],
+        "clockMs": 0,
+        "step": 400,
+        "stats": {
+          "pulses": 0,
+          "placements": 0,
+          "modelSeconds": 400
+        },
+        "rngSeed": 4290377714
+      }
+    }
+  }
+}

@@ -4,6 +4,7 @@
  * visible se actualiza en cada refresco.
  */
 import { markSeen } from '../core/actions.ts';
+import type { GameEvent } from '../core/events.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
 import { t, type MessageKey } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, toggleClass } from './dom.ts';
@@ -16,6 +17,7 @@ export const TAB_IDS = [
   'sporulate',
   'mutations',
   'chronicle',
+  'partners',
   'achievements',
   'stats',
   'settings',
@@ -27,6 +29,11 @@ export interface TabView {
   root: HTMLElement;
   update(): void;
   destroy(): void;
+  /** Cada frame, solo la vista activa (la placa del plasmodio dibuja con esto). */
+  frame?(now: number): void;
+  /** Eventos del núcleo, a todas las vistas que los quieran. */
+  onEvent?(event: GameEvent): void;
+  setReducedMotion?(on: boolean): void;
 }
 
 export interface Tabs {
@@ -36,6 +43,9 @@ export interface Tabs {
   update(): void;
   select(id: TabId, focus?: boolean): void;
   current(): TabId;
+  frame(now: number): void;
+  onEvent(event: GameEvent): void;
+  setReducedMotion(on: boolean): void;
   destroy(): void;
 }
 
@@ -172,6 +182,15 @@ export function createTabs(
     update,
     select,
     current: () => active,
+    frame(now) {
+      viewOf(active)?.frame?.(now);
+    },
+    onEvent(event) {
+      for (const view of views) view.onEvent?.(event);
+    },
+    setReducedMotion(on) {
+      for (const view of views) view.setReducedMotion?.(on);
+    },
     destroy: () => {
       disposer.dispose();
       for (const view of views) view.destroy();

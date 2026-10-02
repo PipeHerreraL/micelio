@@ -13,6 +13,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings=0 && prettier --check .",
+    "budget": "node scripts/budget.ts",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",

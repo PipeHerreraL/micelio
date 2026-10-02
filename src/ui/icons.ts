@@ -74,6 +74,8 @@ export type UiIcon =
   | 'stats'
   | 'settings'
   | 'chronicle'
+  | 'partners'
+  | 'info'
   | 'wind'
   | 'close'
   | 'drop'
@@ -90,6 +92,15 @@ const UI_SHAPES: Record<UiIcon, readonly Shape[]> = {
     { d: 'M4 9c2.7-1.5 5.3 1.5 8 0s5.3-1.5 8 0' },
     { d: 'M4 15c2.7 1.5 5.3-1.5 8 0s5.3 1.5 8 0' },
   ],
+  // Socios: un abanico de tres tubos que se ramifican desde un copo, como el plasmodio.
+  partners: [
+    { circle: [5.5, 18.5, 2] },
+    { d: 'M7 17c3-2 5-6 6-11' },
+    { d: 'M7.5 18c4-1 7-3 10-7' },
+    { d: 'M7.5 19.5c4 .5 8 0 12.5-2' },
+    { d: 'M13 6c1-1 2-1.5 3-1.5' },
+  ],
+  info: [{ circle: [12, 12, 8.5] }, { d: 'M12 11v6' }, { circle: [12, 7.6, 0.6], fill: true }],
   wind: [{ d: 'M3 8h11a3 3 0 1 0-3-3' }, { d: 'M3 12h15a3 3 0 1 1-3 3' }, { d: 'M3 16h7' }],
   generators: [{ d: 'M4 20c3-3 4-6 6-9s5-6 10-7' }, { d: 'M10 11c1.5 1 4 1.5 6 4' }],
   upgrades: [{ d: 'M12 20V9' }, { d: 'M12 9c0-3 2-5 5-5 0 3-2 5-5 5zM12 13c0-3-2-5-5-5 0 3 2 5 5 5z' }],

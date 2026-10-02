@@ -8,6 +8,8 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     assetsInlineLimit: 0,
+    // scripts/budget.ts atribuye cada trozo a su paquete con el manifiesto (fase 9).
+    manifest: true,
   },
   test: {
     include: ['tests/**/*.test.ts'],

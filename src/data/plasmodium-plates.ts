@@ -57,6 +57,12 @@ export interface PlateDef {
   cellMin: number;
 }
 
+/**
+ * Frontera de la Fusión (en celdas): a la izquierda vive el plasmodio que ya sabe cruzar la sal
+ * (sus sitios empiezan habituados), a la derecha el que solo aprenderá al fundirse.
+ */
+export const FUSION_SPLIT_X = 3.5;
+
 export const PLATES: readonly PlateDef[] = [
   // Tronco caído: el tutorial. Sobre corteza, sin lámparas; 4 copos. Semilla del generador: 79;
   // celda mínima 74 px.

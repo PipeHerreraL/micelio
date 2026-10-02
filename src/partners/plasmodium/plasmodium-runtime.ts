@@ -1,14 +1,14 @@
 /**
- * Entrada del trozo «runtime» del plasmodio: el modelo que avanza su estado. Llega aparte con
- * import() (src/partners/registry.ts); Node y Vitest lo importan directamente y lo registran con
- * registerPartnerRuntime. Puro: sin DOM ni reloj.
+ * Entrada del trozo «runtime» del plasmodio: el modelo que avanza su estado y redacta sus avisos.
+ * Llega aparte con import() (src/ui/partner-loader.ts); Node y Vitest lo importan directamente y
+ * lo registran con registerPartnerRuntime. Sin DOM ni reloj.
  */
 import type { PartnerRuntime } from '../types.ts';
 import { advancePlasmodium } from './advance.ts';
+import { plasmodiumNotice } from './notices.ts';
 
 export const plasmodiumRuntime: PartnerRuntime = {
   id: 'plasmodium',
   advance: advancePlasmodium,
-  // Los avisos llegan con el catálogo de textos del socio (src/i18n/partners/).
-  notice: () => null,
+  notice: plasmodiumNotice,
 };

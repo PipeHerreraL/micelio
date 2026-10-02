@@ -19,7 +19,12 @@ import { createWindSection } from '../src/ui/wind.ts';
  */
 
 const NOW = Date.UTC(2026, 9, 1);
-const nav: ChapterNav = { toWind: () => undefined, toAdaptations: () => undefined, toCore: () => undefined };
+const nav: ChapterNav = {
+  toWind: () => undefined,
+  toAdaptations: () => undefined,
+  toCore: () => undefined,
+  toPartner: () => undefined,
+};
 
 afterEach(() => {
   document.body.replaceChildren();

@@ -1,0 +1,282 @@
+/*
+ * Panel del plasmodio (fase 9). Llega con la vista, aparte del CSS inicial. Colores:
+ * --plasmodio (#f2d16b) marca la identidad (icono, cifra del Rastro, lienzo) y nunca un botón
+ * (1,39:1 frente a --rebozuelo); el foco sigue en rebozuelo. Contrastes medidos en la fase 9:
+ * plasmodio 11,2:1 sobre humus, 10,1:1 sobre el panel.
+ */
+:root {
+  --plasmodio: #f2d16b;
+  --agar: #1d1b16;
+}
+
+.plasmodium {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.partner__title {
+  font-size: 1.35rem;
+}
+
+.partner__title:focus-visible {
+  outline: 2px solid var(--rebozuelo);
+  outline-offset: 3px;
+}
+
+.plasmodium__species {
+  font-family: var(--font-title);
+  font-style: italic;
+  color: var(--micelio-tenue);
+}
+
+.plasmodium__kind,
+.plasmodium__note {
+  color: var(--micelio-tenue);
+  max-width: 60ch;
+}
+
+.plasmodium__trail {
+  color: var(--plasmodio);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.plasmodium__rate {
+  font-variant-numeric: tabular-nums;
+}
+
+.plasmodium__mapping .bar,
+.plasmodium__hold .bar {
+  width: 100%;
+  max-width: 24rem;
+  margin-top: 0.3rem;
+}
+
+.plasmodium__mapping .bar__fill {
+  background: var(--plasmodio);
+}
+
+/* Herramientas y pulso: encima de la placa; en móvil, pegajosas bajo el contador fijo. */
+.plasmodium__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.4rem 0;
+  background: var(--panel);
+}
+
+@media (max-width: 767.98px) {
+  .plate__home .plasmodium__toolbar {
+    position: sticky;
+    top: 64px;
+    z-index: 5;
+  }
+}
+
+.plasmodium__tools,
+.plasmodium__flow,
+.plasmodium__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.plasmodium__tool[aria-pressed='true'],
+.plasmodium__flow .button[aria-pressed='true'] {
+  border-color: var(--rebozuelo);
+  box-shadow: inset 0 -3px 0 var(--rebozuelo);
+}
+
+.plasmodium__tool-count,
+.plasmodium__pulse-state {
+  margin-inline-start: 0.4rem;
+  font-size: 0.85em;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
+.plasmodium__pulse[aria-disabled='true'] {
+  opacity: 0.7;
+}
+
+/* Placa: el lienzo pinta y los sitios son botones de 44 px encima. */
+.plate__frame {
+  position: relative;
+  margin: 0.25rem auto;
+  max-width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--agar);
+  touch-action: manipulation;
+}
+
+.plate__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.plate__sites {
+  position: absolute;
+  inset: 0;
+}
+
+.plate__sites.is-inert {
+  pointer-events: none;
+}
+
+.plate__site {
+  position: absolute;
+  width: var(--tap);
+  height: var(--tap);
+  translate: -50% -50%;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.plate__site:focus-visible {
+  outline: 3px solid var(--rebozuelo);
+  outline-offset: 0;
+}
+
+.plate__site[aria-disabled='true'] {
+  cursor: default;
+}
+
+.plate__list {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0;
+  list-style: none;
+}
+
+.plate__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--filete);
+}
+
+.plate__row-button {
+  min-height: var(--tap);
+}
+
+.plasmodium__summary,
+.plasmodium__hint {
+  max-width: 60ch;
+}
+
+.plasmodium__section {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--filete);
+}
+
+.plasmodium__section h4 {
+  font-family: var(--font-title);
+  font-size: 1.15rem;
+}
+
+.plasmodium__conditions,
+.plasmodium__info,
+.plasmodium__upgrades,
+.plasmodium__links,
+.plasmodium__atlas {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+
+.plasmodium__condition::before {
+  content: '○ ';
+}
+
+.plasmodium__condition.is-ok::before {
+  content: '● ';
+  color: var(--plasmodio);
+}
+
+.plasmodium__info {
+  color: var(--micelio-tenue);
+}
+
+.plasmodium__upg,
+.plasmodium__link,
+.plasmodium__atlas-entry {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--filete);
+  border-radius: var(--radius);
+}
+
+.plasmodium__upg-name,
+.plasmodium__link-name,
+.plasmodium__atlas-name {
+  font-weight: 600;
+}
+
+.plasmodium__upg-meta {
+  font-variant-numeric: tabular-nums;
+  color: var(--micelio-tenue);
+}
+
+.plasmodium__upg .button {
+  justify-self: start;
+}
+
+.plasmodium__upg .button[aria-disabled='true'] {
+  opacity: 0.6;
+}
+
+.plasmodium__link.is-active {
+  border-color: var(--plasmodio);
+}
+
+.plasmodium__atlas-entry.is-current {
+  border-color: var(--rebozuelo);
+}
+
+.plasmodium__atlas-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.info-button {
+  display: inline-grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  margin: -12px 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--micelio-tenue);
+  vertical-align: middle;
+  cursor: help;
+}
+
+.info-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Placa ampliada: el bloque de la placa se mueve dentro del diálogo. */
+.modal--plate .modal__frame {
+  max-width: min(100vw - 1rem, 920px);
+}
+
+.modal--plate .plate__frame {
+  margin-inline: auto;
+}

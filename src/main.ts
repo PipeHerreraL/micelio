@@ -64,6 +64,18 @@ import { achievementDescription, achievementName } from './ui/tab-achievements.t
 import type { TabId } from './ui/tabs.ts';
 import { createToastContainer, removeToast, toast, type ToastOptions } from './ui/toasts.ts';
 import { installTooltipGlobalHandlers, refreshTooltip } from './ui/tooltip.ts';
+import { ensurePartnerCatalog, isPartnerCatalogReady, setPartnerPseudo } from './i18n/partners/index.ts';
+import { PARTNER_IDS, type PartnerId } from './partners/ids.ts';
+import { partnerRuntime, unregisterPartnerRuntime, type PartnerEvent } from './partners/registry.ts';
+import { mappedCount } from './partners/plasmodium/state.ts';
+import {
+  advancePartners,
+  applyPartnersElapsed,
+  noteFungalEvent,
+  setPartnerErrorHandler,
+  type ElapsedNote,
+} from './systems/partners.ts';
+import { loadPartner, markPartnerFailed, schedulePartnerPreload } from './ui/partner-loader.ts';
 
 const TICK_MS = TICK_SECONDS * 1000;
 /** Refresco de números en pantalla: como máximo 10 Hz (PROMPT.md §5). */
@@ -103,6 +115,7 @@ function applyLocale(state: GameState): void {
   const params = new URLSearchParams(window.location.search);
   // Pseudoidioma solo en desarrollo: alarga los textos un 40 % para detectar cortes.
   if (import.meta.env.DEV && params.has('pseudo')) {
+    setPartnerPseudo(true);
     setLocale('es', pseudoCatalog(es));
   } else {
     setLocale(detectLocale(state.settings.locale, navigator.languages));
@@ -120,9 +133,18 @@ const storage = getStorage();
 const bootNow = Date.now();
 const loaded = loadGame(storage);
 let offlineReport: OfflineReport | null = null;
+let partnerNotes: ElapsedNote[] = [];
 let initialState: GameState;
 if (loaded.kind === 'loaded') {
   initialState = loaded.save.state;
+  // Los socios reciben su tiempo antes que la red: un socio que llega al final del tiempo de la
+  // red no recibe el tiempo en que no existía (systems/partners.ts). Su modelo aún no está
+  // cargado: el tiempo queda pendiente y se aplica cuando llegue.
+  partnerNotes = applyPartnersElapsed(
+    initialState,
+    Math.max(0, (bootNow - loaded.save.savedAt) / 1000),
+    'offline',
+  );
   offlineReport = applyOffline(initialState, loaded.save.savedAt, bootNow);
 } else {
   initialState = createState(randomSeed(), bootNow);
@@ -150,6 +172,10 @@ function rebuildApp(focusId?: string): void {
   applyLocale(store.state);
   liveRegion.setAttribute('aria-label', t('live.region'));
   app = buildApp();
+  // Los textos de los socios del idioma nuevo; mientras llegan, siguen los del anterior.
+  for (const id of PARTNER_IDS) {
+    if (store.state.partners[id] !== null) void loadPartner(id, getLocale());
+  }
   // Los avisos fijos siguen en su contenedor; se reemiten para que cambien de idioma.
   showStickyNotices();
   if (focusId) document.getElementById(focusId)?.focus();
@@ -165,6 +191,7 @@ function motionReduced(): boolean {
 function applyMotion(): void {
   document.documentElement.classList.toggle('reduce-motion', store.state.settings.reducedMotion);
   network?.setReducedMotion(motionReduced());
+  app.setReducedMotion(motionReduced());
 }
 
 const sound = createSoundEngine();
@@ -276,10 +303,25 @@ const chapterNav: ChapterNav = {
   toCore: () => {
     app.hud.coreButton.focus();
   },
+  toPartner: (id: PartnerId, openPlate?: number) => {
+    app.tabs.select('partners');
+    focusHeading(`partner-${id}-title`);
+    if (openPlate !== undefined) {
+      // Las acciones del plasmodio llegan con su modelo (trozo aparte).
+      void import('./partners/plasmodium/actions.ts').then(({ openPlate: open }) => {
+        store.dispatch(open, { plate: openPlate });
+      });
+    }
+  },
 };
 
 let app: App = buildApp();
 applyMotion();
+
+/** Lámina de una placa releída desde el Atlas del plasmodio. */
+function rereadPlate(plate: number): void {
+  openChapter(store, { kind: 'plate', plate }, chapterNav, { reread: true });
+}
 
 function mountNetwork(canvas: HTMLCanvasElement): void {
   canvasObserver?.disconnect();
@@ -311,6 +353,20 @@ function buildApp(): App {
     },
     extraViews: (st) => [createSettingsTab(st, settingsServices)],
     nav: chapterNav,
+    partners: {
+      reducedMotion: motionReduced,
+      toAchievements: () => {
+        app.tabs.select('achievements');
+        focusHeading('achievements-plasmodium');
+      },
+      rereadPlate: (plate) => {
+        rereadPlate(plate);
+      },
+      saveAndReload: () => {
+        saveNow();
+        window.location.reload();
+      },
+    },
   });
   next.root.append(floaters.root);
   next.update(performance.now());
@@ -335,6 +391,9 @@ let blockedBy: 'corrupt' | 'otherTab' | null =
   loaded.kind === 'corrupt' && !loaded.backedUp ? 'corrupt' : null;
 let warnedUnavailable = loaded.kind === 'unavailable';
 let warnedInvalid = false;
+let warnedRestored = false;
+/** La carga tuvo que empezar de cero a un socio (copia de respaldo y aviso fijo). */
+const partnersReset = loaded.kind === 'loaded' && loaded.partnersReset.length > 0;
 // Una página que arranca oculta (pestaña en segundo plano, sesión restaurada) no avanza
 // hasta que se muestra: cuenta desde el arranque (BUG-JOURNAL #4).
 let hiddenAt: number | null = !forceLoop && document.hidden ? bootNow : null;
@@ -351,6 +410,12 @@ function saveNow(): boolean {
   if (outcome === 'failed' && !warnedUnavailable) {
     warnedUnavailable = true;
     showStickyNotices();
+  }
+  if (outcome === 'restored' && !warnedRestored) {
+    // Un socio tenía un valor imposible: volvió a su último estado bueno y la red se guardó.
+    warnedRestored = true;
+    console.warn('Micelio: un socio tenía un valor imposible; volvió a su último estado guardado.');
+    toast(t('save.partnerRestored'), { kind: 'info' });
   }
   if (outcome === 'invalid' && !warnedInvalid) {
     // No debería pasar nunca: el núcleo acota las cantidades (num.clamp). Si pasa, el último
@@ -370,7 +435,12 @@ function liftCorruptBlock(): void {
 }
 
 type NoticeId =
-  'save-corrupt' | 'save-corrupt-no-backup' | 'save-other-tab' | 'save-unavailable' | 'save-invalid';
+  | 'save-corrupt'
+  | 'save-corrupt-no-backup'
+  | 'save-other-tab'
+  | 'save-unavailable'
+  | 'save-invalid'
+  | 'save-partner-reset';
 /** Avisos fijos que el jugador cerró: no vuelven al reconstruir la interfaz. */
 const dismissedNotices = new Set<NoticeId>();
 const corruptBackedUp = loaded.kind === 'corrupt' && loaded.backedUp;
@@ -414,6 +484,7 @@ function showStickyNotices(): void {
   }
   if (warnedUnavailable) notice('save-unavailable', t('save.unavailable'));
   if (warnedInvalid) notice('save-invalid', t('save.invalid'));
+  if (partnersReset) notice('save-partner-reset', t('save.partnerReset'));
 }
 
 /**
@@ -477,6 +548,16 @@ function showOfflineReport(report: OfflineReport): void {
     t('offline.efficiency', { percent: formatPercent(report.efficiency, locale, 0) }),
   ];
   if (report.capped) body.push(t('offline.capped', { cap: formatDuration(report.effective, locale) }));
+  for (const note of partnerNotes) {
+    if (note.seconds > 0) {
+      body.push(
+        t('offline.plasmodium', {
+          time: formatDuration(note.seconds, locale),
+          percent: formatPercent(note.efficiency, locale, 0),
+        }),
+      );
+    }
+  }
   body.push(t(flavor));
   openModal({
     title: t('offline.title'),
@@ -508,7 +589,30 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   disperse: 'wind',
   rainSpawn: 'drip',
   sporulate: 'spore',
+  partnerUnlocked: 'chord',
 };
+
+/** Último aviso de cada tipo de un socio (ms): como mucho uno cada 10 s de objetivo o de mapa. */
+const partnerNoticeAt = new Map<string, number>();
+const PARTNER_NOTICE_GAP_MS = 10_000;
+
+function handlePartnerEvent(event: PartnerEvent): void {
+  // Guardar justo después de cartografiar una placa, como al esporular.
+  if (event.kind === 'fruited') saveNow();
+  const notice = partnerRuntime(event.type)?.notice(event) ?? null;
+  if (!notice) return;
+  if (event.kind === 'goal' || event.kind === 'mapImproved') {
+    const now = performance.now();
+    const last = partnerNoticeAt.get(event.kind) ?? Number.NEGATIVE_INFINITY;
+    if (now - last < PARTNER_NOTICE_GAP_MS) return;
+    partnerNoticeAt.set(event.kind, now);
+  }
+  if (notice.tone) {
+    toast(notice.text, { kind: notice.tone, ...(notice.title ? { title: notice.title } : {}) });
+  }
+  if (notice.cue) sound.play(notice.cue);
+  if (notice.announce) announce(notice.title ?? notice.text);
+}
 
 function handleEvent(event: GameEvent): void {
   const locale = getLocale();
@@ -567,6 +671,14 @@ function handleEvent(event: GameEvent): void {
     case 'actOneClosed':
       // Sin aviso flotante: la lámina se abre sola en cuanto no hay otro modal.
       announce(t('actOne.announce'));
+      break;
+    case 'partnerUnlocked':
+      // Sin aviso flotante: la lámina de llegada sale sola. El modelo empieza a llegar ya.
+      announce(t('plasmodium.announce'));
+      void loadPartner(event.partner, getLocale());
+      break;
+    case 'plasmodium':
+      handlePartnerEvent(event);
       break;
     case 'colonized': {
       const message = t('wind.colonized', {
@@ -641,6 +753,10 @@ function showPendingChapter(): void {
   if (chapterShowing || isModalOpen() || (network?.isTransitioning() ?? false)) return;
   const chapter = pendingChapter(store.state);
   if (!chapter) return;
+  if (chapter.kind === 'plate' && !isPartnerCatalogReady('plasmodium', getLocale())) {
+    void loadPartner('plasmodium', getLocale());
+    return;
+  }
   chapterShowing = true;
   openChapter(store, chapter, chapterNav, {
     onClosed: () => {
@@ -650,6 +766,9 @@ function showPendingChapter(): void {
 }
 
 let speed = 1;
+let lastMapped = store.state.partners.plasmodium ? mappedCount(store.state.partners.plasmodium) : 0;
+/** La precarga de los socios se pide tras el primer frame. */
+let preloadScheduled = false;
 let lastFrame = performance.now();
 let accumulator = 0;
 let lastUi = 0;
@@ -668,6 +787,8 @@ const MAX_TICKS_PER_FRAME = 200;
  */
 function advance(realMs: number): void {
   if (realMs > MAX_FRAME_GAP_MS) {
+    // Los socios primero (ver el arranque).
+    applyPartnersElapsed(store.state, (realMs * speed) / 1000, 'background');
     applyBackground(store.state, (realMs * speed) / 1000);
     accumulator = 0;
     return;
@@ -678,6 +799,8 @@ function advance(realMs: number): void {
   while (accumulator >= stepMs && steps < MAX_TICKS_PER_FRAME) {
     tickPayload.dt = stepMs / 1000;
     tick(store.state, tickPayload);
+    // El socio avanza con su propio reloj (sin su modelo, el tiempo queda pendiente).
+    advancePartners(store.state, stepMs);
     accumulator -= stepMs;
     steps += 1;
   }
@@ -700,16 +823,28 @@ function frame(now: number): void {
   for (const event of drain()) {
     handleEvent(event);
     network?.onEvent(event);
+    app.onEvent(event);
+    // Lluvia en la placa: cada gota del bosque humedece el agar del plasmodio.
+    if (event.type === 'rainCaught' || event.type === 'rainFell') store.dispatch(noteFungalEvent, { event });
   }
 
   if (now - lastUi >= UI_INTERVAL_MS) {
     lastUi = now;
+    // Si un fruto se perdió en una cola llena de avisos, se guarda igual.
+    const mapped = store.state.partners.plasmodium ? mappedCount(store.state.partners.plasmodium) : 0;
+    if (mapped > lastMapped) saveNow();
+    lastMapped = mapped;
     app.update(now);
     network?.sync(store.state);
     refreshTooltip();
     showPendingChapter();
   }
   network?.frame(now);
+  app.frame(now);
+  if (!preloadScheduled) {
+    preloadScheduled = true;
+    schedulePartnerPreload(store, getLocale);
+  }
   schedule(frame);
 }
 
@@ -725,7 +860,8 @@ globalDisposer.listen(document, 'visibilitychange', () => {
     return;
   }
   if (hiddenAt !== null) {
-    // Reloj que retrocede: applyBackground ignora intervalos negativos.
+    // Reloj que retrocede: applyBackground ignora intervalos negativos. Los socios, primero.
+    applyPartnersElapsed(store.state, (Date.now() - hiddenAt) / 1000, 'background');
     applyBackground(store.state, (Date.now() - hiddenAt) / 1000);
     hiddenAt = null;
   }
@@ -749,6 +885,22 @@ globalDisposer.listen(document, 'keydown', (e) => {
   event.preventDefault();
   app.hud.coreButton.click();
 });
+
+// Un error del modelo de un socio no para el bucle ni hace perder la partida: se avisa una vez,
+// el modelo se da de baja (su tiempo vuelve a quedar pendiente) y el panel ofrece recargar.
+const reportedPartnerErrors = new Set<PartnerId>();
+setPartnerErrorHandler((id, error) => {
+  if (!reportedPartnerErrors.has(id)) {
+    reportedPartnerErrors.add(id);
+    console.error(`Micelio: el modelo del socio ${id} falló.`, error);
+  }
+  unregisterPartnerRuntime(id);
+  markPartnerFailed(id);
+});
+// Con el idioma ya decidido: el catálogo del socio se pide junto con su modelo en la precarga.
+for (const id of PARTNER_IDS) {
+  if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);
+}
 
 schedule(frame);
 
