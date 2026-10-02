@@ -21,7 +21,8 @@
     "sim": "node scripts/simulate.ts && node scripts/simulate-plasmodium.ts && prettier --write docs/BALANCE.md --log-level warn",
     "sim:plasmodio": "node scripts/simulate-plasmodium.ts && prettier --write docs/BALANCE.md --log-level warn",
     "test:e2e": "playwright test",
-    "perf": "playwright test perf --workers=1"
+    "perf": "playwright test perf --workers=1",
+    "icons": "node scripts/icons.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

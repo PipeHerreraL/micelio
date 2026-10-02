@@ -48,6 +48,7 @@ import {
 import { createApp, type App } from './ui/app.ts';
 import { Disposer, h, restartAnimation } from './ui/dom.ts';
 import { createFloaters } from './ui/floaters.ts';
+import { registerServiceWorker, watchInstall } from './ui/install.ts';
 import { announce, createLiveRegion } from './ui/live.ts';
 import { openModal } from './ui/modal.ts';
 import { createSoundEngine, type SoundCue } from './audio/sound.ts';
@@ -171,6 +172,10 @@ document.body.append(createToastContainer(), liveRegion);
 
 const globalDisposer = new Disposer();
 installTooltipGlobalHandlers(globalDisposer);
+// App instalable (ARCHITECTURE.md §4.31): el aviso de instalación de Chrome llega pronto, antes de
+// que exista Ajustes; el service worker deja jugar sin conexión.
+globalDisposer.add(watchInstall());
+registerServiceWorker();
 
 // ---------------------------------------------------------------------------------------
 // Ajustes

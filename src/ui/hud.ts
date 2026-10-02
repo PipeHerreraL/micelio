@@ -9,6 +9,7 @@ import { formatDuration } from '../i18n/format.ts';
 import { getLocale } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, svg } from './dom.ts';
 import { uiIcon } from './icons.ts';
+import { CORE_HALO_RADIUS, CORE_HEART_RADIUS, coreStrands } from './core-art.ts';
 import type { Store } from './store.ts';
 import { attachTooltip } from './tooltip.ts';
 
@@ -22,32 +23,13 @@ export interface Hud {
   destroy(): void;
 }
 
-/** Dibujo del núcleo: un nudo de hifas que irradia desde el centro. */
+/** Dibujo del núcleo: un nudo de hifas que irradia desde el centro (geometría en core-art.ts). */
 function coreArt(): SVGSVGElement {
-  const strands: SVGElement[] = [];
-  const count = 9;
-  for (let i = 0; i < count; i += 1) {
-    const a = (i / count) * Math.PI * 2;
-    const r1 = 9;
-    const r2 = 30 + (i % 3) * 4;
-    const bend = a + 0.35 * (i % 2 === 0 ? 1 : -1);
-    const x1 = 40 + Math.cos(a) * r1;
-    const y1 = 40 + Math.sin(a) * r1;
-    const cx = 40 + Math.cos(bend) * (r2 * 0.6);
-    const cy = 40 + Math.sin(bend) * (r2 * 0.6);
-    const x2 = 40 + Math.cos(a) * r2;
-    const y2 = 40 + Math.sin(a) * r2;
-    strands.push(
-      svg('path', {
-        d: `M${x1.toFixed(1)} ${y1.toFixed(1)}Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
-        class: 'core__strand',
-      }),
-    );
-  }
+  const strands = coreStrands().map((d) => svg('path', { d, class: 'core__strand' }));
   return svg('svg', { class: 'core__art', viewBox: '0 0 80 80', 'aria-hidden': 'true', focusable: 'false' }, [
-    svg('circle', { cx: 40, cy: 40, r: 36, class: 'core__halo' }),
+    svg('circle', { cx: 40, cy: 40, r: CORE_HALO_RADIUS, class: 'core__halo' }),
     ...strands,
-    svg('circle', { cx: 40, cy: 40, r: 10, class: 'core__heart' }),
+    svg('circle', { cx: 40, cy: 40, r: CORE_HEART_RADIUS, class: 'core__heart' }),
   ]);
 }
 

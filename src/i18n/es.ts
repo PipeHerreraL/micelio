@@ -631,6 +631,16 @@ export const es = {
   'stats.history.row.other': 'Partida {n}: {time}, +{count} esporas',
   // Ajustes
   'settings.title': 'Ajustes',
+  'settings.install': 'Instalar la app',
+  'settings.install.button': 'Instalar Micelio',
+  'settings.install.done': 'Ya juegas con la app instalada.',
+  'settings.install.ios':
+    'En el iPhone o el iPad, en Safari: botón Compartir y «Añadir a pantalla de inicio». La app no ve la partida de Safari: expórtala abajo e impórtala en la app.',
+  'settings.install.browser':
+    'Si tu navegador lo permite, instálala desde su menú («Instalar app» o «Añadir a pantalla de inicio»).',
+  'settings.install.apk': 'Descargar el instalador para Android (.apk)',
+  'settings.install.apk.hint':
+    'La app de Android guarda su propia partida: exporta la de aquí abajo e impórtala en la app.',
   'settings.language': 'Idioma',
   'settings.language.es': 'Español',
   'settings.language.en': 'English',

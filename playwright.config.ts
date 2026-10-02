@@ -25,6 +25,9 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}/micelio/`,
     // El juego detecta el idioma del navegador: las pruebas parten en español.
     locale: 'es-ES',
+    // El service worker (app instalable) se bloquea salvo en tests/e2e/pwa.spec.ts: guardaría el
+    // juego en caché entre recargas y lo que intercepta page.route no le llegaría.
+    serviceWorkers: 'block',
     trace: 'retain-on-failure',
   },
   webServer: {

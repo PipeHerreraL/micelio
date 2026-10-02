@@ -9,6 +9,14 @@ import { fmt, formatCount, getLocale, t, type MessageKey } from '../i18n/index.t
 import { exportSave, importSave, type ImportError } from '../systems/save.ts';
 import { biomeName } from './biome-text.ts';
 import { Disposer, h, setAttr, setDisabled, setHidden, setText } from './dom.ts';
+import {
+  APK_URL,
+  installSituation,
+  isAndroid,
+  onInstallChange,
+  promptInstall,
+  type InstallSituation,
+} from './install.ts';
 import { openModal } from './modal.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
@@ -54,6 +62,57 @@ function section(title: string, children: readonly Node[]): HTMLElement {
 
 export function createSettingsTab(store: Store, services: SettingsServices): TabView {
   const disposer = new Disposer();
+
+  // Instalar la app (ARCHITECTURE.md §4.31): lo que se puede hacer depende del navegador.
+  const installButton = h('button', {
+    class: 'button',
+    id: 'setting-install',
+    text: t('settings.install.button'),
+    attrs: { type: 'button', hidden: true },
+  });
+  // Enfocable desde el código: tras instalar, el botón se oculta y el foco pasa aquí (BUG-JOURNAL #5).
+  const installText = h('p', {
+    class: 'settings__hint',
+    id: 'setting-install-text',
+    attrs: { tabindex: -1 },
+  });
+  const apkLink = h('a', {
+    class: 'button button--quiet',
+    id: 'setting-install-apk',
+    text: t('settings.install.apk'),
+    attrs: { href: APK_URL, rel: 'noopener', hidden: true },
+  });
+  const apkHint = h('p', {
+    class: 'settings__hint',
+    text: t('settings.install.apk.hint'),
+    attrs: { hidden: true },
+  });
+  const installSection = section(t('settings.install'), [installText, installButton, apkLink, apkHint]);
+  const INSTALL_TEXT: Readonly<Record<InstallSituation, MessageKey | null>> = {
+    native: null,
+    installed: 'settings.install.done',
+    prompt: null,
+    ios: 'settings.install.ios',
+    browser: 'settings.install.browser',
+  };
+  function updateInstall(): void {
+    const situation = installSituation();
+    // En la app de Android no hay nada que instalar.
+    setHidden(installSection, situation === 'native');
+    const key = INSTALL_TEXT[situation];
+    setHidden(installText, key === null);
+    if (key) setText(installText, t(key));
+    // Pulsado el botón, el navegador ya no vuelve a ofrecerlo: el foco no se queda en un botón oculto.
+    if (situation !== 'prompt' && document.activeElement === installButton) installText.focus();
+    setHidden(installButton, situation !== 'prompt');
+    const apk = isAndroid() && situation !== 'native' && situation !== 'installed';
+    setHidden(apkLink, !apk);
+    setHidden(apkHint, !apk);
+  }
+  disposer.listen(installButton, 'click', () => {
+    void promptInstall().then(updateInstall);
+  });
+  disposer.add(onInstallChange(updateInstall));
 
   // Idioma: los nombres de los idiomas van en su propio idioma, así que se entienden siempre.
   const localeButtons = LOCALES.map((locale) => {
@@ -303,6 +362,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
       motion,
       h('p', { class: 'settings__hint', id: 'setting-motion-hint', text: t('settings.reducedMotion.hint') }),
     ]),
+    installSection,
     section(t('settings.save.title'), [
       h('p', { class: 'settings__hint', text: t('settings.export.hint') }),
       h('div', { class: 'settings__row' }, [exportButton, copyButton]),
@@ -343,6 +403,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
     setAttr(volume, 'aria-valuetext', formatPercent(settings.volume, getLocale(), 0));
     setDisabled(volume, !settings.sound);
     setAttr(motion, 'aria-pressed', settings.reducedMotion ? 'true' : 'false');
+    updateInstall();
   }
 
   return {

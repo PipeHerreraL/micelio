@@ -623,6 +623,16 @@ export const en: Catalog = {
   'stats.history.row.other': 'Run {n}: {time}, +{count} spores',
   // Ajustes
   'settings.title': 'Settings',
+  'settings.install': 'Install the app',
+  'settings.install.button': 'Install Micelio',
+  'settings.install.done': 'You are playing in the installed app.',
+  'settings.install.ios':
+    'On iPhone or iPad, in Safari: the Share button, then “Add to Home Screen”. The app cannot see your Safari save: export it below and import it in the app.',
+  'settings.install.browser':
+    'If your browser supports it, install it from its menu (“Install app” or “Add to Home screen”).',
+  'settings.install.apk': 'Download the Android installer (.apk)',
+  'settings.install.apk.hint':
+    'The Android app keeps its own save: export this one below and import it in the app.',
   'settings.language': 'Language',
   'settings.language.es': 'Español',
   'settings.language.en': 'English',
