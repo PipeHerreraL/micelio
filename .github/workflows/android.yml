@@ -6,7 +6,7 @@ name: Android
 
 on:
   push:
-    branches: [main, app-instalable]
+    branches: [main]
   pull_request:
   release:
     types: [published]
