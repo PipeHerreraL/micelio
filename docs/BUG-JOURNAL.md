@@ -316,6 +316,115 @@ Mejoras, Mutaciones y Ajustes. Falla sin el arreglo (comprobado: la página se q
 WebKit no expone ese protocolo, así que en iPhone el arreglo se apoya en la misma regla de CSS
 pero no tiene prueba propia.
 
+## 15. «Ver la placa» dejaba el foco en `<body>` en cuanto llegaba la vista del plasmodio
+
+**Zona:** `src/ui/tab-partners.ts` (familia de #5 y #8)
+
+**Síntoma.** Lo encontró la prueba de navegador antes de publicar la fase 9: tras la lámina de
+llegada, «Ver la placa» llevaba a Socios y enfocaba el título del plasmodio, pero un momento
+después el foco caía en `<body>`. Con el teclado, el siguiente Espacio absorbía en lugar de
+actuar sobre el panel.
+
+**Causa.** Mientras el código del socio llega aparte, la sección muestra un título provisional
+con el mismo id (`#partner-plasmodium-title`). Al llegar la vista, la sección se rehacía con
+`replaceChildren` y el título enfocado salía del documento.
+
+**Arreglo.** Antes de rehacer la sección (vista o error de carga), si el foco estaba dentro se
+vuelve a poner en el título nuevo con el mismo id.
+
+**Qué lo sostiene.** `tests/e2e/plasmodium.spec.ts` → «la lámina de llegada sale una vez,
+también tras el offline, y «Ver la placa» lleva a Socios»: comprueba que el título queda
+enfocado. Falló sin el arreglo (primera corrida de la fase 9).
+
+## 16. La calidad de la red se leía «0,66» junto a «falta»
+
+**Zona:** `src/partners/plasmodium/view/plasmodium-view.ts` (familia de #1)
+
+**Síntoma.** Lo encontró la revisión adversarial de la fase 9: con una calidad de 0,6596 en el
+Tronco, el objetivo decía «Calidad de la red: 0,66 (objetivo: 0,66 o más) · falta» y la barra de
+estabilidad no se llenaba, a veces durante más de 10 minutos. En el Laberinto, «1,10 (objetivo:
+1,1 o menos) · falta».
+
+**Causa.** La cifra se mostraba redondeada a dos decimales y el objetivo se decidía con el valor
+sin redondear.
+
+**Arreglo.** La calidad se muestra truncada hacia abajo y la longitud hacia arriba, al número de
+decimales que se ven, y el umbral del Laberinto con dos decimales: lo que se lee cumple si y solo si
+el objetivo se cumple.
+
+**Qué lo sostiene.** `tests/ui-plasmodium.test.ts` → «una calidad de 0,6588 se lee «0,65 … falta»
+y no «0,66 … falta»» y «en el Laberinto una longitud de 1,104 se lee «1,11 … falta», con el
+objetivo a dos decimales». Fallan sin el arreglo.
+
+## 17. Un error del código del plasmodio podía parar el juego entero
+
+**Zona:** `src/ui/tab-partners.ts`, `src/ui/partner-loader.ts`, `src/main.ts`
+
+**Síntoma.** Lo encontró la revisión adversarial de la fase 9, con un fallo simulado en la medida
+de la red. La protección cubría el avance del modelo, pero la vista y los avisos del socio corrían
+sin ella dentro del frame: la excepción salía de `frame()` y el bucle de la red se detenía hasta
+recargar. Y tras un fallo, la pestaña Socios reintentaba la carga en cada refresco (10 veces por
+segundo): el panel parpadeaba, el botón «Recargar la página» se rehacía y el foco caía en `<body>`.
+
+**Causa.** El socio es código que llega aparte y puede fallar (un despliegue nuevo, un error), pero
+solo una de sus tres entradas al bucle estaba protegida; y el panel pedía la carga siempre que el
+estado no fuera «listo», también después de «falló».
+
+**Arreglo.** La creación, el refresco, el frame y los eventos de la vista, y los avisos del modelo,
+van en `try/catch`: un fallo da de baja al socio una sola vez, marca «falló» y deja el panel con
+su botón de recargar. Tras un fallo no hay reintentos automáticos.
+
+**Qué lo sostiene.** `tests/ui-partners-integration.test.ts` → «un error de la vista en create,
+update, frame y onEvent no sale del bucle: el socio se da de baja y la sección ofrece recargar»,
+«un aviso del socio que lanza no sale de main.ts: no hay aviso y el socio se da de baja» y «los
+refrescos no reintentan la carga: el mismo botón «Recargar» sigue en su sitio y con el foco».
+Fallan sin el arreglo.
+
+## 18. Un guardado editado podía dejar al plasmodio sin guardarse para siempre
+
+**Zona:** `src/partners/plasmodium/state.ts`, `src/partners/plasmodium/advance.ts`
+
+**Síntoma.** Lo encontró la revisión adversarial de la fase 9 con un buscador de estados que pasan
+la validación: un guardado con el Tronco sin cartografiar y «la placa siguiente se abre sola en
+5 s» cargaba sin aviso; a los 5 s el modelo abría una placa no disponible, cada guardado devolvía
+el plasmodio a su último bloque bueno (el mismo bloque roto) y el progreso del plasmodio no se
+guardaba nunca más. Con un contador de pasos de 2^53 o más, la fuente del flujo dejaba de rotar y la
+placa no cumplía nunca.
+
+**Causa.** El validador comprobaba cada campo en su rango, pero no la espera de apertura contra el
+mapa de la placa abierta, ni el contador de pasos contra un tope realista; y el modelo abría la
+placa siguiente sin preguntar si estaba disponible.
+
+**Arreglo.** Esos dos campos se reparan al cargar (a 0, sin rechazar el guardado: no se pierde
+nada más), el contador de pasos tiene tope en el modelo, y la placa siguiente solo se abre si está
+disponible.
+
+**Qué lo sostiene.** `tests/plasmodium-save.test.ts` → «la apertura sola pendiente en una placa sin
+mapa, o en la última, carga en 0 sin rechazar el guardado» y «un contador de pasos imposible carga
+reiniciado en 0 sin rechazar el guardado»; `tests/plasmodium-model.test.ts` → «la espera de la
+apertura sola no abre una placa sin la anterior cartografiada». Fallan sin el arreglo.
+
+## 19. La placa ampliada no volvía a su tamaño al cerrarla
+
+**Zona:** `src/partners/plasmodium/view/plasmodium.css`, `plasmodium-view.ts` (familia de #5 y #8)
+
+**Síntoma.** Lo encontró la revisión adversarial de la fase 9 en Chromium: tras «Ampliar la placa»
+y cerrar, o al estrechar la ventana, la placa seguía con el ancho grande, desbordaba el panel (que
+pasaba a desplazarse en horizontal) y «Ampliar» desaparecía; el diálogo devolvía el foco a ese
+botón oculto y el siguiente Espacio absorbía. Además la placa ampliada no cabía en el diálogo.
+
+**Causa.** La columna de la rejilla crecía con el lienzo (`min-width: auto`), así que el ancho
+medido para disponer la placa dependía del propio lienzo y el error se sostenía solo. El diálogo
+seguía con el ancho máximo de los modales (32rem).
+
+**Arreglo.** `min-width: 0` en el contenedor de la placa y `minmax(0, 1fr)` en la columna; el
+diálogo de la placa ampliada con su propio ancho máximo, el mismo con el que se calcula la placa;
+al cerrar, si «Ampliar» ya no sirve, el foco va al título.
+
+**Qué lo sostiene.** `tests/e2e/plasmodium.spec.ts` → «ampliar la placa y cerrarla la devuelve al
+ancho del panel, con el foco en «Ampliar»» y «al estrechar la ventana, la placa se encoge con el
+panel». Fallan sin el arreglo.
+
 ---
 
 ## Bugs sin nada que los sostenga

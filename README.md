@@ -17,7 +17,7 @@ analítica: la partida se guarda en tu navegador.
 - **Compra generadores**: Hifas, Rizomorfos, Setas, Anillos de hadas… Producen solos, también
   mientras no miras (el progreso offline cuenta al 50 % y hasta 8 horas de base).
 - **Mejoras e hitos** multiplican la producción: cada generador se duplica a las 25, 50, 100…
-  unidades.
+  unidades. Con la cantidad **Hito**, el botón de compra lleva justo hasta el siguiente.
 - **La lluvia** cae cada pocos minutos. Atrapa la gota antes de que se evapore: Aguacero,
   Rocío o Tormenta eléctrica.
 - **Esporula** cuando la partida sume 1e8 nutrientes (en el bosque natal): empiezas de nuevo con
@@ -28,6 +28,11 @@ analítica: la partida se guarda en tu navegador.
   nivel de esporas vuelve a 0, con reglas nuevas y tres adaptaciones propias por bioma; las
   mutaciones y las adaptaciones viajan contigo. Coloniza cada bioma (nivel 500) y queda escrito
   en la **Crónica**.
+- Tras el Acto I llega un vecino: el **plasmodio** de _Physarum polycephalum_, un moho
+  mucilaginoso (no es un hongo). En la pestaña **Socios** pones copos de avena y lámparas en una
+  placa y miras cómo une la comida con una red que engorda los tubos útiles y seca los demás.
+  Su moneda es el **Rastro**; cartografía cinco placas (del Tronco caído a la Fusión) y le da a
+  tu red ayudas sin quitarle nada: la Poda en la autocompra y el Camino corto en Esporular.
 - En **Ajustes** puedes cambiar idioma, notación de números, sonido y movimiento, y exportar o
   importar tu partida.
 
@@ -52,7 +57,8 @@ npx playwright install firefox webkit
 | `npm test`         | Pruebas con Vitest                                                      |
 | `npm run lint`     | ESLint sin advertencias y Prettier en modo comprobación                 |
 | `npm run build`    | Comprobación de tipos y build estático en `dist/`                       |
-| `npm run sim`      | Simulador de balance; escribe `docs/BALANCE.md`                         |
+| `npm run sim`      | Simuladores de balance (red y plasmodio); escriben `docs/BALANCE.md`    |
+| `npm run budget`   | Comprueba el presupuesto de JS por paquete tras `npm run build`         |
 | `npm run test:e2e` | Pruebas de navegador con Playwright (Chromium, Firefox, WebKit y móvil) |
 | `npm run perf`     | Mide fps con una partida avanzada                                       |
 

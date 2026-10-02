@@ -28,12 +28,13 @@ anuncios, analítica, imágenes o audio externos e idiomas distintos de español
 equivalentes, gana la que mantiene `src/core` libre de DOM, de reloj y de azar no
 sembrado. Eso es lo que permite que el simulador de balance juegue partidas completas
 con exactamente las mismas fórmulas que el jugador, y que el progreso offline sea un
-cálculo y no una repetición de ticks.
+cálculo y no una repetición de ticks. **Excepción (fase 9):** el modelo del plasmodio repite
+hasta 1.200 segundos paso a paso al aplicar tiempo de golpe; ver §4.29.
 
 En la práctica:
 
-- `src/core`, `src/data` y `src/systems` nunca llaman a `Math.random` ni a `Date.now`
-  (ESLint lo prohíbe). El tiempo entra como parámetro; el azar pasa por `src/core/rng.ts`.
+- `src/core`, `src/data`, `src/systems` y `src/partners` (salvo sus vistas) nunca llaman a
+  `Math.random` ni a `Date.now` (ESLint lo prohíbe). El tiempo entra como parámetro; el azar pasa por `src/core/rng.ts`.
 - La UI solo lee el estado y despacha acciones `(state, payload) => void`.
 - La presentación (DOM, canvas, audio) nunca es la fuente de verdad de nada.
 
@@ -56,7 +57,10 @@ main.ts ──► bucle: acumulador de 50 ms ──► core/tick ──► estad
   cambió. **No** calculan balance: preguntan a los selectores.
 - `render/`: canvas de la red y partículas. Lee el estado; nunca lo escribe.
 - `audio/`: síntesis con Web Audio. Reacciona a eventos.
-- `i18n/`: catálogos y formato con `Intl`. Ningún texto visible vive fuera de aquí.
+- `i18n/`: catálogos y formato con `Intl`. Ningún texto visible vive fuera de aquí. Los
+  catálogos de cada socio llegan aparte (`i18n/partners/`).
+- `partners/` (fase 9): los socios. Su núcleo va en el paquete inicial; su modelo y su vista
+  llegan aparte con `import()` y nunca los ejecuta el simulador de la red (§4.29).
 
 ## 4. Decisiones
 
@@ -119,7 +123,8 @@ nativo) aún no es compatible con el linter con tipos.
 
 **Elegido:** `src/core/selectors.ts` guarda los derivados en un `WeakMap<GameState, Derived>`.
 Cada acción que cambia un multiplicador (compra, evento, logro, esporulación, carga y, desde
-la fase 8, dispersar, colonizar y comprar una adaptación de bioma) llama a `invalidate(state)`. Un estado nuevo (carga, simulador) arranca sin caché.
+la fase 8, dispersar, colonizar y comprar una adaptación de bioma) llama a `invalidate(state)`. Un estado nuevo (carga, simulador) arranca sin caché. Los socios (fase 9) no
+invalidan: ningún selector los lee.
 
 **Por qué no un campo `rev` en el estado:** ensuciaría el guardado con un dato de caché.
 **Por qué no recalcular siempre:** el bucle corre a 20 Hz y la UI pide derivados a 10 Hz;
@@ -134,7 +139,8 @@ cada acción.
 
 **Elegido:** `src/core/events.ts` es una cola (`emit`, `drain`) de eventos planos
 (`achievement`, `purchase`, `rainSpawn`, `rainCaught`, `effectEnd`, `sporulate` y, desde la
-fase 8, `actOneClosed`, `colonized`, `disperse` y `rainFell`…). El
+fase 8, `actOneClosed`, `colonized`, `disperse` y `rainFell`; desde la fase 9,
+`partnerUnlocked` y los eventos propios de cada socio, como `{ type: 'plasmodium', kind }`…). El
 núcleo emite; `main.ts` vacía la cola en cada frame y reparte a avisos, sonido y canvas.
 
 **Por qué:** las acciones mantienen la firma `(state, payload) => void` y el núcleo no
@@ -184,6 +190,9 @@ recibe exactamente lo que habría producido en vivo. Se usa igual para offline (
   multiplican igual que los generadores.
 - Un intervalo negativo (reloj que retrocede) se trata como cero.
 - «Sin prisa» se otorga por el hueco real, no por el recortado al límite.
+- Desde la fase 9, los socios reciben su tiempo **antes** que la red, con su propio tope y su
+  eficiencia (`applyPartnersElapsed`): un socio que llega al final del tiempo de la red no recibe
+  el tiempo en que no existía.
 
 ### 4.11 Revelación permanente
 
@@ -391,6 +400,67 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   compensaba un fallo del bot del simulador: tras el Acto I gastaba en Cuerpo apical las esporas
   que un jugador lleva al viaje. Corregido el bot, valen las escalas del prototipo con ×3,5.
 
+### 4.29 El Plasmodio y la estructura de socios (fase 9)
+
+- **Un socio es otro organismo con su propia moneda, su propio azar y sus propios logros**
+  (`src/partners/`). Cada uno tiene dos mitades: el núcleo (paquete inicial: validar su estado,
+  decidir cuándo llega, apuntar su tiempo y dar ventajas a la red) y el modelo y la vista, que
+  llegan aparte con `import()` (`src/ui/partner-loader.ts`). Una partida sin socio no descarga
+  nada de esto. Sumar un socio es añadir su estado, su núcleo, su cargador y su unión de eventos
+  en `src/partners/registry.ts`; el núcleo de la red no cambia.
+- **El socio no toca la red.** No entra en `computeDerived`, no invalida la caché (§4.6), sus
+  logros viven en su estado y no suman al +1 %, y su semilla sale de la común con `mixSeed` sin
+  avanzarla. El núcleo de la red solo comprueba la llegada (tick y tiempo analítico, como el
+  Acto I); el tiempo del socio lo apunta `main.ts` y lo avanza su modelo. El simulador de la red
+  nunca ejecuta un modelo de socio, y `npm run sim` comprueba además que la red sale idéntica,
+  minuto a minuto, con un plasmodio con sus dos ventajas y la lluvia en la placa.
+- **Guardado versión 6.** `partners` es `life` en las dos tablas de reinicio: reiniciarlo sería
+  un impuesto a esporular. Un socio que no valida no hace perder la red: al cargar vuelve a
+  empezar (copia de respaldo y aviso), al importar se avisa en la confirmación, y al guardar
+  vuelve a su último bloque válido y la red se guarda igual (`saveGame` devuelve `restored`).
+  `tests/fixtures/save-v6.json` es un guardado real de la 1.4: si la forma cambia sin migración,
+  su prueba falla.
+- **El modelo es el de Tero y colegas (2010)** con fuente por turno e integrador exponencial
+  (`src/partners/plasmodium/flow.ts`), en el mismo orden que el prototipo con el que se midieron
+  umbrales y economía. Las cinco placas son datos literales (`src/data/plasmodium-plates.ts`)
+  generados una vez con el generador del prototipo; `scripts/plasmodium-plates.ts` conserva su
+  procedencia y una prueba comprueba que los reproduce. Así no hay placas sin solución ni grafos
+  distintos entre navegadores, y el guardado se valida sin el modelo.
+- **Reloj propio en ms enteros.** Trocear un intervalo da lo mismo bit a bit. **Excepción a §2:**
+  el tiempo aplicado de golpe repite hasta 1.200 segundos de modelo paso a paso y cobra el resto
+  al ritmo final, que nunca fructifica ni cambia la estabilidad; 8 h de golpe dan el Rastro de 8 h
+  en vivo con un error menor del 0,1 %, y vaciar 1.200 s cuesta 8–10 ms de mediana en escritorio, 20–27 ms la primera vez (en frío, justo al llegar el modelo): un tirón aceptado de una vez al abrir o al volver (§7).
+  Un modelo puramente analítico no podía decir cuándo una red se adapta y cumple el objetivo.
+  Mientras el modelo no ha llegado, el tiempo queda pendiente (con su tope de 8 h, o 24 h con
+  Latencia) y se guarda; el modelo avanza sobre una copia que solo se conserva si termina, y un
+  fallo lo da de baja sin parar el bucle. Los avisos de una llamada se agrupan: la cola de
+  eventos tiene tope (§4.7).
+- **Llega en una partida posterior a la del Acto I, a los 5 min** (en un bioma, a los 5 min de
+  la partida): la primera calma tras la autocompra y sin tres láminas seguidas. Medido con
+  `npm run sim`: a las 3,42 h de mediana.
+- **Trampas que el diseño evita, medidas:** el caudal solo se cambia en placas ya
+  cartografiadas (con Alto la referencia no cumplía en cuatro placas); la Memoria externa no seca
+  los tubos con sustancia (la Fusión no se cumplía ni con la colocación de la Quimiotaxis); «A
+  prueba de cortes» pide la red estable (la placa empieza cubierta y sin puentes, así que con tres
+  copos se ganaba en el primer segundo); la Fusión lleva sal en toda la placa y el plasmodio de la
+  derecha solo aprende al fundirse (con la sal repartida al azar el contagio no influía).
+- **Correspondencias, solo de calidad de vida:** Poda (la autocompra por amortización con
+  `bestPurchase`, la regla del bot), Camino corto (el ritmo de esporas en Esporular, sin
+  recomendar nada: §4.28 midió que el mejor ritmo no es la mejor regla para colonizar) y Lluvia
+  en la placa (`main.ts` despacha `noteFungalEvent`; `systems/rain.ts` no cambia).
+- **La placa es accesible sin el lienzo:** cada sitio es un botón de 44 px con su contenido y su
+  acción en el nombre, con foco itinerante, flechas, 1, 2 y 3 para la herramienta, y una vista de
+  lista. La celda nunca baja de la mínima medida en los datos (`cellMin`) ni deja la herramienta
+  fuera de la pantalla en móvil; si no cabe, se pasa a la lista. La placa ampliada tiene su propia
+  región `aria-live` (con un `<dialog>` abierto, la global espera). Rehacer sitios, Atlas o la
+  sección de carga nunca deja el foco en `<body>`.
+- **Presupuesto por paquete** comprobado en CI con el manifiesto de Vite (`scripts/budget.ts`,
+  §7): se atribuye por cómo se importa, no por el nombre del archivo.
+- **Descartado:** fuente sorteada en cada paso (parpadeo de hasta 0,31 en las cifras y placas que
+  no convergían), media de todas las fuentes y 240 pasos grandes (no casaban con la fuente por
+  turno), integrador de Euler, histéresis del tubo vivo, placas sembradas por jugador, miniaturas
+  en el Atlas y un selector de socios que con uno solo no se vería.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -428,15 +498,20 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 
 ## 7. Presupuestos
 
-| Operación                                       | Presupuesto              | Medido                                                                    | Cómo                                    |
-| ----------------------------------------------- | ------------------------ | ------------------------------------------------------------------------- | --------------------------------------- |
-| JavaScript del build                            | < 150 kB comprimido      | 76.4 kB (fase 8; 32.4 kB en la fase 1)                                    | `npm run build` (gzip que informa Vite) |
-| Frame                                           | 60 fps estables          | ~131 fps en el natal y en la taiga (Edge local, limitado por la pantalla) | `npm run perf`                          |
-| Partículas vivas                                | ≤ 200 (pool)             | —                                                                         | Tope en `render/particles.ts`           |
-| Segmentos de la red                             | ≤ 2000                   | —                                                                         | Tope en `render/network.ts`             |
-| Refresco de números en pantalla                 | ≤ 10 Hz                  | —                                                                         | Limitador en `main.ts`                  |
-| Balance en 10 esporulaciones                    | < 1e300                  | 2.4e13                                                                    | `npm run sim`                           |
-| Balance del viaje (dos biomas y 4 partidas más) | < 1e63 (nombres de idle) | 7.4e17                                                                    | `npm run sim`                           |
+| Operación                                       | Presupuesto                   | Medido                                                                                                                                                 | Cómo                                    |
+| ----------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| JavaScript del build                            | < 150 kB comprimido           | 89.5 kB inicial + 18.6 kB del plasmodio (fase 9; 76.4 kB en la fase 8)                                                                                 | `npm run build` (gzip que informa Vite) |
+| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 89.5 kB                                                                                                                                                | `npm run budget`, también en CI         |
+| JS del plasmodio (modelo, acciones y vista)     | ≤ 20 kB comprimido            | 18.6 kB (estimado ~15 kB en el diseño)                                                                                                                 | `npm run budget`                        |
+| Catálogo de un socio (un idioma)                | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                               | `npm run budget`                        |
+| Vaciar 1.200 s de modelo del plasmodio          | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                              | a mano con `advancePlasmodium` (fase 9) |
+| Rastro del plasmodio                            | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                 | `npm run sim:plasmodio`                 |
+| Frame                                           | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local) | `npm run perf`                          |
+| Partículas vivas                                | ≤ 200 (pool)                  | —                                                                                                                                                      | Tope en `render/particles.ts`           |
+| Segmentos de la red                             | ≤ 2000                        | —                                                                                                                                                      | Tope en `render/network.ts`             |
+| Refresco de números en pantalla                 | ≤ 10 Hz                       | —                                                                                                                                                      | Limitador en `main.ts`                  |
+| Balance en 10 esporulaciones                    | < 1e300                       | 2.4e13                                                                                                                                                 | `npm run sim`                           |
+| Balance del viaje (dos biomas y 4 partidas más) | < 1e63 (nombres de idle)      | 7.4e17                                                                                                                                                 | `npm run sim`                           |
 
 ## 8. Escala
 
@@ -456,8 +531,9 @@ src/systems/   guardado, offline, lluvia, autocompra, logros
 src/ui/        componentes, pestañas, tooltips, modales, avisos
 src/render/    canvas de la red y partículas
 src/audio/     sonidos sintetizados
-src/i18n/      catálogos (es.ts base, en.ts) y formato con Intl
-scripts/       simulador de balance
+src/i18n/      catálogos (es.ts base, en.ts; partners/ los de cada socio) y formato con Intl
+src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su modelo y su vista
+scripts/       simuladores de balance (red y plasmodio), presupuesto de JS, procedencia de placas
 tests/         pruebas de Vitest
 docs/          STATUS, BUG-JOURNAL, BALANCE
 ```

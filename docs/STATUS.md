@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-01. Versión 1.3.0._
+_Actualizado: 2026-10-01. Versión 1.4.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 14 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 19 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -29,9 +29,28 @@ bloque de trabajo, no en cada commit.
 Un único objeto plano y serializable; la definición al día está en `src/core/state.ts`. Los
 valores derivados (N/s, valor del clic, multiplicadores) no viven en el estado: se calculan en
 `src/core/selectors.ts` con caché por estado e invalidación explícita (ARCHITECTURE.md §4.6).
-El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 5.
+El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 6. Desde
+la fase 9, `state.partners` guarda los socios (el plasmodio, con su placa, su red y su Rastro);
+su estado y su validación viven en `src/partners/`.
 
 ## Lo último que se hizo
+
+- **Fase 9 de la hoja de ruta (El Plasmodio, v1.4.0):** a los 5 min de la primera partida tras
+  el Acto I llega el plasmodio de _Physarum polycephalum_, el primer **socio**, con su pestaña
+  Socios. El jugador pone copos de avena y lámparas en cinco placas (del Tronco caído a la
+  Fusión) y el modelo de flujo de Tero adapta la red; su moneda es el Rastro y da a la red la
+  Poda (autocompra por amortización) y el Camino corto (ritmo de esporas). Su código llega aparte
+  y nunca lo ejecuta el simulador de la red. Guardado versión 6: ninguna partida pierde nada
+  (ARCHITECTURE.md §4.29).
+- `npm run sim` mide también el plasmodio: 17 de 17 (las cinco placas en 4,65 h activo, el
+  pasivo a 1,88 veces y un jugador ingenuo a 1,12); la red sigue en 42 de 42. 671 pruebas
+  unitarias y 131 de navegador en los cinco perfiles; ~165 fps con la placa a la vista (159 con la
+  CPU ×4).
+- Una crítica del diseño destapó tres trampas que se corrigieron antes de programar (caudal,
+  Memoria externa y Fusión), y una revisión adversarial confirmó 24 hallazgos, todos corregidos
+  (BUG-JOURNAL #16–#19).
+- Petición del usuario: la cantidad de compra **Hito** lleva cada generador justo hasta su
+  siguiente hito.
 
 - **Fase 8 de la hoja de ruta (Viento de esporas I, v1.3.0):** con el árbol completo y una
   Red planetaria se cierra el Acto I y el linaje puede dispersarse a la taiga o a la selva
@@ -72,9 +91,9 @@ El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, 
 
 La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 9 — El Plasmodio (v1.4.0):** el primer modo no fúngico, como primer «socio».
-2. **Fase 10 — Viento de esporas II (v1.5.0):** pradera, tundra, el epílogo «El regreso» y el
+1. **Fase 10 — Viento de esporas II (v1.5.0):** pradera, tundra, el epílogo «El regreso» y el
    ciclo libre, que resuelve el muro que hoy queda tras colonizar el último bioma.
+2. **Fase 11 — Tiempo profundo (v1.6.0):** las eras geológicas.
 
 ## Deuda conocida
 
@@ -86,6 +105,14 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
+- El JS inicial pesa 89,5–90,4 kB (tope 95, `npm run budget`): las coordenadas de las placas del
+  plasmodio (unos 3 kB comprimidos) podrían salir a su trozo si hace falta sitio.
+- Vaciar 1.200 s de modelo del plasmodio es un tirón de una vez al abrir o al volver: 20–27 ms en
+  frío en escritorio, unos 100 ms en un móvil medio (ARCHITECTURE.md §7). Si molesta, la parte
+  paso a paso se puede repartir entre frames.
+- La Quimiotaxis aún no siempre lleva a una red que cumple con copos muy seguidos (2 s) en la
+  Fusión con Humedad 0, ni en algunos casos con Memoria (medido en la revisión de la fase 9).
+- El plasmodio no se probó en un iPhone físico.
 
 ## Cómo se entrega el trabajo
 

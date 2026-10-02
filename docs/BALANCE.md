@@ -1,6 +1,7 @@
 # Balance
 
-Tabla final de valores y resultados del simulador (`npm run sim`, `scripts/simulate.ts`).
+Tabla final de valores y resultados del simulador (`npm run sim`, `scripts/simulate.ts`; desde la
+fase 9, también el del plasmodio, `scripts/simulate-plasmodium.ts`, en su propio bloque al final).
 El simulador juega partidas completas con las mismas fórmulas del juego (importa
 `src/core`, `src/data` y `src/systems`), a pasos de 1 s, con 9 semillas por escenario.
 
@@ -15,17 +16,18 @@ El simulador juega partidas completas con las mismas fórmulas del juego (import
 
 Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo validó.
 
-| Fecha      | Cambio                                                                                                                                                                                                                                                                                                 | Motivo                                                                                                                                                                                                                                                                                                                                                         |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-10-01 | Ninguno: se adoptan las tablas de PROMPT.md §7, §8, §9 y §10 tal cual.                                                                                                                                                                                                                                 | La primera corrida cumplió los 18 objetivos de la sección 17 (ver abajo).                                                                                                                                                                                                                                                                                      |
-| 2026-10-01 | Madurez de la red: S0 = 1000, β = 0,5; Cuerpo apical 300·2^r esporas y umbral ×1,1 por rango (el prototipo usaba 100·2^r y ×1,2)                                                                                                                                                                       | Con los valores del prototipo los rangos comprados de golpe anulaban la madurez; con estos, ninguna partida de la 1 a la 16 baja de 6 min con la regla de §17 (antes, 2:46) y sobra menos del 50 % de las esporas. 21 de 21 objetivos.                                                                                                                         |
-| 2026-10-01 | Viento de esporas (fase 8): taiga ×5 en Red micorrícica y Árbol madre y lluvia a la mitad; Chocó con el doble de lluvia, Rocío de al menos 300 s y la gota que cae sola; R 1e11 (taiga) y 2e11 (Chocó) como primer destino y ×3,5 en el segundo; linaje ×2 por bioma colonizado; Dispersar 300 esporas | Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en 1,90 h. Una primera calibración (7e10 y 1,2e11 con ×4,5) compensaba un fallo del bot, que tras el Acto I gastaba en Cuerpo apical las esporas del viaje; corregido el bot, 42 de 42: partidas de 21–29 min de mediana, colonizar en 2,1–3,2 h y el pasivo a 1,55–2,48 veces el activo. |
+| Fecha      | Cambio                                                                                                                                                                                                                                                                                                                                                                                                | Motivo                                                                                                                                                                                                                                                                                                                                                         |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-01 | Ninguno: se adoptan las tablas de PROMPT.md §7, §8, §9 y §10 tal cual.                                                                                                                                                                                                                                                                                                                                | La primera corrida cumplió los 18 objetivos de la sección 17 (ver abajo).                                                                                                                                                                                                                                                                                      |
+| 2026-10-01 | Madurez de la red: S0 = 1000, β = 0,5; Cuerpo apical 300·2^r esporas y umbral ×1,1 por rango (el prototipo usaba 100·2^r y ×1,2)                                                                                                                                                                                                                                                                      | Con los valores del prototipo los rangos comprados de golpe anulaban la madurez; con estos, ninguna partida de la 1 a la 16 baja de 6 min con la regla de §17 (antes, 2:46) y sobra menos del 50 % de las esporas. 21 de 21 objetivos.                                                                                                                         |
+| 2026-10-01 | Viento de esporas (fase 8): taiga ×5 en Red micorrícica y Árbol madre y lluvia a la mitad; Chocó con el doble de lluvia, Rocío de al menos 300 s y la gota que cae sola; R 1e11 (taiga) y 2e11 (Chocó) como primer destino y ×3,5 en el segundo; linaje ×2 por bioma colonizado; Dispersar 300 esporas                                                                                                | Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en 1,90 h. Una primera calibración (7e10 y 1,2e11 con ×4,5) compensaba un fallo del bot, que tras el Acto I gastaba en Cuerpo apical las esporas del viaje; corregido el bot, 42 de 42: partidas de 21–29 min de mediana, colonizar en 2,1–3,2 h y el pasivo a 1,55–2,48 veces el activo. |
+| 2026-10-01 | El Plasmodio (fase 9): cinco placas fijas con umbral 0,9 × la peor de 9 semillas; Rastro/s = 10^placa · copos unidos · calidad · 1,5^Agar; metas 4,3e6 a 6e17; pulso de 3 pasos y 3 s de Rastro cada 3 s; costes y topes del prototipo; la Fusión con sal en toda la placa y aprendizaje solo por contagio; la Memoria externa sin secar tubos con sustancia; el caudal solo en placas cartografiadas | Valores del prototipo del modelo; el simulador, con el código del juego, da 17 de 17: las cinco placas en 4,65 h activo, el pasivo a 1,88 veces y el ingenuo a 1,12. Sin las tres correcciones de diseño, la Fusión no se cumplía con la Memoria, el caudal Alto dejaba cuatro placas sin poder cumplir y el contagio de la Fusión no influía.                 |
 
 ## Resultados de la última corrida
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 146.7 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 165.2 s de cómputo). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -167,7 +169,7 @@ Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/
 
 <!-- sim:plasmodio:start -->
 
-_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 57.9 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 64.1 s de cómputo). No editar a mano entre estas marcas._
 
 ### El plasmodio (docs/ROADMAP.md, fase 9)
 
@@ -185,7 +187,7 @@ Desde la llegada; mediana de las semillas y rango. El activo coloca con el bot (
 | Plasmodio: objetivo sostenido tras abrir la placa (activo, la peor placa)            | ≤ 10 min  | 6:08             | 6:06–6:08                         | cumple |
 | Plasmodio: espera más larga sin comprar (activo)                                     | ≤ 22 min  | 19:38            | 19:00–19:43                       | cumple |
 | Plasmodio: jugador ingenuo (al azar, recoloca a los 10 min), Tronco caído            | ≤ 45 min  | 35:55            | 31:16–49:18                       | cumple |
-| Plasmodio: jugador ingenuo frente al activo, las cinco placas                        | ≤ 1,75    | 1,14             | 1,12–1,19                         | cumple |
+| Plasmodio: jugador ingenuo frente al activo, las cinco placas                        | ≤ 1,75    | 1,12             | 1,07–1,18                         | cumple |
 | Plasmodio: semillas que terminan las cinco placas en 12 h (activo, pasivo e ingenuo) | 27 de 27  | 27               | 27–27                             | cumple |
 | Plasmodio: Rastro máximo                                                             | < 1e63    | 602 mil billones | 602 mil billones–602 mil billones | cumple |
 | Plasmodio: 8 h de golpe frente a 8 h en vivo (Rastro; 5 placas × 3 semillas)         | 0,98–1,02 | 1,000            | 1,000–1,000                       | cumple |
@@ -201,9 +203,9 @@ Mediana por placa, desde que se abre:
 | ------------- | ------- | --------------------------- | ------- | ------- |
 | Tronco caído  | 27:04   | 1:36                        | 52:50   | 35:55   |
 | Laberinto     | 38:34   | 2:11                        | 1:00:52 | 40:23   |
-| Archipiélago  | 58:59   | 1:16                        | 1:59:44 | 1:16:51 |
-| Puente amargo | 1:13:29 | 6:08                        | 2:19:25 | 1:20:06 |
-| Fusión        | 1:20:50 | 2:32                        | 2:29:27 | 1:28:04 |
+| Archipiélago  | 58:59   | 1:16                        | 1:59:44 | 1:11:54 |
+| Puente amargo | 1:13:29 | 6:08                        | 2:19:25 | 1:20:54 |
+| Fusión        | 1:20:50 | 2:32                        | 2:29:27 | 1:25:40 |
 
 A prueba de cortes (informativo): 6 de 9 partidas activas lo consiguen, la mediana a las 1.11 h.
 

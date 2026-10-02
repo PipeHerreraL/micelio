@@ -43,7 +43,7 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 | 6    | 1.1.0   | Cimientos (hecha)                                                   | S      |
 | 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                            | M      |
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica (hecha) | L      |
-| 9    | 1.4.0   | El Plasmodio y la estructura de socios                              | L      |
+| 9    | 1.4.0   | El Plasmodio y la estructura de socios (hecha)                      | L      |
 | 10   | 1.5.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
 | 11   | 1.6.0   | Tiempo profundo: las eras geológicas                                | L      |
 
@@ -112,6 +112,15 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 - Llega como primer **socio**: un registro común (`partners`) con su estado, validación,
   avance y offline, una pestaña nueva para los socios y su código cargado aparte.
 - Conexión con la red, sin impuestos: correspondencias de calidad de vida en ambos sentidos.
+- **Resultado (v1.4.0):** 17 de 17 objetivos en `npm run sim:plasmodio` y la red sigue en 42 de 42. El plasmodio llega a las 3,42 h de mediana (5 min dentro de la primera partida tras el
+  Acto I); las cinco placas, en 4,65 h activo (el Tronco en 27 min, cada placa siguiente en
+  38–81 min), el pasivo a 1,88 veces y un jugador ingenuo que coloca al azar (y sigue la
+  Quimiotaxis cuando la compra) a 1,12 veces. 8 h de golpe dan el Rastro de 8 h en vivo. Tres
+  trampas medidas y evitadas antes de publicar: el caudal solo en placas cartografiadas, la
+  Memoria externa sin secar tubos con sustancia y la Fusión con sal en toda la placa para que
+  el contagio importe. Ninguna partida 1.x pierde nada al actualizar (guardado versión 6, con
+  un guardado real de la 1.4 como prueba). Ver ARCHITECTURE.md §4.29. Desviaciones: el JS
+  inicial pesa 89,5 kB (estimado 65) y el del plasmodio 18,6 kB (estimado 12–15).
 
 ### Fase 10 — Viento de esporas II (M)
 
