@@ -12,6 +12,7 @@ import {
   type PlasmodiumState,
 } from '../src/partners/plasmodium/state.ts';
 import { checkActOne } from '../src/systems/journey.ts';
+import { GAME_VERSION } from '../src/version.ts';
 import {
   BACKUP_KEY,
   PARTNER_BACKUP_KEY,
@@ -139,7 +140,11 @@ describe('guardado de la 1.4', () => {
     expect(result.partnersReset).toEqual([]);
     expect(result.save.state).toEqual(raw.state);
     expect(result.save.state.partners.plasmodium?.plates[0]?.foods).toEqual([7, 1, 16, 18]);
-    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual(JSON.parse(text));
+    // Lo único que se añade es la versión del juego que guarda (desde la 1.5.0).
+    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual({
+      ...(JSON.parse(text) as object),
+      game: GAME_VERSION,
+    });
   });
 });
 
