@@ -27,11 +27,15 @@ interface ManifestChunk {
 
 type Manifest = Record<string, ManifestChunk>;
 
-/** Topes en kB comprimidos con gzip (ARCHITECTURE.md §7). */
+/**
+ * Topes en kB (1000 bytes, como informa Vite) comprimidos con gzip (ARCHITECTURE.md §7). Son
+ * guardas por paquete dentro del presupuesto del proyecto (< 150 kB de JS en total).
+ */
 const LIMITS = {
-  initialJs: 90,
+  // Medido 89,5 kB en la v1.4.0: los datos de las placas y el núcleo de los socios van aquí.
+  initialJs: 95,
   initialCss: 9,
-  // Medido 18,1 kB en la v1.4.0 (la estimación de la fase 9 era ~15): la vista y el lienzo pesan más.
+  // Medido 18,6 kB en la v1.4.0 (la estimación de la fase 9 era ~15): la vista y el lienzo pesan más.
   plasmodiumJs: 20,
   plasmodiumCss: 3,
   catalog: 7,
@@ -40,7 +44,7 @@ const LIMITS = {
 const dist = new URL('../dist/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('.vite/manifest.json', dist), 'utf8')) as Manifest;
 
-const gzipKb = (file: string): number => gzipSync(readFileSync(new URL(file, dist))).length / 1024;
+const gzipKb = (file: string): number => gzipSync(readFileSync(new URL(file, dist))).length / 1000;
 
 /** Claves alcanzables por importaciones estáticas desde `key` (incluida). */
 function staticClosure(key: string, out = new Set<string>()): Set<string> {

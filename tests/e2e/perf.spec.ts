@@ -1,4 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
+import { MUTATION_IDS } from '../../src/data/mutations.ts';
+import {
+  createPlasmodium,
+  spreadConductivity,
+  startHabituation,
+} from '../../src/partners/plasmodium/state.ts';
+import { checkActOne } from '../../src/systems/journey.ts';
 import { seedSave, stateWith } from './helpers.ts';
 
 /**
@@ -139,4 +146,60 @@ test('con la CPU frenada 4× (móvil de gama media) la mediana sigue en 60 fps',
   info.annotations.push({ type: 'fps-throttled', description: JSON.stringify(stats) });
   console.log(`[${info.project.name} ×4] ${JSON.stringify(stats)}`);
   expect(stats.p50).toBeLessThanOrEqual(17.5);
+});
+
+/**
+ * El plasmodio (fase 9): Socios abierta en el Puente amargo (28 sitios, 59 aristas, la placa más
+ * cargada de dibujo con la quinina) con su red adaptándose, y la red natal avanzada detrás.
+ */
+async function plasmodiumGame(page: Page): Promise<void> {
+  await seedSave(
+    page,
+    stateWith((s) => {
+      s.mutations = [...MUTATION_IDS];
+      s.achievements = ['own.planetary.1'];
+      s.stats.sporulations = 9;
+      s.stats.totalTime = 12_000;
+      s.spores = { level: 1941, available: 0 };
+      s.owned = { ...s.owned, hypha: 120, rhizomorph: 100, primordium: 90, mushroom: 80, fairyRing: 60 };
+      checkActOne(s);
+      const p = createPlasmodium(9);
+      for (let i = 0; i < 3; i += 1) {
+        Object.assign(p.plates[i] ?? {}, {
+          map: { score: 2, quality: 0.7, cost: 1.2, tolerance: 0.8, alive: 9, joined: 3 },
+        });
+      }
+      p.plate = 3;
+      p.conductivity = spreadConductivity(p, 3);
+      p.habituation = startHabituation(3);
+      Object.assign(p.plates[3] ?? {}, { foods: [4, 24, 9] });
+      s.partners.plasmodium = p;
+      s.seen.push('chapter.act1', 'chapter.partner.plasmodium', 'hint.partners');
+      s.seen.push('chapter.plate.log', 'chapter.plate.maze', 'chapter.plate.archipelago');
+    }),
+  );
+  await page.goto('./');
+  await page.getByRole('tab', { name: /Socios/ }).click();
+  await page.locator('.plate__frame').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1500);
+}
+
+test('con la placa del plasmodio a la vista corre a 60 fps, también con la CPU frenada 4×', async ({
+  page,
+  browserName,
+}, info) => {
+  test.skip(Boolean(process.env.CI), 'Medición local: los runners de CI son ruidosos.');
+  await plasmodiumGame(page);
+  const stats = await measure(page, 4000);
+  info.annotations.push({ type: 'fps-plasmodio', description: JSON.stringify(stats) });
+  console.log(`[${info.project.name} plasmodio] ${JSON.stringify(stats)}`);
+  expect(stats.p50).toBeLessThanOrEqual(17.5);
+  if (browserName !== 'chromium') return;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  const slow = await measure(page, 4000);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  info.annotations.push({ type: 'fps-plasmodio-throttled', description: JSON.stringify(slow) });
+  console.log(`[${info.project.name} plasmodio ×4] ${JSON.stringify(slow)}`);
+  expect(slow.p50).toBeLessThanOrEqual(17.5);
 });
