@@ -80,6 +80,10 @@ test('en Ajustes, el móvil dice cómo instalarla: el .apk en Android y Safari e
   if (info.project.name === 'mobile-chromium') {
     await expect(apk).toBeVisible();
     await expect(apk).toHaveAttribute('href', /releases\/latest\/download\/micelio\.apk$/);
+    // Instalada desde esta pestaña, que sigue siendo la del navegador: no pide instalarla otra vez.
+    await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')));
+    await expect(page.locator('#setting-install-text')).toContainText('Instalada');
+    await expect(apk).toBeHidden();
   } else {
     await expect(apk).toBeHidden();
     await expect(page.locator('#setting-install-text')).toContainText('Añadir a pantalla de inicio');

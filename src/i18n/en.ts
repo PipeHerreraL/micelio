@@ -626,6 +626,7 @@ export const en: Catalog = {
   'settings.install': 'Install the app',
   'settings.install.button': 'Install Micelio',
   'settings.install.done': 'You are playing in the installed app.',
+  'settings.install.justInstalled': 'Installed: open it from your home screen or your app list.',
   'settings.install.ios':
     'On iPhone or iPad, in Safari: the Share button, then “Add to Home Screen”. The app cannot see your Safari save: export it below and import it in the app.',
   'settings.install.browser':

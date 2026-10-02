@@ -634,6 +634,7 @@ export const es = {
   'settings.install': 'Instalar la app',
   'settings.install.button': 'Instalar Micelio',
   'settings.install.done': 'Ya juegas con la app instalada.',
+  'settings.install.justInstalled': 'Instalada: ábrela desde la pantalla de inicio o desde tus aplicaciones.',
   'settings.install.ios':
     'En el iPhone o el iPad, en Safari: botón Compartir y «Añadir a pantalla de inicio». La app no ve la partida de Safari: expórtala abajo e impórtala en la app.',
   'settings.install.browser':

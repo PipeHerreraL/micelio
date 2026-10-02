@@ -91,6 +91,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
   const INSTALL_TEXT: Readonly<Record<InstallSituation, MessageKey | null>> = {
     native: null,
     installed: 'settings.install.done',
+    justInstalled: 'settings.install.justInstalled',
     prompt: null,
     ios: 'settings.install.ios',
     browser: 'settings.install.browser',
@@ -105,7 +106,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
     // Pulsado el botón, el navegador ya no vuelve a ofrecerlo: el foco no se queda en un botón oculto.
     if (situation !== 'prompt' && document.activeElement === installButton) installText.focus();
     setHidden(installButton, situation !== 'prompt');
-    const apk = isAndroid() && situation !== 'native' && situation !== 'installed';
+    const apk = isAndroid() && (situation === 'prompt' || situation === 'ios' || situation === 'browser');
     setHidden(apkLink, !apk);
     setHidden(apkHint, !apk);
   }

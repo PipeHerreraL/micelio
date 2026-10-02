@@ -10,11 +10,12 @@ export const APK_URL = 'https://github.com/PipeHerreraL/micelio/releases/latest/
 /**
  * - native: dentro de la app de Android.
  * - installed: la app instalada desde el navegador.
+ * - justInstalled: se acaba de instalar desde esta pestaña, que sigue siendo la del navegador.
  * - prompt: el navegador ofrece instalarla con un botón (Chrome, Edge…).
  * - ios: Safari del iPhone o el iPad, que solo lo hace a mano.
  * - browser: otro navegador; quizá desde su menú.
  */
-export type InstallSituation = 'native' | 'installed' | 'prompt' | 'ios' | 'browser';
+export type InstallSituation = 'native' | 'installed' | 'justInstalled' | 'prompt' | 'ios' | 'browser';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -22,6 +23,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 let deferred: BeforeInstallPromptEvent | null = null;
+/** Se instaló desde esta pestaña: sin esto, Ajustes pedía instalarla desde el menú. */
+let installedHere = false;
 const listeners = new Set<() => void>();
 
 function notify(): void {
@@ -39,6 +42,7 @@ export function watchInstall(): () => void {
   };
   const onInstalled = (): void => {
     deferred = null;
+    installedHere = true;
     notify();
   };
   window.addEventListener('beforeinstallprompt', onPrompt);
@@ -73,6 +77,7 @@ export function installSituation(): InstallSituation {
     window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
   if (standalone) return 'installed';
+  if (installedHere) return 'justInstalled';
   if (deferred) return 'prompt';
   if (isIos()) return 'ios';
   return 'browser';
@@ -85,6 +90,7 @@ export async function promptInstall(): Promise<boolean> {
   deferred = null;
   await event.prompt();
   const choice = await event.userChoice;
+  if (choice.outcome === 'accepted') installedHere = true;
   notify();
   return choice.outcome === 'accepted';
 }
