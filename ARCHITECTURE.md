@@ -562,7 +562,7 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   cinco densidades del lanzador, el icono adaptable con su capa monocroma y las pantallas de
   arranque.
 - **Para hacer sitio**, las noticias del sotobosque llegan aparte (`src/i18n/news/`), como los
-  textos del plasmodio: el JS inicial bajó de 94,6 a 86,3 kB.
+  textos del plasmodio: el JS inicial bajó de 94,6 a 86,4 kB.
 - **Descartado:** Workbox (más código que el service worker entero), `@capacitor/assets` (fija
   `sharp` 0.32 con avisos de seguridad y no se publica desde 2024), las tiendas por ahora (Google
   Play pide una prueba cerrada con testers y la App Store la cuenta de 99 USD al año: decisión del
@@ -613,7 +613,7 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 | Operación                                       | Presupuesto                   | Medido                                                                                                                                                 | Cómo                                    |
 | ----------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | JavaScript del build                            | < 150 kB comprimido           | 89.5 kB inicial + 18.6 kB del plasmodio (fase 9; 76.4 kB en la fase 8)                                                                                 | `npm run build` (gzip que informa Vite) |
-| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 86.3 kB (v1.5.0: las noticias salen aparte; 94.6 kB en la v1.4.2)                                                                                      | `npm run budget`, también en CI         |
+| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 86.4 kB (v1.5.0: las noticias salen aparte; 94.6 kB en la v1.4.2)                                                                                      | `npm run budget`, también en CI         |
 | JS del plasmodio (modelo, acciones y vista)     | ≤ 20 kB comprimido            | 18.6 kB (estimado ~15 kB en el diseño)                                                                                                                 | `npm run budget`                        |
 | Catálogo de un socio (un idioma)                | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                               | `npm run budget`                        |
 | Catálogo de noticias (un idioma)                | ≤ 7 kB comprimido             | 5.8 kB (es), 5.5 kB (en)                                                                                                                               | `npm run budget`                        |

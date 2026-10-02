@@ -39,7 +39,7 @@ su estado y su validación viven en `src/partners/`.
   desde el navegador (Android e iPhone), funciona sin conexión, y en Android hay además un .apk
   hecho con Capacitor que GitHub Actions firma y adjunta a cada release. Iconos generados por
   código a partir del núcleo. Para hacer sitio, las noticias llegan aparte: el JS inicial bajó de
-  94,6 a 86,3 kB (ARCHITECTURE.md §4.31). Dos revisiones antes de publicar encontraron 23 fallos,
+  94,6 a 86,4 kB (ARCHITECTURE.md §4.31). Dos revisiones antes de publicar encontraron 23 fallos,
   todos arreglados; el más grave, que una versión vieja abierta sin conexión podía pisar una
   partida más nueva (BUG-JOURNAL #24).
 
@@ -126,7 +126,7 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
-- El JS inicial pesa 86,3 kB de 95 (`npm run budget`): las noticias ya llegan aparte. Si hace falta
+- El JS inicial pesa 86,4 kB de 95 (`npm run budget`): las noticias ya llegan aparte. Si hace falta
   más sitio, las coordenadas de las placas del plasmodio (unos 3 kB comprimidos) pueden salir a su
   propio trozo.
 - La app de Android (.apk) se compiló y se comprobó en GitHub Actions (paquete, versión y firma),
