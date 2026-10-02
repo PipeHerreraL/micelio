@@ -52,6 +52,7 @@ import {
   uniqueList,
   type RawObject,
 } from './validate.ts';
+import { compareGameVersions, GAME_VERSION } from '../version.ts';
 
 export const SAVE_KEY = 'micelio:save';
 export const BACKUP_KEY = 'micelio:save:backup';
@@ -504,9 +505,33 @@ export function parseSave(
   };
 }
 
+/**
+ * `game` es la versión del juego que guardó: una versión anterior que no entienda el guardado
+ * sabe así que no debe pisarlo (`isFromNewerGame`). Las anteriores a la 1.5.0 lo ignoran.
+ */
 export function serializeSave(state: GameState, now: number): string {
-  const file: SaveFile = { version: SAVE_VERSION, savedAt: now, state };
+  const file: SaveFile & { game?: string } =
+    GAME_VERSION === ''
+      ? { version: SAVE_VERSION, savedAt: now, state }
+      : { version: SAVE_VERSION, savedAt: now, game: GAME_VERSION, state };
   return JSON.stringify(file);
+}
+
+/**
+ * El guardado lo escribió un juego más nuevo que este: con un formato posterior, o una versión
+ * posterior del juego (con ids que esta no conoce). Pasa al abrir sin conexión la versión que el
+ * service worker tenía guardada después de jugar a una más nueva (BUG-JOURNAL #24).
+ */
+export function isFromNewerGame(text: string, game = GAME_VERSION): boolean {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (!isObject(raw)) return false;
+  if (isCount(raw.version) && raw.version > SAVE_VERSION) return true;
+  return typeof raw.game === 'string' && compareGameVersions(raw.game, game) > 0;
 }
 
 // ---------------------------------------------------------------------------------------
@@ -517,6 +542,8 @@ export type LoadResult =
   /** `partnersReset`: socios que no se pudieron recuperar (vuelven a empezar; hay copia y aviso). */
   | { kind: 'loaded'; save: SaveFile; partnersReset: PartnerId[] }
   | { kind: 'corrupt'; error: ParseError; backedUp: boolean }
+  /** De un juego más nuevo: no se copia ni se pisa; quien llama no guarda nada y avisa. */
+  | { kind: 'newer' }
   | { kind: 'unavailable' };
 
 /**
@@ -549,8 +576,9 @@ function restorePartner(state: GameState, id: PartnerId): void {
 }
 
 /**
- * Lee el guardado. Si está dañado, lo copia a `micelio:save:backup` para no perderlo y
- * devuelve `corrupt`: quien llama empieza una partida nueva y avisa. Si solo falla un socio, la
+ * Lee el guardado. Si lo escribió un juego más nuevo, no lo toca y devuelve `newer`. Si está
+ * dañado, lo copia a `micelio:save:backup` para no perderlo y devuelve `corrupt`: quien llama
+ * empieza una partida nueva y avisa. Si solo falla un socio, la
  * partida carga con ese socio desde cero, el texto original va a la copia de respaldo y quien llama
  * avisa (`partnersReset`).
  */
@@ -575,6 +603,7 @@ export function loadGame(storage: StorageLike | null): LoadResult {
     rememberPartners(parsed.save.state);
     return { kind: 'loaded', save: parsed.save, partnersReset: parsed.partnersReset };
   }
+  if (isFromNewerGame(text)) return { kind: 'newer' };
   let backedUp = false;
   try {
     storage.setItem(BACKUP_KEY, text);

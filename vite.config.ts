@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import { serviceWorkerPlugin } from './scripts/service-worker.ts';
 
@@ -9,8 +10,13 @@ import { serviceWorkerPlugin } from './scripts/service-worker.ts';
 //   archivos desde su propia raíz, y sin service worker, porque ya están en el teléfono.
 export default defineConfig(({ mode }) => {
   const native = mode === 'native';
+  const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+    version: string;
+  };
   return {
     base: native ? './' : '/micelio/',
+    // La versión del juego viaja en cada guardado (src/version.ts, systems/save.ts).
+    define: { __GAME_VERSION__: JSON.stringify(pkg.version) },
     plugins: native ? [] : [serviceWorkerPlugin('public')],
     build: {
       target: 'es2022',

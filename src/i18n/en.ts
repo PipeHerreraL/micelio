@@ -702,6 +702,8 @@ export const en: Catalog = {
   'save.startFresh': 'Start over',
   'save.otherTab':
     "Micelio was opened in another tab. This one has stopped saving so it won't overwrite the other.",
+  'save.newer':
+    "This game was saved by a newer version of Micelio. To keep it safe, this one won't save anything: connect to the internet and reload.",
   'save.invalid': 'The game has an impossible value and was not saved, so the last good save stays intact.',
   'save.reload': 'Reload',
 

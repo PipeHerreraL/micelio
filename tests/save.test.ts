@@ -1,6 +1,8 @@
 import { Buffer } from 'node:buffer';
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { createState, type GameState } from '../src/core/state.ts';
+import { compareGameVersions, GAME_VERSION } from '../src/version.ts';
 import {
   BACKUP_KEY,
   IMPORT_MAX_CHARS,
@@ -10,6 +12,7 @@ import {
   claimTab,
   exportSave,
   importSave,
+  isFromNewerGame,
   isTakenByOtherTab,
   loadGame,
   parseSave,
@@ -533,11 +536,81 @@ describe('guardados dañados', () => {
     expect(storage.data.get('micelio:save:backup')).toBe('{roto');
     expect(expectLoaded(loadGame(storage)).state).toStrictEqual(createState(1, NOW));
   });
+});
 
-  it('un guardado de una versión más nueva que el juego va a la copia de respaldo', () => {
-    // Un guardado de la versión siguiente a la actual viene de un juego más nuevo.
+// ---------------------------------------------------------------------------------------
+// Guardados de un juego más nuevo (BUG-JOURNAL #24)
+
+describe('guardados de un juego más nuevo', () => {
+  /** Carga `text` y comprueba que ni el guardado ni la copia de respaldo se tocaron. */
+  function loadUntouched(text: string): LoadResult {
+    const storage = new MemoryStorage();
+    storage.setItem(SAVE_KEY, text);
+    const result = loadGame(storage);
+    expect(storage.data.get(SAVE_KEY)).toBe(text);
+    expect(storage.data.has(BACKUP_KEY)).toBe(false);
+    return result;
+  }
+
+  it('lo escrito lleva la versión del juego, la de package.json', () => {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
+    expect(GAME_VERSION).toBe(pkg.version);
+    const file = JSON.parse(serializeSave(richState(), SAVED_AT)) as { game?: unknown };
+    expect(file.game).toBe(GAME_VERSION);
+  });
+
+  it('un guardado con un formato posterior no se copia ni se da por dañado: no se toca', () => {
+    // Una versión vieja abierta sin conexión desde la caché del service worker lo daba por dañado,
+    // empezaba una partida nueva y el autoguardado pisaba la del jugador.
     const text = JSON.stringify({ version: SAVE_VERSION + 1, savedAt: SAVED_AT, state: richState() });
-    expect(loadCorrupt(text)).toStrictEqual({ kind: 'corrupt', error: 'version', backedUp: true });
+    expect(loadUntouched(text)).toStrictEqual({ kind: 'newer' });
+  });
+
+  it('un guardado de una versión posterior del juego que esta no entiende tampoco se toca', () => {
+    // Mismo formato, pero con algo que esta versión aún no conoce (un bioma de la fase 10).
+    const state = { ...richState(), forest: { ...richState().forest, biome: 'tundra' } };
+    const text = JSON.stringify({ version: SAVE_VERSION, savedAt: SAVED_AT, game: '99.0.0', state });
+    expect(parseSave(text, undefined, undefined, 'lenient').ok).toBe(false);
+    expect(loadUntouched(text)).toStrictEqual({ kind: 'newer' });
+  });
+
+  it('un guardado de una versión posterior que esta sí entiende se carga', () => {
+    const text = JSON.stringify({
+      version: SAVE_VERSION,
+      savedAt: SAVED_AT,
+      game: '99.0.0',
+      state: richState(),
+    });
+    expect(expectLoaded(loadUntouched(text)).state).toStrictEqual(richState());
+  });
+
+  it('un guardado dañado de esta versión o de una anterior sigue yendo a la copia de respaldo', () => {
+    for (const game of [GAME_VERSION, '1.4.2', undefined]) {
+      const storage = new MemoryStorage();
+      const text = JSON.stringify({ version: SAVE_VERSION, savedAt: SAVED_AT, game, state: { roto: true } });
+      storage.setItem(SAVE_KEY, text);
+      expect(loadGame(storage)).toStrictEqual({ kind: 'corrupt', error: 'invalid', backedUp: true });
+      expect(storage.data.get(BACKUP_KEY)).toBe(text);
+    }
+  });
+
+  it('isFromNewerGame solo cree lo que puede leer', () => {
+    expect(isFromNewerGame('{roto')).toBe(false);
+    expect(isFromNewerGame('[]')).toBe(false);
+    expect(isFromNewerGame(JSON.stringify({ version: SAVE_VERSION, game: 'mañana' }))).toBe(false);
+    expect(isFromNewerGame(JSON.stringify({ version: SAVE_VERSION, game: '1.5.1' }), '1.5.0')).toBe(true);
+    expect(isFromNewerGame(JSON.stringify({ version: SAVE_VERSION, game: '1.5.0' }), '1.5.0')).toBe(false);
+    // Fuera de Vite (scripts de Node) el juego no sabe su versión: solo cuenta el formato.
+    expect(isFromNewerGame(JSON.stringify({ version: SAVE_VERSION, game: '9.0.0' }), '')).toBe(false);
+  });
+
+  it('las versiones se comparan por número, no como texto', () => {
+    expect(compareGameVersions('1.10.0', '1.9.9')).toBeGreaterThan(0);
+    expect(compareGameVersions('1.5.0', '1.5.0')).toBe(0);
+    expect(compareGameVersions('1.4.2', '1.5.0')).toBeLessThan(0);
+    expect(compareGameVersions('2.0.0', '1.99.99')).toBeGreaterThan(0);
+    expect(compareGameVersions('1.5', '1.4.0')).toBe(0);
+    expect(compareGameVersions('1.5.0-rc.1', '1.4.0')).toBe(0);
   });
 });
 

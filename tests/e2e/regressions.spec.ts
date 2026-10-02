@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { randomRange } from '../../src/core/rng.ts';
-import { SAVE_KEY } from '../../src/systems/save.ts';
-import { isMobile, savedState, seedSave, stateWith } from './helpers.ts';
+import { BACKUP_KEY, SAVE_KEY, SAVE_VERSION } from '../../src/systems/save.ts';
+import { isMobile, savedState, seedRawSave, seedSave, stateWith } from './helpers.ts';
 
 /**
  * Una prueba por cada bug del diario que necesitaba un navegador real (docs/BUG-JOURNAL.md,
@@ -201,6 +201,38 @@ test('borrar la partida tras un guardado dañado sin copia sí guarda la partida
   await expect(page.locator('.toasts').getByText('Partida borrada')).toBeVisible();
   const raw = await page.evaluate((key) => localStorage.getItem(key), SAVE_KEY);
   expect(raw?.startsWith('{"version"')).toBe(true);
+});
+
+// BUG-JOURNAL #24
+test('una versión anterior no pisa la partida que guardó una más nueva, ni al borrar', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  // Lo que pasaba al abrir sin conexión la versión que el service worker tenía en caché.
+  const newer = JSON.stringify({
+    version: SAVE_VERSION + 1,
+    savedAt: Date.now(),
+    game: '99.0.0',
+    state: stateWith(() => undefined),
+  });
+  await seedRawSave(page, newer);
+  await page.goto('./');
+  await expect(page.locator('.toast--sticky')).toContainText('versión más nueva');
+
+  const core = page.locator('.core__button');
+  for (let i = 0; i < 5; i += 1) await core.click();
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.getByRole('tab', { name: /Ajustes/ }).click();
+  await page.locator('#setting-wipe-input').fill('BORRAR');
+  await page.getByRole('button', { name: 'Borrar partida' }).click();
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+
+  const stored = await page.evaluate(
+    ([save, backup]) => [localStorage.getItem(save), localStorage.getItem(backup)],
+    [SAVE_KEY, BACKUP_KEY] as const,
+  );
+  expect(stored).toEqual([newer, null]);
+  await expect(page.locator('.toast--sticky')).toContainText('versión más nueva');
 });
 
 // BUG-JOURNAL #12

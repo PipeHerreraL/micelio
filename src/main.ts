@@ -399,10 +399,12 @@ const tabId = newTabId();
 /**
  * Por qué esta pestaña no guarda. Un guardado dañado sin copia de respaldo no se pisa hasta
  * que el jugador decida empezar de nuevo (o importe, o borre); si otra pestaña tomó el
- * guardado, esta no lo pisa nunca. Se distinguen porque solo el primero lo levanta el jugador.
+ * guardado, esta no lo pisa nunca; un guardado de un juego más nuevo (esta versión se abrió sin
+ * conexión desde la caché) tampoco, ni al importar o borrar: hay que recargar con conexión. Se
+ * distinguen porque solo el primero lo levanta el jugador.
  */
-let blockedBy: 'corrupt' | 'otherTab' | null =
-  loaded.kind === 'corrupt' && !loaded.backedUp ? 'corrupt' : null;
+let blockedBy: 'corrupt' | 'otherTab' | 'newer' | null =
+  loaded.kind === 'newer' ? 'newer' : loaded.kind === 'corrupt' && !loaded.backedUp ? 'corrupt' : null;
 let warnedUnavailable = loaded.kind === 'unavailable';
 let warnedInvalid = false;
 let warnedRestored = false;
@@ -452,6 +454,7 @@ type NoticeId =
   | 'save-corrupt'
   | 'save-corrupt-no-backup'
   | 'save-other-tab'
+  | 'save-newer'
   | 'save-unavailable'
   | 'save-invalid'
   | 'save-partner-reset';
@@ -488,6 +491,14 @@ function showStickyNotices(): void {
       },
     });
   }
+  if (blockedBy === 'newer') {
+    notice('save-newer', t('save.newer'), {
+      label: t('save.reload'),
+      onSelect: () => {
+        window.location.reload();
+      },
+    });
+  }
   if (blockedBy === 'otherTab') {
     notice('save-other-tab', t('save.otherTab'), {
       label: t('save.reload'),
@@ -514,14 +525,26 @@ function confirmReplaced(saved: boolean, key: MessageKey): void {
     return;
   }
   dismissedNotices.delete('save-other-tab');
+  dismissedNotices.delete('save-newer');
   dismissedNotices.delete('save-unavailable');
   showStickyNotices();
-  announce(blockedBy === 'otherTab' ? t('save.otherTab') : t('save.unavailable'));
+  announce(
+    blockedBy === 'otherTab'
+      ? t('save.otherTab')
+      : blockedBy === 'newer'
+        ? t('save.newer')
+        : t('save.unavailable'),
+  );
 }
 
 globalDisposer.listen(window, 'storage', (e) => {
   const event = e as StorageEvent;
-  if (blockedBy !== 'otherTab' && isTakenByOtherTab(event.key, event.newValue, tabId)) {
+  // Con un guardado más nuevo se sigue sin guardar y con su aviso, mande quien mande.
+  if (
+    blockedBy !== 'otherTab' &&
+    blockedBy !== 'newer' &&
+    isTakenByOtherTab(event.key, event.newValue, tabId)
+  ) {
     // Si estaba bloqueada por un guardado dañado, ahora manda la otra pestaña: «Empezar de
     // nuevo» ya no debe pisar lo que esa guarde.
     if (blockedBy === 'corrupt') removeToast('save-corrupt-no-backup');

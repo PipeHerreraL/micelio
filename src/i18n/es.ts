@@ -710,6 +710,8 @@ export const es = {
     'El guardado estaba dañado y no había espacio para una copia de respaldo. No guardaremos nada hasta que decidas empezar de nuevo.',
   'save.startFresh': 'Empezar de nuevo',
   'save.otherTab': 'Micelio se abrió en otra pestaña. Esta dejó de guardar para no pisarla.',
+  'save.newer':
+    'Esta partida la guardó una versión más nueva de Micelio. Para no estropearla, esta no guardará nada: conéctate a internet y recarga.',
   'save.invalid':
     'La partida tiene un valor imposible y no se guardó, para no estropear el último guardado bueno.',
   'save.reload': 'Recargar',
