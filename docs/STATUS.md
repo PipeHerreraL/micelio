@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-02. Versión 1.4.1._
+_Actualizado: 2026-10-02. Versión 1.4.2._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 21 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 22 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -35,8 +35,16 @@ su estado y su validación viven en `src/partners/`.
 
 ## Lo último que se hizo
 
-- **v1.4.1, peticiones del usuario en el móvil:** al bajar a las pestañas aparece un «núcleo de
-  bolsillo» abajo a la derecha para seguir absorbiendo (BUG-JOURNAL #20), y comprar un generador
+- **v1.4.2, peticiones del usuario:** el núcleo de bolsillo no era lo que quería. Ahora, por
+  debajo de 1024 px, la franja de arriba (contador y escenario con el núcleo y el arte) se queda
+  fija y solo se desplaza el panel, con el escenario más bajo para dejarle sitio; en Socios, al
+  escribir y en horizontal vuelve la disposición de antes (ARCHITECTURE.md §4.30, BUG-JOURNAL
+  #20). Las cuentas grandes (el nivel de esporas en la cartela) se escriben con nombre y no con
+  todas sus cifras (#22). Las noticias del sotobosque se quedan 20 s (antes 12) y hay 25 más,
+  verificadas con fuentes.
+
+- **v1.4.1, peticiones del usuario en el móvil:** ~~al bajar a las pestañas aparece un «núcleo de
+  bolsillo» abajo a la derecha para seguir absorbiendo~~ (sustituido en 1.4.2), y comprar un generador
   o una mejora ya no hace saltar la lista: los botones miden lo mismo lleguen o no, y la mejora
   comprada se queda un momento como «Comprada» antes de plegarse (#21). ARCHITECTURE.md §4.30.
 
@@ -110,8 +118,11 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
-- El JS inicial pesa 89,5–90,4 kB (tope 95, `npm run budget`): las coordenadas de las placas del
-  plasmodio (unos 3 kB comprimidos) podrían salir a su trozo si hace falta sitio.
+- El JS inicial pesa 94,2 kB de 95 (`npm run budget`; las 25 noticias nuevas en dos idiomas
+  sumaron ~2,5 kB). Antes de la fase 10 hay que hacer sitio: las coordenadas de las placas del
+  plasmodio (unos 3 kB comprimidos) o los textos de las noticias pueden salir a su propio trozo.
+- La franja fija del móvil se probó con móviles emulados; la barra del navegador que aparece y se
+  esconde (svh frente a lvh) hay que verla en un teléfono de verdad.
 - Vaciar 1.200 s de modelo del plasmodio es un tirón de una vez al abrir o al volver: 20–27 ms en
   frío en escritorio, unos 100 ms en un móvil medio (ARCHITECTURE.md §7). Si molesta, la parte
   paso a paso se puede repartir entre frames.
