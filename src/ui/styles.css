@@ -341,24 +341,84 @@ button {
   }
 }
 
-/* Tableta (768–1023 px): canvas arriba y pestañas debajo. */
+/*
+ * Franja de arriba (.layout__top: contador, escenario, núcleo y efectos). En escritorio no existe
+ * como caja: sus piezas son celdas de la rejilla de siempre. Por debajo de 1024 px se queda fija
+ * arriba y la página (el panel) pasa por debajo: el usuario pidió poder absorber sin volver arriba,
+ * con el núcleo en su sitio y no un botón flotante (ARCHITECTURE.md §4.30). Fija pero en el flujo
+ * (sticky): no tapa el principio del panel. Con .layout--unpinned (pinning.ts: Socios, escribiendo
+ * o sin sitio para el panel) vuelve a no ser una caja, con las mismas filas: nada se mueve.
+ */
+.layout__top {
+  display: contents;
+}
+
+/* 100svh: el alto de la ventana con la barra del navegador a la vista, que no cambia al
+   esconderse (pinning.ts). */
+/* 1 px de ancho: con 0, Chrome no avisaba de sus cambios de alto al ResizeObserver. */
+.layout__probe {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100vh;
+  height: 100svh;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 1023.98px) {
+  .layout__top {
+    grid-area: top;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background: var(--humus);
+  }
+
+  .layout--unpinned .layout__top {
+    display: contents;
+  }
+
+  /* Lo que el foco o scrollIntoView traen a la vista en el panel no queda bajo lo fijo (pinning.ts).
+     Margen en el contenido y no relleno en la página: con scroll-padding, enfocar el núcleo, una
+     cifra o una pestaña de la barra pegada (que ya están en lo fijo) desplazaba la lista. */
+  .tabs__panels * {
+    scroll-margin-top: var(--fixed-top, 0px);
+  }
+}
+
+/* Tableta (768–1023 px): canvas arriba, fijo, y pestañas debajo. */
 @media (min-width: 768px) and (max-width: 1023.98px) {
   /* El panel en 1fr: si la página es más corta que la ventana, el sobrante va al panel. Con
      auto, la rejilla lo repartía entre todas las filas y, al acortarse la lista (comprar una
      mejora), lo de arriba también se movía. */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(340px, 46vh) 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'top'
+      'panel'
+      'footer';
+  }
+
+  /* Fijo, el escenario deja más de la mitad al panel: 440 de 1180 px, 389 de 1024. En svh, que no
+     cambia al esconderse la barra del navegador (con vh de respaldo). */
+  .layout__top {
+    grid-template-rows: minmax(260px, 38vh);
+    grid-template-rows: clamp(260px, 38svh, 440px);
+    grid-template-areas: 'stage';
+  }
+
+  .layout--unpinned {
+    grid-template-rows: minmax(260px, 38vh) 1fr auto;
+    grid-template-rows: clamp(260px, 38svh, 440px) 1fr auto;
     grid-template-areas:
       'stage'
       'panel'
       'footer';
-    /* Lo último de la página sube por encima del núcleo de bolsillo (64 px a 1rem del borde). */
-    padding-bottom: calc(64px + 2rem + env(safe-area-inset-bottom));
-  }
-
-  .layout--fresh {
-    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .layout__hud,
@@ -390,9 +450,13 @@ button {
     justify-self: center;
   }
 
+  /* Abajo a la derecha: arriba a la izquierda va el contador, y con el escenario de 260 px (una
+     tableta baja) dos efectos llegaban a tapar sus líneas de esporas. A la derecha solo está la
+     cartela, que termina mucho antes. */
   .layout__effects {
     align-self: end;
-    justify-self: start;
+    justify-self: end;
+    max-width: calc(50% - clamp(60px, 7.5vw, 84px) - 1rem);
     padding: 1rem 1.5rem;
   }
 
@@ -405,30 +469,59 @@ button {
     background: var(--panel);
     border-top: 1px solid var(--filete);
   }
+
+  /* La barra de pestañas va en el panel: se pega bajo la franja para poder cambiar de pestaña
+     con la lista bajada. */
+  .tabs__list {
+    position: sticky;
+    top: var(--pinned-h, 0px);
+    z-index: 9;
+    background: var(--panel);
+  }
 }
 
-/* Móvil (< 768 px): contador fijo arriba, canvas reducido, barra de pestañas abajo. */
+/* Móvil (< 768 px): contador y escenario fijos arriba, barra de pestañas fija abajo. */
 @media (max-width: 767.98px) {
   /* El panel en 1fr, como en tableta: con la página más corta que la ventana, el sobrante se
      repartía entre la cabecera, los efectos y el pie, y al comprar una mejora todo bajaba 3,6 px. */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(220px, 34vh) auto 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'top'
+      'panel'
+      'footer';
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  /* Fijo, el escenario no pasa de 240 px: con la cabecera de las esporas (105 px) y la barra de
+     pestañas deja al panel ~290 px en un iPhone 14 con la barra de Safari y ~240 en un Android de
+     360 × 640 (antes, 34vh). */
+  .layout__top {
+    grid-template-rows: auto minmax(150px, 26vh);
+    grid-template-rows: auto clamp(150px, 26svh, 240px);
+    grid-template-areas:
+      'hud'
+      'stage';
+  }
+
+  .layout--unpinned {
+    grid-template-rows: auto minmax(150px, 26vh) 1fr auto;
+    grid-template-rows: auto clamp(150px, 26svh, 240px) 1fr auto;
     grid-template-areas:
       'hud'
       'stage'
-      'effects'
       'panel'
       'footer';
-    /* La barra de pestañas fija y, encima, el núcleo de bolsillo (64 + 12 px): lo último de la
-       página sube por encima de los dos. Fijo, para que mostrar el núcleo no mueva nada. */
-    padding-bottom: calc(64px + 64px + 0.75rem + env(safe-area-inset-bottom));
   }
 
-  /* Sin pestañas ni núcleo de bolsillo: sin su hueco abajo, la primera pantalla se desplazaba
-     hasta una franja vacía. */
+  .layout--fresh .layout__top {
+    grid-template-rows: auto minmax(320px, 70vh);
+  }
+
+  /* Sin barra de pestañas en la partida nueva: sin su hueco, la primera pantalla se desplazaba
+     hasta una franja vacía (en horizontal). */
   .layout--fresh {
-    grid-template-rows: auto minmax(320px, 70vh) auto;
     padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -449,9 +542,63 @@ button {
     justify-self: center;
   }
 
+  /* Los efectos van sobre el escenario, abajo a la izquierda y sin llegar al núcleo (112 px
+     centrado): fijos, la cuenta de la Tormenta se ve mientras se toca, y que empiecen o terminen
+     no mueve el panel. Compactos: lo que hacen y cuánto les queda. */
   .layout__effects {
-    grid-area: effects;
-    padding: 0.5rem 1rem 0;
+    grid-area: stage;
+    align-self: end;
+    justify-self: start;
+    max-width: calc(50% - 56px - 0.5rem);
+    padding: 0 0 0.5rem 0.5rem;
+  }
+
+  .layout__effects .effects__list {
+    gap: 0.3rem;
+  }
+
+  .layout__effects .effect {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .layout__effects .effect__name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* «termina en 45 s» no cabía a 360 px y se cortaba antes de la cifra: aquí se ve solo la
+     duración (.effect__clock) y la frase completa queda para el lector. */
+  .layout__effects .effect__time {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .layout__effects .effect__desc {
+    color: var(--micelio);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .layout__effects .effect__clock {
+    display: block;
+    grid-column: 2;
+    font-size: 0.75rem;
+    color: var(--micelio-tenue);
+  }
+
+  .layout__effects .effect__bar {
+    margin-top: 0.2rem;
   }
 
   .stage {
@@ -547,9 +694,9 @@ button {
   text-align: center;
 }
 
-.core__button,
-.core-dock {
+.core__button {
   position: relative;
+  width: clamp(120px, 15vw, 168px);
   aspect-ratio: 1;
   padding: 0;
   border-radius: 50%;
@@ -563,22 +710,15 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.core__button {
-  width: clamp(120px, 15vw, 168px);
-}
-
-.core__button:hover,
-.core-dock:hover {
+.core__button:hover {
   border-color: var(--micelio-tenue);
 }
 
-.core__button:active,
-.core-dock:active {
+.core__button:active {
   transform: scale(0.96);
 }
 
-.core__button::after,
-.core-dock::after {
+.core__button::after {
   content: '';
   position: absolute;
   inset: -2px;
@@ -588,39 +728,8 @@ button {
   pointer-events: none;
 }
 
-.core__button.is-pulsing::after,
-.core-dock.is-pulsing::after {
+.core__button.is-pulsing::after {
   animation: ripple 520ms ease-out;
-}
-
-/*
- * Núcleo de bolsillo (tableta y móvil): al bajar a las pestañas el núcleo se iba con el escenario
- * y no había con qué absorber sin volver arriba. Aparece abajo a la derecha, al alcance del
- * pulgar, solo mientras el núcleo no se ve (app.ts). Fijo: mostrarlo u ocultarlo no mueve nada.
- */
-.core-dock {
-  position: fixed;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  z-index: 15;
-  /* Alto explícito: con solo aspect-ratio, WebKit dejaba este botón en 64 × 66. */
-  width: 64px;
-  height: 64px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 45%);
-  animation: dock-in 160ms ease-out;
-}
-
-/* Con el teclado en las pestañas se absorbe con Espacio y el botón solo taparía el control
-   enfocado de la esquina («Auto», «Comprar»), que el navegador no desplaza mientras se vea. */
-body:has(.layout__panel :focus-visible) .core-dock {
-  display: none;
-}
-
-@keyframes dock-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
 }
 
 @keyframes ripple {
@@ -636,7 +745,7 @@ body:has(.layout__panel :focus-visible) .core-dock {
 }
 
 /* En bloque: en línea, el SVG dejaba bajo él el hueco de los descendentes y el botón medía
-   112 × 119 px, un óvalo; el núcleo de bolsillo, 64 × 71. */
+   112 × 119 px, un óvalo. */
 .core__art {
   display: block;
   width: 100%;
@@ -685,11 +794,6 @@ body:has(.layout__panel :focus-visible) .core-dock {
   .core__keyhint {
     display: none;
   }
-
-  /* Encima de la barra de pestañas fija (64 px, ver .layout). */
-  .core-dock {
-    bottom: calc(64px + 0.75rem + env(safe-area-inset-bottom));
-  }
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -732,6 +836,11 @@ body:has(.layout__panel :focus-visible) .core-dock {
 .effect__time {
   color: var(--micelio-tenue);
   font-size: 0.9rem;
+}
+
+/* Solo en el formato compacto del móvil (ver .layout__effects). */
+.effect__clock {
+  display: none;
 }
 
 .effect__bar {
@@ -786,9 +895,9 @@ body:has(.layout__panel :focus-visible) .core-dock {
 }
 
 .floaters {
-  /* Fija y sobre el núcleo: en escritorio el núcleo está fuera del escenario. Por encima del
-     núcleo de bolsillo (15), que si no tapaba su propio número (con «Reducir movimiento», entero),
-     y por debajo de la barra de pestañas (20) y los avisos. */
+  /* Fija y sobre el núcleo: en escritorio el núcleo está fuera del escenario. Por encima de la
+     franja fija de arriba (10), donde va el núcleo en móvil y tableta, y por debajo de la barra de
+     pestañas (20) y los avisos. */
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -2125,16 +2234,6 @@ body:has(.layout__panel :focus-visible) .core-dock {
   }
 }
 
-/* Con el núcleo de bolsillo a la vista, la pila sube por encima de él: lo tapaba y su botón de
-   cerrar podía quedar debajo. Solo donde se tocan (la pila, de 0.75rem a min(22rem, 100vw − 2rem),
-   llega al botón, a 80 px del borde derecho, por debajo de 444 px); en un móvil en horizontal,
-   subirla sacaba el aviso más viejo por arriba. */
-@media (max-width: 443.98px) {
-  body:has(.core-dock:not([hidden])) .toasts {
-    bottom: calc(64px + 64px + 1.5rem + env(safe-area-inset-bottom));
-  }
-}
-
 /* Escritorio: la pila va centrada al pie del corte del suelo, sobre el ticker. Abajo a la
    izquierda tapaba la parte baja del núcleo y la lista de efectos activos. Con left, right
    y width fijos, los márgenes automáticos la centran entre las dos columnas laterales. El
@@ -2340,9 +2439,12 @@ body:has(.layout__panel :focus-visible) .core-dock {
 
 /* Móvil: una línea compacta a la vista; las dos líneas completas quedan para el lector. */
 @media (max-width: 767.98px) {
+  /* Termina antes del núcleo (112 px centrado), como en tableta: con el escenario fijo y más bajo
+     (150–240 px), el núcleo empieza a ~30 px de arriba y la cartela le tapaba el borde. */
   .caption {
     top: 0.5rem;
     right: 0.5rem;
+    max-width: calc(50% - 56px - 1rem);
     padding: 0.25rem 0.55rem;
   }
 

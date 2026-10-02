@@ -1,5 +1,5 @@
 /**
- * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 12 s, elegida
+ * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 20 s, elegida
  * entre las noticias que el progreso ya desbloqueó. No es una región aria-live: cambia sola
  * y anunciarla interrumpiría.
  */

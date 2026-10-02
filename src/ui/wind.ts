@@ -16,8 +16,8 @@ import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
 import { COLONIZE_LEVEL, DESTINATION_IDS, DISPERSE_COST, type DestinationId } from '../data/biomes.ts';
 import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
-import { formatFactor, formatPercent } from '../i18n/format.ts';
-import { formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
+import { formatFactor } from '../i18n/format.ts';
+import { formatBonus, formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { biomeName, biomeRules, biomeSoil } from './biome-text.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { createHint } from './hint.ts';
@@ -126,7 +126,7 @@ export function createWindSection(store: Store): WindSection {
   /** Bono del nivel de esporas (factor − 1), con el umbral de madurez del bosque actual. */
   function bonusPercent(level: number): string {
     const threshold = derived(store.state).sporeThreshold;
-    return formatPercent(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1, getLocale(), 0);
+    return formatBonus(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1);
   }
 
   function confirm(to: DestinationId): void {

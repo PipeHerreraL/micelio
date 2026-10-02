@@ -18,12 +18,6 @@ export interface Hud {
   effects: HTMLElement;
   /** Botón del núcleo, para que main.ts lo use como origen de números flotantes. */
   coreButton: HTMLButtonElement;
-  /** Núcleo de bolsillo: el mismo botón, fijo abajo, cuando el núcleo se pierde de vista. */
-  dock: HTMLButtonElement;
-  /** Muestra u oculta el núcleo de bolsillo; si tenía el foco al ocultarse, lo pasa al núcleo. */
-  setDockShown(shown: boolean): void;
-  /** De dónde salen los números del clic: el núcleo de bolsillo si se ve; si no, el núcleo. */
-  absorbOrigin(): HTMLButtonElement;
   update(): void;
   destroy(): void;
 }
@@ -69,6 +63,8 @@ const EFFECT_DESC = {
 interface EffectRow {
   root: HTMLElement;
   time: HTMLElement;
+  /** Solo la duración («45 s»), para el formato compacto del móvil; el lector lee `time`. */
+  clock: HTMLElement;
   bar: HTMLElement;
 }
 
@@ -114,20 +110,6 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     store.dispatch(click, {});
     onAbsorb(coreButton);
   });
-  // En el móvil el núcleo se va con el escenario al bajar a las pestañas: este botón lo sustituye
-  // abajo, al alcance del pulgar, mientras no se vea (app.ts decide cuándo).
-  const dock = h('button', { class: 'core-dock', attrs: { type: 'button', hidden: true } }, [coreArt()]);
-  disposer.listen(dock, 'click', () => {
-    store.dispatch(click, {});
-    onAbsorb(dock);
-  });
-
-  function setDockShown(shown: boolean): void {
-    if (dock.hidden !== shown) return;
-    // Oculto con el foco encima, el foco caería en <body> (BUG-JOURNAL #5).
-    if (!shown && document.activeElement === dock) coreButton.focus({ preventScroll: true });
-    dock.hidden = !shown;
-  }
 
   // Efectos activos
   const effectList = h('ul', { class: 'effects__list' });
@@ -140,6 +122,7 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
 
   function effectRow(effect: ActiveEffect): EffectRow {
     const time = h('span', { class: 'effect__time tabular' });
+    const clock = h('span', { class: 'effect__clock tabular', attrs: { 'aria-hidden': 'true' } });
     const bar = h('span', { class: 'effect__bar-fill' });
     const root = h('li', { class: `effect effect--${effect.kind}` }, [
       uiIcon(effect.kind === 'downpour' ? 'drop' : 'click'),
@@ -148,9 +131,10 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
         h('span', { class: 'effect__desc', text: t(EFFECT_DESC[effect.kind]) }),
       ]),
       time,
+      clock,
       h('span', { class: 'effect__bar', attrs: { 'aria-hidden': 'true' } }, [bar]),
     ]);
-    return { root, time, bar };
+    return { root, time, clock, bar };
   }
 
   function update(): void {
@@ -160,9 +144,7 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     setText(rate, t('hud.perSecond', { value: fmt(d.production) }));
     focusableWhileTooltip(value, numberTooltip(state.nutrients) !== null);
     focusableWhileTooltip(rate, numberTooltip(d.production) !== null);
-    const coreLabel = t('core.label', { value: fmt(d.clickValue) });
-    setAttr(coreButton, 'aria-label', coreLabel);
-    setAttr(dock, 'aria-label', coreLabel);
+    setAttr(coreButton, 'aria-label', t('core.label', { value: fmt(d.clickValue) }));
     const showSpores = hasSeen(state, 'tab.sporulate');
     setHidden(spores, !showSpores);
     if (showSpores) {
@@ -188,7 +170,9 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
         rows.set(effect.kind, row);
         effectList.append(row.root);
       }
-      setText(row.time, t('effect.remaining', { time: formatDuration(effect.remaining, getLocale()) }));
+      const left = formatDuration(effect.remaining, getLocale());
+      setText(row.time, t('effect.remaining', { time: left }));
+      setText(row.clock, left);
       setProgress(row.bar, effect.remaining / effect.duration);
     }
     setHidden(effects, state.effects.length === 0);
@@ -199,9 +183,6 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     core,
     effects,
     coreButton,
-    dock,
-    setDockShown,
-    absorbOrigin: () => (dock.hidden ? coreButton : dock),
     update,
     destroy: () => {
       disposer.dispose();

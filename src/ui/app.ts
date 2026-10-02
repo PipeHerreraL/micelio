@@ -26,6 +26,7 @@ import { createStatsTab } from './tab-stats.ts';
 import { createUpgradesTab } from './tab-upgrades.ts';
 import { createPartnersTab, type PartnersTabOptions } from './tab-partners.ts';
 import { createTabs, type TabId, type TabView, type Tabs } from './tabs.ts';
+import { createPinning } from './pinning.ts';
 import { PARTNER_IDS } from '../partners/ids.ts';
 import type { GameEvent } from '../core/events.ts';
 
@@ -108,54 +109,6 @@ function trackHudHeight(hudBox: HTMLElement): () => void {
   };
 }
 
-/**
- * Por debajo de este ancho la página entera se desplaza y el núcleo se va con el escenario; en
- * escritorio la columna izquierda lo deja siempre a la vista (styles.css, «Disposición»).
- */
-const DOCK_QUERY = '(max-width: 1023.98px)';
-
-/**
- * Llama a `onChange` cada vez que el núcleo pasa a verse o deja de verse: se ve si al menos la
- * mitad del botón queda fuera de la cabecera fija y de la barra de pestañas fija (las dos solo en
- * el móvil). Un IntersectionObserver no admite un margen variable, así que se rehace cuando
- * cambia la altura de alguna de las dos. Devuelve la función que deja de observar.
- */
-function watchCoreVisibility(
-  core: HTMLElement,
-  hudBox: HTMLElement,
-  tabList: HTMLElement | null,
-  onChange: (visible: boolean) => void,
-): () => void {
-  // Sin IntersectionObserver (algún navegador muy viejo) el núcleo de bolsillo no aparece.
-  if (typeof IntersectionObserver === 'undefined') return () => undefined;
-  let observer: IntersectionObserver | null = null;
-  let margin = '';
-  const covering = (el: HTMLElement | null, position: string): number =>
-    el && getComputedStyle(el).position === position ? Math.ceil(el.getBoundingClientRect().height) : 0;
-  const observe = (): void => {
-    const next = `${-covering(hudBox, 'sticky')}px 0px ${-covering(tabList, 'fixed')}px 0px`;
-    if (next === margin) return;
-    margin = next;
-    observer?.disconnect();
-    observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[entries.length - 1];
-        if (entry) onChange(entry.intersectionRatio >= 0.5);
-      },
-      { rootMargin: next, threshold: [0, 0.5, 1] },
-    );
-    observer.observe(core);
-  };
-  const sizes = new ResizeObserver(observe);
-  sizes.observe(hudBox);
-  if (tabList) sizes.observe(tabList);
-  observe();
-  return () => {
-    sizes.disconnect();
-    observer?.disconnect();
-  };
-}
-
 export function createApp(host: HTMLElement, store: Store, options: AppOptions): App {
   const hud = createHud(store, options.onAbsorb);
   const views: TabView[] = [
@@ -169,37 +122,16 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     createStatsTab(store),
     ...(options.extraViews?.(store) ?? []),
   ];
-  let activeTab = options.initialTab;
-  // El núcleo de bolsillo depende de la pestaña: se rehace al cambiar (más abajo).
-  let refreshDock: (() => void) | null = null;
-  const tabs = createTabs(store, views, isTabAvailable, options.initialTab, (id) => {
-    activeTab = id;
+  // Lo que hace falta al cambiar de pestaña llega más abajo, cuando existen el panel y la franja.
+  let onTabShown: ((byPlayer: boolean) => void) | null = null;
+  const tabs = createTabs(store, views, isTabAvailable, options.initialTab, (id, byPlayer) => {
     options.onTabChange(id);
-    refreshDock?.();
+    onTabShown?.(byPlayer);
   });
   const news = createNewsTicker();
   const hudBox = h('div', { class: 'layout__hud' }, [hud.counter]);
   const stopHudHeight = trackHudHeight(hudBox);
   const coreBox = h('div', { class: 'layout__core' }, [hud.core]);
-  // El núcleo de bolsillo, solo mientras el núcleo no se ve y la página se desplaza entera.
-  const narrow = window.matchMedia(DOCK_QUERY);
-  let coreVisible = true;
-  const syncDock = (): void => {
-    // En Socios no: la placa del plasmodio se dimensiona para llenar la pantalla y el botón
-    // tapaba los sitios de su esquina inferior derecha.
-    hud.setDockShown(narrow.matches && !coreVisible && activeTab !== 'partners');
-  };
-  refreshDock = syncDock;
-  narrow.addEventListener('change', syncDock);
-  const stopCoreWatch = watchCoreVisibility(
-    hud.coreButton,
-    hudBox,
-    tabs.root.querySelector<HTMLElement>('.tabs__list'),
-    (visible) => {
-      coreVisible = visible;
-      syncDock();
-    },
-  );
   const effectsBox = h('div', { class: 'layout__effects' }, [hud.effects]);
   const caption = createBiomeCaption(store);
   const drop = createRainDrop(
@@ -223,20 +155,38 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     drop.root,
   ]);
 
+  // La franja de arriba: por debajo de 1024 px se queda fija y solo se desplaza el panel
+  // (petición del usuario, ARCHITECTURE.md §4.30). En escritorio es display: contents y sus
+  // piezas siguen siendo celdas de la rejilla de siempre.
+  const top = h('div', { class: 'layout__top' }, [hudBox, stage, coreBox, effectsBox]);
+  const panelBox = h('div', { class: 'layout__panel' }, [tabs.root]);
   const main = h('main', { class: 'layout', id: 'game' }, [
-    hudBox,
-    stage,
-    coreBox,
-    hud.dock,
-    effectsBox,
-    h('div', { class: 'layout__panel' }, [tabs.root]),
+    top,
+    panelBox,
     h('footer', { class: 'layout__footer' }, [news.root]),
   ]);
+  const probe = h('div', { class: 'layout__probe', attrs: { 'aria-hidden': 'true' } });
   const skip = h('a', { class: 'skip-link', text: t('app.skipToGame'), attrs: { href: '#game' } });
   // Los avisos y la región aria-live no van aquí: viven fuera de lo que se reconstruye
   // (main.ts) para que un cambio de idioma no borre los avisos fijos de guardado.
-  const root = h('div', { class: 'app' }, [skip, main]);
+  const root = h('div', { class: 'app' }, [skip, main, probe]);
   host.replaceChildren(root);
+  const pinning = createPinning({
+    main,
+    hud: hudBox,
+    stage,
+    panel: panelBox,
+    bar: tabs.bar,
+    probe,
+    activeTab: () => tabs.current(),
+  });
+  pinning.refresh();
+  onTabShown = (byPlayer) => {
+    // Socios cambia lo que queda fijo; y solo un cambio del jugador mueve la página (no el de
+    // reconstruir la interfaz al cambiar de idioma, ni el de las láminas, que enfocan su título).
+    if (byPlayer) pinning.revealPanel();
+    else pinning.refresh();
+  };
 
   return {
     root,
@@ -255,7 +205,10 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
       // Interfaz de partida nueva: sin pestañas hasta el primer generador, salvo que Ajustes
       // ya estuviera a mano (después de borrar la partida).
       const fresh = !anyGeneratorVisible(state) && !hasSeen(state, 'tab.settings');
-      main.classList.toggle('layout--fresh', fresh);
+      if (main.classList.contains('layout--fresh') !== fresh) {
+        main.classList.toggle('layout--fresh', fresh);
+        pinning.refresh();
+      }
       if (!fresh) news.update(state, now);
     },
     frame(now) {
@@ -269,8 +222,7 @@ export function createApp(host: HTMLElement, store: Store, options: AppOptions):
     },
     destroy() {
       stopHudHeight();
-      stopCoreWatch();
-      narrow.removeEventListener('change', syncDock);
+      pinning.destroy();
       hud.destroy();
       tabs.destroy();
       drop.destroy();

@@ -16,7 +16,7 @@ import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
 import { formatDuration, formatPercent } from '../i18n/format.ts';
-import { fmt, formatCount, getLocale, t, tp } from '../i18n/index.ts';
+import { fmt, formatBonus, formatCount, formatCountOf, getLocale, t, tp } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { partnerPerks } from '../systems/partners.ts';
 import { createHint } from './hint.ts';
@@ -28,7 +28,7 @@ import type { TabView } from './tabs.ts';
 
 /** Bono de producción del nivel de esporas, con la madurez de la red (factor − 1). */
 function bonusPercent(level: number, threshold: number): string {
-  return formatPercent(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1, getLocale(), 0);
+  return formatBonus(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1);
 }
 
 export interface SporeRates {
@@ -56,8 +56,12 @@ export function sporeRates(state: GameState): SporeRates {
 
 const rateFormats = new Map<string, Intl.NumberFormat>();
 
-/** Esporas por minuto con dos decimales por debajo de 10 y uno por encima, en el idioma activo. */
-function formatRate(value: number): string {
+/**
+ * Esporas por minuto con dos decimales por debajo de 10 y uno por encima, en el idioma activo; desde
+ * el millón, con nombre, como las cuentas (con «de» si va delante de «esporas»).
+ */
+export function formatRate(value: number, beforeNoun = false): string {
+  if (value >= 1e6) return beforeNoun ? formatCountOf(value) : formatCount(value);
   const digits = value < 10 ? 2 : 1;
   const key = `${getLocale()}|${digits}`;
   let f = rateFormats.get(key);
@@ -151,7 +155,9 @@ export function createSporulateTab(store: Store): TabView {
     const rates = sporeRates(state);
     setText(
       rate,
-      rates.now === null ? t('sporulate.rate.none') : t('sporulate.rate', { value: formatRate(rates.now) }),
+      rates.now === null
+        ? t('sporulate.rate.none')
+        : t('sporulate.rate', { value: formatRate(rates.now, true) }),
     );
     setHidden(rateNext, rates.next === null);
     if (rates.next) {

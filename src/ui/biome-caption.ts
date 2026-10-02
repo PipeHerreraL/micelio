@@ -43,7 +43,9 @@ export function createBiomeCaption(store: Store): BiomeCaption {
         setText(place, t('caption.place', { name: biomeName(biome), soil: biomeSoil(biome) }));
       }
       const colonized = isForestColonized(state);
-      const level = formatCount(state.spores.level);
+      // En la línea compacta, estrecha en el móvil, «44,1 mil sextillones» puede partirse: fmt une
+      // cifra y nombre con espacios duros y se salía de la cartela.
+      const level = formatCount(state.spores.level).replace(/\u00a0/g, ' ');
       setText(progress, forestProgressText(store));
       setHidden(bar, colonized || state.forest.leg === 0);
       setProgress(fill, Math.min(1, state.spores.level / COLONIZE_LEVEL));

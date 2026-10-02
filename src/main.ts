@@ -286,11 +286,6 @@ globalDisposer.add(() => {
 });
 
 const floaters = createFloaters();
-/**
- * El último botón con el que se absorbió (el núcleo o el de bolsillo): el número sale de ahí. Con
- * el núcleo medio tapado por la cabecera ya se ve el de bolsillo, pero se puede tocar el núcleo.
- */
-let absorbedWith: HTMLButtonElement | null = null;
 let currentTab: TabId = 'generators';
 
 /** Enfoca un encabezado de la pestaña recién elegida, ya visible (en el cuadro siguiente). */
@@ -362,7 +357,6 @@ function buildApp(): App {
     },
     onAbsorb: (button) => {
       restartAnimation(button, 'is-pulsing');
-      absorbedWith = button;
     },
     extraViews: (st) => [createSettingsTab(st, settingsServices)],
     nav: chapterNav,
@@ -641,11 +635,8 @@ function handleEvent(event: GameEvent): void {
   if (cue) sound.play(cue);
   switch (event.type) {
     case 'click': {
-      // Coordenadas de viewport: en escritorio el núcleo está fuera del escenario, y en el móvil,
-      // con el núcleo fuera de la vista, los números salen del núcleo de bolsillo.
-      const origin =
-        absorbedWith?.isConnected && !absorbedWith.hidden ? absorbedWith : app.hud.absorbOrigin();
-      const rect = origin.getBoundingClientRect();
+      // Coordenadas de viewport: en escritorio el núcleo está fuera del escenario.
+      const rect = app.hud.coreButton.getBoundingClientRect();
       floaters.show(`+${fmt(event.value)}`, rect.left + rect.width / 2, rect.top + rect.height * 0.25);
       break;
     }
@@ -906,8 +897,7 @@ globalDisposer.listen(document, 'keydown', (e) => {
     return;
   }
   event.preventDefault();
-  // Con el núcleo fuera de la vista, el de bolsillo: el pulso y el número salen del que se ve.
-  app.hud.absorbOrigin().click();
+  app.hud.coreButton.click();
 });
 
 // Un error del modelo de un socio no para el bucle ni hace perder la partida: se avisa una vez,

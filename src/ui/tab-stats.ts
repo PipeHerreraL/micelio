@@ -37,10 +37,15 @@ const ROWS: readonly StatRow[] = [
     value: (s) => t('hud.perSecond', { value: fmt(s.stats.maxNps) }),
     raw: (s) => s.stats.maxNps,
   },
-  { label: 'stats.clicks', value: (s) => formatCount(s.stats.clicks) },
-  { label: 'stats.drops', value: (s) => formatCount(s.stats.drops) },
-  { label: 'stats.sporulations', value: (s) => formatCount(s.stats.sporulations) },
-  { label: 'stats.sporeLevel', value: (s) => formatCount(s.spores.level) },
+  // Desde el millón las cuentas van abreviadas (formatCount): el tooltip da la cifra entera.
+  { label: 'stats.clicks', value: (s) => formatCount(s.stats.clicks), raw: (s) => s.stats.clicks },
+  { label: 'stats.drops', value: (s) => formatCount(s.stats.drops), raw: (s) => s.stats.drops },
+  {
+    label: 'stats.sporulations',
+    value: (s) => formatCount(s.stats.sporulations),
+    raw: (s) => s.stats.sporulations,
+  },
+  { label: 'stats.sporeLevel', value: (s) => formatCount(s.spores.level), raw: (s) => s.spores.level },
   { label: 'stats.biome', value: (s) => biomeName(s.forest.biome), when: isActOneClosed },
   { label: 'stats.dispersals', value: (s) => formatCount(s.forest.leg), when: isActOneClosed },
   {

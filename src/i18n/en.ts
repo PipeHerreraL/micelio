@@ -818,9 +818,52 @@ export const en: Catalog = {
   'news.radiation':
     'At Chernobyl, fungi were found growing toward the radiation. Some suspect they put it to use.',
   'news.patience': 'Eight sporulations later, the network is in no hurry. It never was.',
+  'news.undergroundWeather': 'Underground forecast: dark, damp, with a high chance of mushrooms.',
+  'news.snailAssembly': 'A snail asks for the floor at the soil assembly. The assembly is still waiting.',
+  'news.chitin': "Hyphal walls contain chitin, the same stuff as a beetle's shell.",
+  'news.yeast': 'The yeast in bread and beer is a fungus. It has worked for thousands of years without pay.',
+  'news.pineCone': 'A pine cone lands on the network. The network adds it to its plans.',
+  'news.pineCone.choco': 'A palm fruit lands on the network. The network adds it to its plans.',
+  'news.asphalt':
+    "A mushroom lifts the asphalt of a path. It doesn't shove: it pushes with water, patiently.",
+  'news.rootsGossip': 'The roots complain that the network hears everything before they do.',
+  'news.ownWind':
+    'Some mushrooms make their own wind: evaporating water cools the air and carries their spores away.',
+  'news.puffball':
+    "A single giant puffball can release trillions of spores. Almost none come to anything, and that's fine.",
+  'news.species':
+    'About 150,000 species of fungi have been described. Millions more are thought to be unnamed.',
+  'news.stinkhorn': 'The stinkhorn smells of carrion on purpose: the flies it lures carry off its spores.',
+  'news.rootMeeting': 'Root meeting: nobody knows who called it, but everyone came through the network.',
+  'news.blueCheese': 'The veins in blue cheese are a mold, Penicillium roqueforti. Nobody complains.',
+  'news.employee': 'The network is named employee of the month yet again. It asks to be paid in sugar.',
+  'news.prototaxites':
+    'About 400 million years ago, Prototaxites, maybe a fungus or something stranger, stood up to 8 meters tall.',
+  'news.lostSpore': 'Lost spore. Answers to any name, and to none.',
+  'news.pilobolus':
+    'The fungus Pilobolus fires its spore capsule more than 2 meters, with an acceleration of about 20,000 g.',
+  'news.termites':
+    'Some termites have farmed fungi in their nests for millions of years. Long before we did.',
+  'news.carboniferous':
+    'One hypothesis: so much coal built up in the Carboniferous because no fungus could digest lignin yet.',
+  'news.birdsNest':
+    'Bird\'s nest fungi wait for rain: each drop that lands in their cup flings out their spore "eggs".',
+  'news.cloudSpores':
+    'Some spores rise as high as the clouds, and some may help raindrops form. The rain comes back around.',
+  'news.oysterHunter':
+    'The oyster mushroom hunts microscopic worms when it runs short of nitrogen. It looks so calm.',
+  'news.noose': 'Some fungi trap nematodes in loops that snap shut in a tenth of a second.',
+  'news.myceliumBricks':
+    'Packaging and bricks are already being made from mycelium. The network asks about royalties.',
+  'news.postcard':
+    'The home forest gets a postcard: "All well here. Lots of rain. Will write through the network."',
+  'news.postcard.taiga':
+    'The home forest gets a postcard: "All well here. Cold, not much rain. Will write through the network."',
 
   // Números
   'num.tooltip': '{exact} · {long}',
+  'num.countOf': '{count}',
+  'num.percent': '{value}%',
   // Idle games keep the name singular after the number: '2.5 Million'.
   'num.name.M.one': 'Million',
   'num.name.M.other': 'Million',

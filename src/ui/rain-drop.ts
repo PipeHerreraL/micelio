@@ -74,10 +74,20 @@ export function createRainDrop(store: Store, stage: () => HTMLElement, cover: ()
             (r) => px > r.left - m && px < r.right + m && py > r.top - m && py < r.bottom + m,
           );
         };
-        let x = drop.x;
-        let y = drop.y;
+        // Entera dentro del escenario (overflow: hidden): con el escenario fijo del móvil, de 150 px,
+        // las posiciones de arriba y abajo la recortaban por debajo de los 44 px táctiles.
+        const fit = (f: number, size: number): number => {
+          if (size <= 2 * DROP_RADIUS) return f;
+          const edge = DROP_RADIUS / size;
+          return Math.min(1 - edge, Math.max(edge, f));
+        };
+        const place = ([fx, fy]: readonly [number, number]): [number, number] => [
+          fit(fx, box.width),
+          fit(fy, box.height),
+        ];
+        let [x, y] = place([drop.x, drop.y]);
         if (box.width > 0 && blocked(x, y)) {
-          const free = FALLBACKS.find(([fx, fy]) => !blocked(fx, fy));
+          const free = FALLBACKS.map(place).find(([fx, fy]) => !blocked(fx, fy));
           if (free) [x, y] = free;
         }
         root.style.left = `${(x * 100).toFixed(2)}%`;

@@ -275,6 +275,11 @@ Desde la fase 8 esquiva también la cartela del bioma, en la esquina del escenar
 El ticker elige al azar entre las noticias desbloqueadas evitando repetir las últimas. Usa
 `Math.random` porque vive en `src/ui`: no afecta al estado ni al simulador.
 
+Petición del usuario tras la 1.4.1: más noticias y más tiempo para leerlas. ~~Cada 12 s, con unas
+40 frases del bosque natal (PROMPT.md §12).~~ Cada noticia se queda 20 s, y el bosque natal tiene 25
+más (74), mitad datos de micología y mitad humor, repartidas por todo el progreso para que también
+lleguen nuevas en la partida avanzada.
+
 ### 4.24 Números con nombres de juego idle (petición del usuario)
 
 ~~Desde 1e6, sufijos cortos (M, B, T… hasta Dc); desde 1e36, notación científica siempre
@@ -292,6 +297,10 @@ se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millo
   también el nombre largo.
 - Los guardados de la versión 1 tenían «suffix» por defecto: la migración 1 → 2 los pasa a
   nombres y respeta científica e ingeniería.
+- Las cuentas (niveles, esporas, clics) también: hasta 999.999 con todas sus cifras y desde el
+  millón como las cantidades («44,1 sextillones», no «44.108.702.360.816.946.000.000…», que se
+  vio en la cartela del bioma). En español, delante de un nombre llevan «de»: «2 millones de
+  esporas» (`num.countOf`, solo con nombre de magnitud).
 
 ### 4.25 Pruebas de navegador con Playwright
 
@@ -461,10 +470,10 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   turno), integrador de Euler, histéresis del tubo vivo, placas sembradas por jugador, miniaturas
   en el Atlas y un selector de socios que con uno solo no se vería.
 
-### 4.30 El núcleo siempre a mano y compras sin saltos (petición del usuario, v1.4.1)
+### 4.30 El núcleo siempre a mano y compras sin saltos (peticiones del usuario, v1.4.1 y v1.4.2)
 
-- **Núcleo de bolsillo.** Por debajo de 1024 px la página entera se desplaza (BUG-JOURNAL #14) y
-  el núcleo se va con el escenario. Un segundo botón (`.core-dock`, 64 px) aparece abajo a la
+- ~~**Núcleo de bolsillo (1.4.1).** Por debajo de 1024 px la página entera se desplaza
+  (BUG-JOURNAL #14) y el núcleo se va con el escenario. Un segundo botón (`.core-dock`, 64 px) aparece abajo a la
   derecha, encima de la barra de pestañas en el móvil, mientras menos de la mitad del núcleo se
   vea fuera de la cabecera y la barra fijas. Lo decide un `IntersectionObserver` con esas dos
   alturas como margen negativo, rehecho cuando cambian (la cabecera mide 47–107 px según sus
@@ -473,7 +482,26 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   que el núcleo, con su nombre; el número y el pulso salen del botón pulsado, y Espacio pulsa el
   que se ve. La capa de números va por encima de él (z-index 16 frente a 15). No aparece en Socios
   (la placa del plasmodio se dimensiona para llenar la pantalla y tapaba los sitios de su esquina)
-  ni con el foco del teclado en las pestañas (se absorbe con Espacio y tapaba el control enfocado).
+  ni con el foco del teclado en las pestañas (se absorbe con Espacio y tapaba el control enfocado).~~
+- **Corrección (1.4.2, a pedido del usuario):** no quería un botón que se moviera, sino que la
+  franja de arriba (contador y escenario con el núcleo y el arte) se quedara fija y solo se
+  desplazara el panel. Por debajo de 1024 px, `.layout__top` (cabecera, escenario, núcleo y
+  efectos) es `sticky` arriba y la página pasa por debajo; en escritorio es `display: contents` y
+  la rejilla no cambia. Para que quepa, el escenario fijo baja: `clamp(150px, 26svh, 240px)` en
+  el móvil (antes 34vh) y `clamp(260px, 38svh, 440px)` en tableta (antes 46vh), en svh para que no
+  cambie al esconderse la barra del navegador. Con la cabecera de las esporas (106 px), un iPhone
+  14 con la barra de Safari (390 × 664) deja 328 px al panel. Los efectos van sobre el escenario
+  (compactos en el móvil, a la izquierda del núcleo): fijos, la cuenta de la Tormenta se ve
+  mientras se toca y que empiecen o terminen no mueve el panel. En tableta la barra de pestañas
+  se pega bajo la franja. `src/ui/pinning.ts` vuelve a la disposición de antes (solo la cabecera
+  fija, mismas filas: nada se mueve) en tres casos: en Socios (la placa se dimensiona para llenar
+  la pantalla y pasaría a lista), con un campo de texto enfocado (el teclado dejaba el campo de
+  importar debajo de la franja) y cuando 100svh menos la franja y las barras deja menos de 200 px
+  al panel (un móvil en horizontal, zoom, pantalla partida). Al cambiar de pestaña el jugador con
+  la lista bajada, la nueva empieza justo bajo lo fijo; `scroll-padding-top` evita que el foco
+  quede debajo. Una crítica previa con tres enfoques cambió el diseño: escenario más bajo, efectos
+  dentro de la franja, respaldo automático en vez de dos columnas en horizontal, barra de pestañas
+  pegada en tableta.
 - **Lo que cambia con el estado no cambia la altura.** Un botón de compra a todo lo ancho lleva
   coste y espera en una línea; el texto de producción de cada generador reserva dos líneas; en
   móvil y tableta el panel ocupa el sobrante de la página (`1fr`), en vez de repartirlo entre las
@@ -482,9 +510,11 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   siguiente) y con su alto fijado, y se pliega en 0,22 s; las nuevas se despliegan ya pintadas.
   Con refrescos separados más de 1 s (otra pestaña, la ventana oculta) se rehace sin animar, para
   no enseñar como recién comprado lo que compró la autocompra entretanto.
-- **Descartado:** el escenario pegajoso (en un teléfono se comía un tercio de la pantalla), el
-  núcleo en la cabecera (lejos del pulgar, y la cabecera crecía al aparecer) y decidirlo en el
-  refresco de 10 Hz (un reflow forzado en cada refresco).
+- **Descartado:** ~~el escenario pegajoso (en un teléfono se comía un tercio de la pantalla)~~
+  (es lo que pidió el usuario en 1.4.2, con el escenario más bajo y el respaldo de `pinning.ts`),
+  el núcleo en la cabecera (lejos del pulgar), el panel con desplazamiento propio (la barra del
+  navegador no se escondería y vuelve el riesgo de #14) y dos columnas en horizontal (el núcleo no
+  cabía en 740 × 300 y las fórmulas de tamaño suponen el escenario a todo lo ancho).
 
 ### 4.14 Dependencias
 
@@ -604,8 +634,9 @@ sostenidas.
 **Tableta (768–1023 px):** canvas arriba (40 vh) con el núcleo encima; contador y N/s sobre
 el canvas; pestañas debajo. **Móvil (< 768 px):** contador y N/s fijos arriba, canvas
 reducido con el núcleo, contenido de la pestaña, barra de pestañas fija abajo; objetivos
-táctiles ≥ 44 px. Al bajar a las pestañas, el núcleo de bolsillo queda abajo a la derecha
-(§4.30).
+táctiles ≥ 44 px. ~~Al bajar a las pestañas, el núcleo de bolsillo queda abajo a la derecha
+(§4.30).~~ Desde 1.4.2 el contador y el escenario con el núcleo se quedan fijos arriba y solo se
+desplaza el panel (§4.30).
 
 **Movimiento:** solo la esporulación está orquestada. Lo demás responde a acciones: brote
 de filamentos al comprar, onda y número flotante al hacer clic, campanilla visual del logro

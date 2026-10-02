@@ -16,6 +16,8 @@ import {
 import {
   detectLocale,
   fmt,
+  formatBonus,
+  formatCount,
   getLocale,
   interpolate,
   numberTooltip,
@@ -400,10 +402,37 @@ describe('tp', () => {
     expect(tp('sporulate.gain', 12345)).toBe('OTHER:12.345');
   });
 
-  it('en español, la categoría «many» de un millón cae en .other', () => {
+  it('en español, la categoría «many» de un millón cae en .other, con nombre y «de» delante del nombre', () => {
     setLocale('es', withPluralProbe(es));
     expect(tp('sporulate.gain', 1)).toBe('ONE:1');
-    expect(tp('sporulate.gain', 1e6)).toBe('OTHER:1.000.000');
+    expect(tp('sporulate.gain', 1e6)).toBe('OTHER:1 millón de');
+  });
+
+  it('una cuenta de millones lleva «de» en español y nada en inglés: «2 millones de esporas», «2 Million spores»', () => {
+    setLocale('es');
+    expect(tp('sporulate.available', 2e6)).toBe('2 millones de esporas disponibles');
+    expect(tp('sporulate.available', 999_999)).toBe('999.999 esporas disponibles');
+    setLocale('en');
+    expect(tp('sporulate.available', 2e6)).toBe('2 Million spores available');
+  });
+
+  // Con ese nivel, el bono de producción de al lado salía «+6.640.783.086.353.596.400.000 %».
+  it('un bono enorme se escribe con nombre y su signo de porcentaje, uno pequeño como siempre', () => {
+    setLocale('es');
+    expect(formatBonus(6.64e19)).not.toMatch(/000/);
+    expect(formatBonus(6.64e19)).toMatch(/\s%$/u);
+    expect(formatBonus(0.12)).toBe(formatPercent(0.12, 'es', 0));
+    setLocale('en');
+    expect(formatBonus(6.64e19)).toMatch(/[a-z]%$/i);
+  });
+
+  // Lo vio el usuario en la cartela del bioma: «nivel 44.108.702.360.816.946.000.000.000…».
+  it('un nivel de esporas enorme se escribe con nombre de magnitud, no con todas sus cifras', () => {
+    setLocale('es');
+    expect(formatCount(4.41e40)).not.toMatch(/000/);
+    expect(formatCount(4.41e40)).toMatch(/\p{L}$/u);
+    expect(formatCount(12_345)).toBe('12.345');
+    expect(formatCount(1e6)).toBe('1 millón');
   });
 
   it('con el catálogo inglés real, 1 usa la plantilla .one y 2 la .other', () => {

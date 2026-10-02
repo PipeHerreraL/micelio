@@ -6,7 +6,16 @@
 import type { Locale, Notation } from '../core/state.ts';
 import { en } from './en.ts';
 import { es, type Catalog, type MessageKey } from './es.ts';
-import { formatExact, formatNumber, roundTo, suffixFor, SUFFIXES, type Suffix } from './format.ts';
+import {
+  formatExact,
+  formatNumber,
+  formatPercent,
+  roundTo,
+  suffixFor,
+  SUFFIXES,
+  SUFFIX_FROM,
+  type Suffix,
+} from './format.ts';
 
 export type { Catalog, MessageKey } from './es.ts';
 
@@ -81,12 +90,36 @@ export function t(key: MessageKey, params?: Params): string {
 export function tp(base: PluralKey, count: number, params?: Params): string {
   const category = pluralRules.select(count);
   const key = (category === 'one' ? `${base}.one` : `${base}.other`) as MessageKey;
-  return t(key, { count: formatCount(count), ...params });
+  return t(key, { count: formatCountOf(count), ...params });
 }
 
-/** Entero con separadores del idioma activo. */
+/**
+ * Entero con separadores del idioma activo. Desde el millón, como fmt: con nombre de juego idle
+ * («44,1 sextillones») y no con todas sus cifras («44.108.702.360.816.946.000.000…», que se veía en
+ * la cartela del bioma con un nivel de esporas muy alto; ARCHITECTURE.md §4.24).
+ */
 export function formatCount(value: number): string {
+  if (Math.abs(value) >= SUFFIX_FROM) return fmt(value);
   return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+}
+
+/**
+ * Una cuenta delante de un nombre («{count} esporas»): con nombre de magnitud el español pide «de»
+ * («2 millones de esporas»); el inglés, no. Con la notación científica no hay nombre.
+ */
+export function formatCountOf(value: number): string {
+  const text = formatCount(value);
+  return Math.abs(value) >= SUFFIX_FROM && /\p{L}$/u.test(text) ? t('num.countOf', { count: text }) : text;
+}
+
+/**
+ * Un bono como porcentaje sin decimales («+12 %»). Desde un millón por ciento, con nombre: con un
+ * nivel de esporas muy alto el bono se leía «+6.640.783.086.353.596.400.000 %».
+ */
+export function formatBonus(fraction: number): string {
+  const percent = fraction * 100;
+  if (Math.abs(percent) < SUFFIX_FROM) return formatPercent(fraction, locale, 0);
+  return t('num.percent', { value: fmt(percent) });
 }
 
 /** Nombre del orden de magnitud en el idioma activo, en singular o plural según la mantisa. */

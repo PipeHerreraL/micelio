@@ -56,7 +56,8 @@ export function createTabs(
   views: readonly TabView[],
   isAvailable: TabAvailability,
   initial: TabId,
-  onSelect: (id: TabId) => void,
+  /** `byPlayer`: el jugador la eligió en la barra (clic o teclas), no el juego. */
+  onSelect: (id: TabId, byPlayer: boolean) => void,
 ): Tabs {
   const disposer = new Disposer();
   const buttons = new Map<TabId, HTMLButtonElement>();
@@ -93,7 +94,7 @@ export function createTabs(
       [uiIcon(view.id), h('span', { class: 'tabs__label', text: label }), badge],
     );
     disposer.listen(button, 'click', () => {
-      select(view.id);
+      select(view.id, false, true);
     });
     buttons.set(view.id, button);
     list.append(button);
@@ -122,7 +123,7 @@ export function createTabs(
     else if (e.key === 'End') next = visible[visible.length - 1];
     if (next) {
       e.preventDefault();
-      select(next, true);
+      select(next, true, true);
     }
   });
 
@@ -130,7 +131,7 @@ export function createTabs(
     return views.find((v) => v.id === id);
   }
 
-  function select(id: TabId, focus = false): void {
+  function select(id: TabId, focus = false, byPlayer = false): void {
     active = id;
     for (const [tab, button] of buttons) {
       const on = tab === id;
@@ -148,7 +149,7 @@ export function createTabs(
     }
     viewOf(id)?.update();
     if (focus) button?.focus();
-    onSelect(id);
+    onSelect(id, byPlayer);
   }
 
   function update(): void {

@@ -421,9 +421,9 @@ test('en el móvil, la barra pegajosa queda bajo la cabecera y «Copo de avena»
     .toEqual({ underHud: true, onFood: true });
 });
 
-// BUG-JOURNAL #20: la placa se dimensiona para llenar la pantalla y el núcleo de bolsillo tapaba los
-// sitios de su esquina inferior derecha.
-test('en el móvil, con la placa a la vista, el núcleo de bolsillo no tapa ningún sitio', async ({
+// La franja fija de arriba (contador y escenario, ARCHITECTURE.md §4.30) no se fija en Socios: la
+// placa se dimensiona para llenar la pantalla bajo la cabecera y, con la franja, pasaría a lista.
+test('en el móvil, en Socios la franja de arriba se va al bajar y la placa queda entera y sin tapar', async ({
   page,
 }, info) => {
   test.skip(!isMobile(info.project.name), 'Solo en móvil.');
@@ -437,8 +437,10 @@ test('en el móvil, con la placa a la vista, el núcleo de bolsillo no tapa ning
     if (home) window.scrollTo(0, home.getBoundingClientRect().top + window.scrollY - 20);
   });
   await page.waitForTimeout(400);
-  await expect(page.locator('.core__button')).not.toBeInViewport({ ratio: 0.5 });
-  await expect(page.locator('.core-dock')).toBeHidden();
+  // El escenario se fue hacia arriba; la cabecera sigue (la barra pegajosa va bajo ella).
+  await expect(page.locator('.stage')).not.toBeInViewport({ ratio: 0.5 });
+  await expect(page.locator('.layout__hud')).toBeInViewport({ ratio: 1 });
+  await expect(page.locator('.plate__site').first()).toBeVisible();
   const covered = await page.evaluate(() => {
     // Entre la barra pegajosa de herramientas (bajo la cabecera) y la barra de pestañas.
     const top = document.querySelector('.plasmodium__toolbar')?.getBoundingClientRect().bottom ?? 0;

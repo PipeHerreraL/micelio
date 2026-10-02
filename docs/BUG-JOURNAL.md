@@ -427,7 +427,7 @@ panel». Fallan sin el arreglo.
 
 ## 20. En el móvil, al bajar a las pestañas no había con qué absorber
 
-**Zona:** `src/ui/hud.ts`, `src/ui/app.ts`, `src/main.ts`, `src/ui/styles.css` (`.core-dock`)
+**Zona:** `src/ui/app.ts`, `src/ui/pinning.ts`, `src/ui/styles.css` (`.layout__top`)
 
 **Síntoma.** Lo reportó el usuario en su teléfono tras la versión 1.4.0: al desplazarse hasta los
 generadores o las mejoras, el núcleo se iba con el escenario y para absorber había que volver
@@ -436,23 +436,21 @@ arriba. En tableta pasaba lo mismo.
 **Causa.** Por debajo de 1024 px la página entera se desplaza (#14) y el núcleo vive en el
 escenario, arriba del todo. Solo el contador es fijo; nada sustituía al núcleo al perderlo de vista.
 
-**Arreglo.** Un «núcleo de bolsillo»: el mismo botón, de 64 px, fijo abajo a la derecha (encima de
-la barra de pestañas en el móvil), que aparece mientras menos de la mitad del núcleo se ve fuera de
-la cabecera y la barra fijas. Absorbe igual, con el mismo nombre accesible; el número y el pulso
-salen del botón que se pulsó, y Espacio pulsa el que se ve. Es fijo: aparecer no mueve nada. Si se
-oculta con el foco encima, el foco pasa al núcleo. La revisión adversarial encontró cinco cosas que
-también se corrigieron: el número salía por detrás del botón (con «Reducir movimiento» no se veía
-nunca), el hueco reservado abajo alargaba la pantalla de partida nueva, los avisos subían también
-en horizontal (donde no se tocan) y sacaban el más viejo por arriba, el botón tapaba los sitios de
-la esquina de la placa del plasmodio (en Socios no aparece) y, con el teclado en las pestañas,
-tapaba el control enfocado de la esquina (ahí no aparece: se absorbe con Espacio).
+**Arreglo.** ~~Un «núcleo de bolsillo»: el mismo botón, de 64 px, fijo abajo a la derecha, que
+aparecía mientras el núcleo no se veía (1.4.1).~~ El usuario no lo quería: pidió que la franja de
+arriba, con el núcleo y el arte, se quedara fija y solo se desplazara el panel. Desde 1.4.2,
+`.layout__top` es `sticky` por debajo de 1024 px, con el escenario más bajo para dejar sitio al
+panel; `src/ui/pinning.ts` vuelve a la disposición de antes en Socios, con un campo de texto
+enfocado y cuando al panel le quedarían menos de 200 px (ARCHITECTURE.md §4.30).
 
-**Qué lo sostiene.** `tests/e2e/layout-stability.spec.ts` → «por debajo de 1024 px, al bajar a las
-pestañas aparece el núcleo de bolsillo, absorbe y se va al volver arriba» (móvil y, en los perfiles
-de escritorio, la disposición de tableta) y «en escritorio el núcleo de bolsillo no aparece»;
-`tests/e2e/plasmodium.spec.ts` → «en el móvil, con la placa a la vista, el núcleo de bolsillo no
-tapa ningún sitio»; `tests/ui-core-dock.test.ts` → «si se oculta con el foco encima, el foco pasa
-al núcleo y no cae en <body>». Fallan sin el arreglo.
+**Qué lo sostiene.** `tests/e2e/layout-stability.spec.ts` → «al bajar hasta el final de la lista,
+la franja con el núcleo se queda arriba y se absorbe sin volver» (los dos móviles y, en los perfiles
+de escritorio, 820 × 1180 y 768 × 1024), «en horizontal, sin sitio para el panel, la franja no se
+fija», «en el móvil, escribir en Ajustes suelta la franja», «en tableta, con la lista abajo, la
+barra de pestañas sigue bajo la franja» y «en el móvil, los efectos van sobre el escenario»;
+`tests/e2e/plasmodium.spec.ts` → «en Socios la franja de arriba se va al bajar y la placa queda
+entera y sin tapar»; `tests/ui-pinning.test.ts`. La primera falla sin el arreglo (el núcleo se
+movía 365–1.052 px). Las pruebas del núcleo de bolsillo se fueron con él.
 
 ## 21. Comprar un generador o una mejora hacía saltar la lista
 
@@ -485,6 +483,23 @@ compra la de abajo», en los cinco perfiles; `tests/ui-upgrades.test.ts` → «l
 queda en su sitio como «Comprada», sin poder pulsarse, y luego se pliega», «una tarjeta nueva se
 mide para desplegarse con sus textos ya puestos» y «al comprar la última, «No hay mejoras» no
 aparece encima de la comprada hasta que se pliega». Fallan sin el arreglo.
+
+## 22. El nivel de esporas se leía con todas sus cifras
+
+**Zona:** `src/i18n/index.ts` (`formatCount`, `tp`)
+
+**Síntoma.** Lo vio el usuario en la cartela del bioma, en el móvil: «Acto I cumplido · nivel
+44.108.702.360.816.946.000.000.000.000.000.000…», que además se salía de la cartela.
+
+**Causa.** Las cantidades pasan por `fmt` (nombres de juego idle, §4.24), pero las cuentas
+(niveles, esporas, clics, rangos) pasaban por `formatCount`, que escribía el entero entero.
+
+**Arreglo.** `formatCount` escribe con nombre desde el millón, como `fmt`. En los plurales con nombre
+detrás, el español lleva «de» («2 millones de esporas»); el inglés no.
+
+**Qué lo sostiene.** `tests/format.test.ts` → «un nivel de esporas enorme se escribe con nombre de
+magnitud, no con todas sus cifras» y «una cuenta de millones lleva «de» en español y nada en
+inglés». Fallan sin el arreglo.
 
 ---
 

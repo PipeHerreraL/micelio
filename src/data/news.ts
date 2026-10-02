@@ -1,5 +1,5 @@
 /**
- * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 12 s. Cada
+ * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 20 s. Cada
  * noticia se desbloquea con el progreso. El texto vive en src/i18n con la clave
  * `news.<id>`.
  */
@@ -24,8 +24,11 @@ export interface NewsDef {
   when: NewsCondition;
 }
 
-/** Segundos entre noticias. */
-export const NEWS_INTERVAL = 12;
+/**
+ * Segundos que se queda cada noticia. PROMPT.md §12 pedía 12; el usuario las quiso más tiempo
+ * para leerlas con calma: las más largas ocupan dos o tres líneas en el móvil.
+ */
+export const NEWS_INTERVAL = 20;
 /**
  * En un bioma con noticias propias sin ver, la mitad de las veces sale una de ellas: sin esto,
  * las 40 del natal ahogarían las 12 del bioma recién llegado.
@@ -73,6 +76,32 @@ export const NEWS: readonly NewsDef[] = [
   { id: 'truffle', when: { kind: 'sporulations', count: 3 } },
   { id: 'radiation', when: { kind: 'sporulations', count: 5 } },
   { id: 'patience', when: { kind: 'sporulations', count: 8 } },
+  // Petición del usuario tras la 1.4.1: más noticias, repartidas por todo el progreso.
+  { id: 'undergroundWeather', when: { kind: 'always' } },
+  { id: 'snailAssembly', when: { kind: 'always' } },
+  { id: 'chitin', when: { kind: 'always' } },
+  { id: 'yeast', when: { kind: 'always' } },
+  { id: 'pineCone', when: { kind: 'lifetime', amount: 1e3 } },
+  { id: 'asphalt', when: { kind: 'owned', id: 'primordium', count: 5 } },
+  { id: 'rootsGossip', when: { kind: 'owned', id: 'rhizomorph', count: 10 } },
+  { id: 'ownWind', when: { kind: 'owned', id: 'mushroom', count: 5 } },
+  { id: 'puffball', when: { kind: 'owned', id: 'mushroom', count: 25 } },
+  { id: 'species', when: { kind: 'lifetime', amount: 1e6 } },
+  { id: 'stinkhorn', when: { kind: 'owned', id: 'fairyRing', count: 5 } },
+  { id: 'rootMeeting', when: { kind: 'owned', id: 'mycorrhiza', count: 10 } },
+  { id: 'blueCheese', when: { kind: 'lifetime', amount: 1e9 } },
+  { id: 'employee', when: { kind: 'owned', id: 'motherTree', count: 10 } },
+  { id: 'prototaxites', when: { kind: 'owned', id: 'ancientForest', count: 5 } },
+  { id: 'lostSpore', when: { kind: 'sporulations', count: 1 } },
+  { id: 'pilobolus', when: { kind: 'sporulations', count: 2 } },
+  { id: 'termites', when: { kind: 'sporulations', count: 4 } },
+  { id: 'carboniferous', when: { kind: 'sporulations', count: 6 } },
+  { id: 'birdsNest', when: { kind: 'drops', count: 8 } },
+  { id: 'cloudSpores', when: { kind: 'drops', count: 15 } },
+  { id: 'oysterHunter', when: { kind: 'lifetime', amount: 1e12 } },
+  { id: 'noose', when: { kind: 'lifetime', amount: 1e15 } },
+  { id: 'myceliumBricks', when: { kind: 'lifetime', amount: 1e18 } },
+  { id: 'postcard', when: { kind: 'dispersals', count: 1 } },
   // Viento de esporas (fase 8).
   { id: 'taiga.arrival', when: { kind: 'biome', biome: 'taiga' } },
   { id: 'taiga.podzol', when: { kind: 'biome', biome: 'taiga' } },

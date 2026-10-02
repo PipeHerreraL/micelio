@@ -378,8 +378,8 @@ export const es = {
   'wind.confirm.gain.one': 'Esta partida termina esporulando: ganarás {count} espora.',
   'wind.confirm.gain.other': 'Esta partida termina esporulando: ganarás {count} esporas.',
   'wind.confirm.noGain': 'Esta partida aún no puede esporular: sus nutrientes no darán esporas.',
-  'wind.confirm.cost.one': 'El viaje cuesta {cost} esporas; te quedará {count} disponible.',
-  'wind.confirm.cost.other': 'El viaje cuesta {cost} esporas; te quedarán {count} disponibles.',
+  'wind.confirm.cost.one': 'El viaje cuesta {cost} esporas; te quedará {count} espora.',
+  'wind.confirm.cost.other': 'El viaje cuesta {cost} esporas; te quedarán {count} esporas.',
   'wind.confirm.bonus': 'Bono del nivel de esporas que dejas: +{current}; al llegar, +0 %.',
   'wind.confirm.lose':
     'Se pierden: el nivel de esporas de este bioma y todo lo de la partida (nutrientes, generadores, mejoras, hitos y efectos activos).',
@@ -827,10 +827,56 @@ export const es = {
   'news.radiation':
     'En Chernóbil se hallaron hongos que crecen hacia la radiación. Hay quien sospecha que la aprovechan.',
   'news.patience': 'Ocho esporulaciones después, la red ya no tiene prisa. Nunca la tuvo.',
+  'news.undergroundWeather': 'Parte del tiempo subterráneo: oscuro, húmedo y con probabilidad alta de setas.',
+  'news.snailAssembly': 'Un caracol pide la palabra en la asamblea del suelo. La asamblea sigue esperando.',
+  'news.chitin':
+    'Las paredes de las hifas llevan quitina, el mismo material que el caparazón de un escarabajo.',
+  'news.yeast': 'La levadura del pan y de la cerveza es un hongo. Lleva miles de años trabajando sin cobrar.',
+  'news.pineCone': 'Cae una piña sobre la red. La red la incluye en sus planes.',
+  // En el Chocó no hay coníferas (ARCHITECTURE.md §4.28).
+  'news.pineCone.choco': 'Cae un fruto de palma sobre la red. La red lo incluye en sus planes.',
+  'news.asphalt': 'Una seta levanta el asfalto de un camino. No empuja a golpes: empuja con agua, sin prisa.',
+  'news.rootsGossip': 'Las raíces se quejan: la red se entera de todo antes que ellas.',
+  'news.ownWind':
+    'Algunas setas fabrican su propio viento: al evaporar agua enfrían el aire y las esporas salen flotando.',
+  'news.puffball':
+    'Un solo bejín gigante puede soltar billones de esporas. Casi ninguna llega a nada, y no importa.',
+  'news.species':
+    'Se han descrito unas 150.000 especies de hongos. Se calcula que quedan millones por nombrar.',
+  'news.stinkhorn':
+    'El falo hediondo huele a carroña a propósito: las moscas que acuden se llevan sus esporas.',
+  'news.rootMeeting': 'Reunión de raíces: nadie sabe quién la convocó, pero todas llegaron por la red.',
+  'news.blueCheese': 'Las vetas del queso azul son un moho, Penicillium roqueforti. Nadie se queja.',
+  'news.employee': 'La red, nombrada empleada del mes por enésima vez. Pide que el premio sea en azúcar.',
+  'news.prototaxites':
+    'Hace unos 400 millones de años, Prototaxites, quizá un hongo o algo aún más raro, se alzaba hasta 8 metros.',
+  'news.lostSpore': 'Se busca espora perdida. Responde a cualquier nombre y a ninguno.',
+  'news.pilobolus':
+    'El hongo Pilobolus dispara su cápsula de esporas a más de 2 metros, con una aceleración de unas 20.000 g.',
+  'news.termites':
+    'Algunas termitas cultivan hongos en sus nidos desde hace millones de años. Mucho antes que nosotros.',
+  'news.carboniferous':
+    'Una hipótesis: en el Carbonífero se acumuló tanto carbón porque aún no había hongos que digirieran la lignina.',
+  'news.birdsNest':
+    'Los hongos nido de pájaro esperan la lluvia: cada gota que cae en su copa lanza fuera sus «huevos» de esporas.',
+  'news.cloudSpores':
+    'Hay esporas que suben hasta las nubes, y algunas pueden ayudar a que se formen gotas. La lluvia vuelve.',
+  'news.oysterHunter':
+    'La seta de ostra caza gusanos microscópicos cuando le falta nitrógeno. Por fuera parece tan tranquila.',
+  'news.noose': 'Hay hongos que atrapan nematodos con lazos que se cierran en una décima de segundo.',
+  'news.myceliumBricks':
+    'Ya se fabrican embalajes y ladrillos de micelio. La red pregunta si cobra derechos.',
+  'news.postcard':
+    'El bosque natal recibe una postal: «Aquí todo bien. Mucha lluvia. Os escribo por la red».',
+  // En la taiga llueve la mitad.
+  'news.postcard.taiga':
+    'El bosque natal recibe una postal: «Aquí todo bien. Frío y poca lluvia. Os escribo por la red».',
 
   // Números
   // Tooltip de un número grande: la cifra entera y, con sufijos cortos, el nombre.
   'num.tooltip': '{exact} · {long}',
+  'num.countOf': '{count} de',
+  'num.percent': '{value}\u00a0%',
   // Nombres de los órdenes de magnitud (escala larga, la del español): 1e9 son mil millones.
   'num.name.M.one': 'millón',
   'num.name.M.other': 'millones',
