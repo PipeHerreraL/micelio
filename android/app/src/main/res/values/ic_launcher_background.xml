@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colores del juego (src/ui/styles.css, :root): el del icono y el fondo de la app. -->
+    <color name="ic_launcher_background">#1B140F</color>
+    <color name="micelio_humus">#261C15</color>
+</resources>

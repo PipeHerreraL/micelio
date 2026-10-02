@@ -1,0 +1,78 @@
+apply plugin: 'com.android.application'
+
+// Micelio (ARCHITECTURE.md §4.31): la versión sale de package.json, la misma que la web.
+// versionCode = mayor·10000 + menor·100 + parche (1.5.0 → 10500): siempre sube entre versiones,
+// y Android no deja instalar una versión con un versionCode menor encima de otra.
+def micelioVersion = new groovy.json.JsonSlurper().parse(file('../../package.json')).version
+def micelioParts = micelioVersion.tokenize('.').collect { it as int }
+def micelioVersionCode = micelioParts[0] * 10000 + micelioParts[1] * 100 + micelioParts[2]
+
+// Firma de las versiones publicadas: el almacén de claves y su contraseña llegan por variables
+// de entorno (.github/workflows/android.yml, desde los secretos del repositorio). Siempre la misma
+// clave: con otra, Android trataría la actualización como otra app y no la dejaría instalar encima
+// (habría que desinstalar, y con la app se iría la partida).
+def micelioKeystore = System.getenv('MICELIO_KEYSTORE')
+
+android {
+    namespace = "io.github.pipeherreral.micelio"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "io.github.pipeherreral.micelio"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode micelioVersionCode
+        versionName micelioVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (micelioKeystore) {
+            release {
+                storeFile file(micelioKeystore)
+                storePassword System.getenv('MICELIO_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('MICELIO_KEY_ALIAS') ?: 'micelio'
+                keyPassword System.getenv('MICELIO_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (micelioKeystore) signingConfig signingConfigs.release
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

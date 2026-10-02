@@ -5,10 +5,10 @@
  *
  * - public/icons/: favicon (SVG), iconos de la PWA (192 y 512; «maskable» con zona segura) y el de
  *   la pantalla de inicio del iPhone (180).
- * - android/app/src/main/res/: lanzador de Android en cada densidad, el primer plano del icono
- *   adaptable y la pantalla de arranque (si existe el proyecto de Android).
+ * - android/app/src/main/res/: lanzador de Android en cada densidad, el primer plano y la capa
+ *   monocroma del icono adaptable, y las pantallas de arranque (si existe el proyecto de Android).
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
 import { coreIconSvg, ICON_COLORS, type CoreIconOptions } from '../src/ui/core-art.ts';
@@ -17,6 +17,14 @@ interface Target extends CoreIconOptions {
   file: string;
   /** Recorte circular (icono redondo de Android). */
   round?: boolean;
+}
+
+/** Una imagen rectangular ya compuesta (pantallas de arranque de Android). */
+interface Picture {
+  file: string;
+  width: number;
+  height: number;
+  svg: string;
 }
 
 /** Halo a todo lo ancho menos un margen: en los iconos «any» y en el del iPhone. */
@@ -45,45 +53,94 @@ const DENSITIES: readonly [string, number][] = [
   ['xxxhdpi', 4],
 ];
 
+const RES = 'android/app/src/main/res';
+
 function androidTargets(): Target[] {
-  const res = 'android/app/src/main/res';
-  if (!existsSync(res)) return [];
-  return DENSITIES.flatMap(([name, k]) => [
-    { file: `${res}/mipmap-${name}/ic_launcher.png`, size: 48 * k, scale: FULL, background: 'gradient' },
+  if (!existsSync(RES)) return [];
+  return DENSITIES.flatMap(([name, k]): Target[] => [
+    { file: `${RES}/mipmap-${name}/ic_launcher.png`, size: 48 * k, scale: FULL, background: 'gradient' },
     {
-      file: `${res}/mipmap-${name}/ic_launcher_round.png`,
+      file: `${RES}/mipmap-${name}/ic_launcher_round.png`,
       size: 48 * k,
       scale: FULL * 0.92,
       background: 'gradient',
       round: true,
     },
+    // Icono adaptable: el dibujo sobre transparente; el fondo es el degradado de
+    // drawable/micelio_icon_background.xml.
     {
-      file: `${res}/mipmap-${name}/ic_launcher_foreground.png`,
+      file: `${RES}/mipmap-${name}/ic_launcher_foreground.png`,
       size: 108 * k,
       scale: ADAPTIVE,
       background: 'none',
     },
+    // Iconos temáticos (Android 13+): la misma silueta en blanco; el sistema la tiñe.
+    {
+      file: `${RES}/mipmap-${name}/ic_launcher_monochrome.png`,
+      size: 108 * k,
+      scale: ADAPTIVE,
+      background: 'none',
+      tone: 'white',
+    },
   ]);
 }
 
-function page(svg: string, round: boolean): string {
-  const clip = round ? 'border-radius:50%;overflow:hidden;' : '';
-  return `<!doctype html><html><body style="margin:0;background:transparent"><div style="${clip}display:inline-block;line-height:0">${svg}</div></body></html>`;
+/**
+ * Pantallas de arranque de Android 11 y anteriores (splash.png en drawable y drawable-land/port-<densidad>): el núcleo sobre el
+ * fondo del juego, en los mismos tamaños que traía la plantilla de Capacitor. Desde Android 12 el
+ * sistema la compone él con el icono y windowSplashScreenBackground (values/styles.xml).
+ */
+function androidSplashes(): Picture[] {
+  if (!existsSync(RES)) return [];
+  return readdirSync(RES)
+    .filter((dir) => dir.startsWith('drawable') && existsSync(`${RES}/${dir}/splash.png`))
+    .map((dir) => {
+      const file = `${RES}/${dir}/splash.png`;
+      const data = readFileSync(file);
+      const width = data.readUInt32BE(16);
+      const height = data.readUInt32BE(20);
+      const art = Math.round(Math.min(width, height) * 0.4);
+      const x = Math.round((width - art) / 2);
+      const y = Math.round((height - art) / 2);
+      const inner = coreIconSvg({ size: art, scale: 1, background: 'none' }).replace(
+        '<svg ',
+        `<svg x="${String(x)}" y="${String(y)}" `,
+      );
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${String(width)}" height="${String(height)}">` +
+        `<rect width="100%" height="100%" fill="${ICON_COLORS.humus}"/>${inner}</svg>`;
+      return { file, width, height, svg };
+    });
+}
+
+function page(svg: string): string {
+  return `<!doctype html><html><body style="margin:0;background:transparent"><div style="display:inline-block;line-height:0">${svg}</div></body></html>`;
 }
 
 const browser = await chromium.launch(process.env.CI ? {} : { channel: 'msedge' });
 const context = await browser.newContext({ deviceScaleFactor: 1 });
 const tab = await context.newPage();
-const targets = [...PUBLIC_TARGETS, ...androidTargets()];
-for (const t of targets) {
-  await tab.setViewportSize({ width: t.size, height: t.size });
-  await tab.setContent(page(coreIconSvg(t), t.round === true));
+const pictures: Picture[] = [
+  ...[...PUBLIC_TARGETS, ...androidTargets()].map((t) => ({
+    file: t.file,
+    width: t.size,
+    height: t.size,
+    svg:
+      t.round === true
+        ? `<div style="border-radius:50%;overflow:hidden">${coreIconSvg(t)}</div>`
+        : coreIconSvg(t),
+  })),
+  ...androidSplashes(),
+];
+for (const p of pictures) {
+  await tab.setViewportSize({ width: p.width, height: p.height });
+  await tab.setContent(page(p.svg));
   const png = await tab.screenshot({
     omitBackground: true,
-    clip: { x: 0, y: 0, width: t.size, height: t.size },
+    clip: { x: 0, y: 0, width: p.width, height: p.height },
   });
-  mkdirSync(dirname(t.file), { recursive: true });
-  writeFileSync(t.file, png);
+  mkdirSync(dirname(p.file), { recursive: true });
+  writeFileSync(p.file, png);
 }
 await browser.close();
 
@@ -91,4 +148,4 @@ writeFileSync(
   'public/icons/favicon.svg',
   `${coreIconSvg({ size: 64, scale: FULL, background: 'gradient' })}\n`,
 );
-console.log(`${String(targets.length + 1)} iconos (fondo ${ICON_COLORS.humusHondo}).`);
+console.log(`${String(pictures.length + 1)} imágenes (fondo ${ICON_COLORS.humusHondo}).`);

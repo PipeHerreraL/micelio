@@ -80,7 +80,7 @@
 @media (max-width: 767.98px) {
   .plate__home .plasmodium__toolbar {
     position: sticky;
-    top: var(--hud-h, 64px);
+    top: calc(var(--hud-h, 64px) + var(--sat, 0px));
     z-index: 5;
   }
 }

@@ -47,6 +47,8 @@ export interface CoreIconOptions {
   scale: number;
   /** Fondo: el degradado del botón a todo el cuadrado, o transparente (primer plano adaptable). */
   background: 'gradient' | 'none';
+  /** Colores del juego o todo blanco (la capa monocroma de los iconos temáticos de Android). */
+  tone?: 'palette' | 'white';
 }
 
 /**
@@ -54,8 +56,9 @@ export interface CoreIconOptions {
  * usarlo tal cual (favicon). Los trazos se ensanchan un poco en los tamaños pequeños: a 48 px, la
  * línea de 1,6 del juego se perdía.
  */
-export function coreIconSvg({ size, scale, background }: CoreIconOptions): string {
-  const c = ICON_COLORS;
+export function coreIconSvg({ size, scale, background, tone = 'palette' }: CoreIconOptions): string {
+  const white = tone === 'white';
+  const c = white ? { ...ICON_COLORS, micelio: '#ffffff', arcilla: '#ffffff' } : ICON_COLORS;
   const art = size * scale;
   const k = art / CORE_SIZE;
   const offset = (size - art) / 2;

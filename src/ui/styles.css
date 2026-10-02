@@ -5,6 +5,13 @@
  */
 
 :root {
+  /* Zonas seguras (barra de estado, muesca, barra de gestos). En la app de Android el juego va de
+     borde a borde y Capacitor da --safe-area-inset-* (con un WebView viejo los deja en 0 y pone
+     él el margen); en el navegador valen env(). En una web normal, todo 0 (ARCHITECTURE.md §4.31). */
+  --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --sal: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  --sar: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
   --humus: #261c15;
   --tierra: #4a3424;
   --arcilla: #8c5a35;
@@ -363,15 +370,34 @@ button {
   width: 1px;
   height: 100vh;
   height: 100svh;
+  /* Su borde de arriba dice cuánto mide la barra de estado (pinning.ts). */
+  margin-top: var(--sat);
   visibility: hidden;
   pointer-events: none;
 }
 
 @media (max-width: 1023.98px) {
+  /* La página empieza bajo la barra de estado y deja libres los lados de la muesca. */
+  .layout {
+    padding-top: var(--sat);
+    padding-inline: var(--sal) var(--sar);
+  }
+
+  /* De borde a borde, lo que pasa por debajo de la barra de estado se tapa con el fondo. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 25;
+    height: var(--sat);
+    background: var(--humus);
+    pointer-events: none;
+  }
+
   .layout__top {
     grid-area: top;
     position: sticky;
-    top: 0;
+    top: var(--sat);
     z-index: 10;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -491,7 +517,7 @@ button {
       'top'
       'panel'
       'footer';
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: calc(64px + var(--sab));
   }
 
   /* Fijo, el escenario no pasa de 240 px: con la cabecera de las esporas (105 px) y la barra de
@@ -522,13 +548,13 @@ button {
   /* Sin barra de pestañas en la partida nueva: sin su hueco, la primera pantalla se desplazaba
      hasta una franja vacía (en horizontal). */
   .layout--fresh {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--sab);
   }
 
   .layout__hud {
     grid-area: hud;
     position: sticky;
-    top: 0;
+    top: var(--sat);
     z-index: 10;
     padding: 0.6rem 1rem;
     background: rgb(38 28 21 / 94%);
@@ -1042,7 +1068,7 @@ button {
     scrollbar-width: none;
     scroll-padding-inline: 1.5rem;
     z-index: 20;
-    padding: 0.25rem 0.5rem calc(0.25rem + env(safe-area-inset-bottom));
+    padding: 0.25rem calc(0.5rem + var(--sar)) calc(0.25rem + var(--sab)) calc(0.5rem + var(--sal));
     /* Siete pestañas no caben en 375 px y la barra no se ve: una penumbra de arcilla en el
        borde avisa de que hay más pestañas por ese lado. Las capas «local» van con el
        contenido y tapan la penumbra cuando ya se llegó a ese extremo. */
@@ -2229,7 +2255,7 @@ button {
 
 @media (max-width: 767.98px) {
   .toasts {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: calc(76px + var(--sab));
     left: 0.75rem;
   }
 }

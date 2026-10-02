@@ -80,6 +80,7 @@ export function createPinning(parts: PinningParts): Pinning {
 
   function refresh(): void {
     const hud = parts.hud.getBoundingClientRect();
+    const probe = parts.probe.getBoundingClientRect();
     const stage = parts.stage.getBoundingClientRect();
     // Por alturas y no por posiciones: sin fijar y con la página bajada, la cabecera sigue arriba
     // y el escenario no, y la distancia entre los dos no es la franja.
@@ -92,15 +93,17 @@ export function createPinning(parts: PinningParts): Pinning {
       fresh: parts.main.classList.contains('layout--fresh'),
       partners: parts.activeTab() === 'partners',
       typing,
-      viewport: parts.probe.getBoundingClientRect().height,
+      // De borde a borde (la app de Android), la barra de estado también le quita sitio al panel.
+      viewport: probe.height - probe.top,
       zone,
       bars: bar,
     });
     parts.main.classList.toggle('layout--unpinned', unpinned);
+    // Lo fijo empieza bajo la barra de estado: su alto es el borde de arriba de la sonda.
     if (!narrow.matches) pinned = 0;
-    else if (!unpinned) pinned = zone;
+    else if (!unpinned) pinned = probe.top + zone;
     // Sin fijar, en el móvil la cabecera sigue pegada arriba; en tableta, nada.
-    else pinned = position(parts.hud) === 'sticky' ? hud.height : 0;
+    else pinned = probe.top + (position(parts.hud) === 'sticky' ? hud.height : 0);
     // La barra de tableta se pega bajo lo fijo: el foco tampoco debe quedar bajo ella.
     const fixedTop =
       pinned + (position(parts.bar) === 'sticky' ? parts.bar.getBoundingClientRect().height : 0);

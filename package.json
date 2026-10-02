@@ -22,9 +22,12 @@
     "sim:plasmodio": "node scripts/simulate-plasmodium.ts && prettier --write docs/BALANCE.md --log-level warn",
     "test:e2e": "playwright test",
     "perf": "playwright test perf --workers=1",
-    "icons": "node scripts/icons.ts"
+    "icons": "node scripts/icons.ts",
+    "build:native": "tsc --noEmit && vite build --mode native",
+    "build:android": "npm run build:native && cap sync android"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^24.19.0",
@@ -39,6 +42,8 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2",
     "@fontsource/im-fell-english": "^5.3.0",
     "@fontsource/source-sans-3": "^5.3.0"
   }
