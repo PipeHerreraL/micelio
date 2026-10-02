@@ -52,7 +52,7 @@ test('sin conexión el juego vuelve a cargar, con su partida y con lo que llega 
   await page.reload();
   await expect(page.locator('.core__button')).toBeVisible();
   await expect(page.locator('.gen__name').first()).toHaveText('Hifa');
-  // Un trozo que solo se pide más tarde (las noticias en inglés) también está guardado.
+  // Un trozo que solo se pide más tarde (la vista del plasmodio) también está guardado.
   const files = await page.evaluate(async () => {
     const cache = await caches.open((await caches.keys()).find((k) => k.startsWith('micelio-')) ?? '');
     return (await cache.keys()).map((r) => new URL(r.url).pathname);
