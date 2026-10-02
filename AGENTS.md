@@ -144,7 +144,18 @@ Entradas no confiables: **el texto de importar partida** y **el contenido de
 cuando se cumplió la definición de terminado de `PROMPT.md` §22. Desde ahí, cada fase de
 `docs/ROADMAP.md` sube la versión menor (`v1.1.0` la fase 6, `v1.2.0` la fase 7…). La versión vive en
 `package.json` y en la etiqueta de git, y deben coincidir. Un cambio en el formato del
-guardado sube `SAVE_VERSION` y añade una migración: los guardados viejos siempre cargan.
+guardado sube `SAVE_VERSION` y añade una migración: los guardados viejos siempre cargan. Cada
+guardado lleva además la versión del juego que lo escribió: una versión anterior (la que el service
+worker sirve sin conexión) no pisa nunca uno más nuevo.
+
+Publicar una versión, en este orden, para que el enlace al .apk de Ajustes (que apunta a la última
+release) nunca dé 404:
+
+1. Subir la etiqueta (`git push origin vX.Y.Z`) y crear la release como **prerelease**: el workflow
+   de Android compila desde la etiqueta, comprueba la clave (`android/signing-cert.sha256`) y
+   adjunta `micelio.apk`.
+2. Con el .apk adjunto, quitarle la marca de prerelease y marcarla como la última.
+3. Subir `main`: el CI publica la web en Pages.
 
 ---
 

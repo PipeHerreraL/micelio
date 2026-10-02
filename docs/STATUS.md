@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-02. Versión 1.4.2._
+_Actualizado: 2026-10-02. Versión 1.5.0._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 22 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 24 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -34,6 +34,14 @@ la fase 9, `state.partners` guarda los socios (el plasmodio, con su placa, su re
 su estado y su validación viven en `src/partners/`.
 
 ## Lo último que se hizo
+
+- **v1.5.0, instaladores para el móvil (petición del usuario):** el juego se instala como app
+  desde el navegador (Android e iPhone), funciona sin conexión, y en Android hay además un .apk
+  hecho con Capacitor que GitHub Actions firma y adjunta a cada release. Iconos generados por
+  código a partir del núcleo. Para hacer sitio, las noticias llegan aparte: el JS inicial bajó de
+  94,6 a 86,3 kB (ARCHITECTURE.md §4.31). Dos revisiones antes de publicar encontraron 23 fallos,
+  todos arreglados; el más grave, que una versión vieja abierta sin conexión podía pisar una
+  partida más nueva (BUG-JOURNAL #24).
 
 - **v1.4.2, peticiones del usuario:** el núcleo de bolsillo no era lo que quería. Ahora, por
   debajo de 1024 px, la franja de arriba (contador y escenario con el núcleo y el arte) se queda
@@ -104,9 +112,9 @@ su estado y su validación viven en `src/partners/`.
 
 La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 10 — Viento de esporas II (v1.5.0):** pradera, tundra, el epílogo «El regreso» y el
+1. **Fase 10 — Viento de esporas II (v1.6.0):** pradera, tundra, el epílogo «El regreso» y el
    ciclo libre, que resuelve el muro que hoy queda tras colonizar el último bioma.
-2. **Fase 11 — Tiempo profundo (v1.6.0):** las eras geológicas.
+2. **Fase 11 — Tiempo profundo (v1.7.0):** las eras geológicas.
 
 ## Deuda conocida
 
@@ -118,9 +126,15 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
-- El JS inicial pesa 94,2 kB de 95 (`npm run budget`; las 25 noticias nuevas en dos idiomas
-  sumaron ~2,5 kB). Antes de la fase 10 hay que hacer sitio: las coordenadas de las placas del
-  plasmodio (unos 3 kB comprimidos) o los textos de las noticias pueden salir a su propio trozo.
+- El JS inicial pesa 86,3 kB de 95 (`npm run budget`): las noticias ya llegan aparte. Si hace falta
+  más sitio, las coordenadas de las placas del plasmodio (unos 3 kB comprimidos) pueden salir a su
+  propio trozo.
+- La app de Android (.apk) se compiló y se comprobó en GitHub Actions (paquete, versión y firma),
+  pero no se ha probado en un teléfono de verdad, ni la app instalable del iPhone. Desde 2027
+  Google exigirá desarrolladores verificados también para los .apk descargados (antes, solo en
+  Brasil, Indonesia, Singapur y Tailandia): habrá que registrar la app o pasar a Google Play.
+- `npm audit` avisa de tres vulnerabilidades moderadas en `uuid`, que llega por la herramienta de
+  Xcode del CLI de Capacitor: es solo de desarrollo y no entra en el juego ni en el .apk.
 - La franja fija del móvil se probó con móviles emulados; la barra del navegador que aparece y se
   esconde (svh frente a lvh) hay que verla en un teléfono de verdad.
 - Vaciar 1.200 s de modelo del plasmodio es un tirón de una vez al abrir o al volver: 20–27 ms en

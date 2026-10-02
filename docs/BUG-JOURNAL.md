@@ -16,22 +16,32 @@ Ninguna entrada se borra, aunque el código se haya movido.
 
 ## Índice
 
-| #         | Zona                           | Bug                                                                                        |
-| --------- | ------------------------------ | ------------------------------------------------------------------------------------------ |
-| [1](#1)   | `src/i18n/format.ts`           | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                          |
-| [2](#2)   | `src/core/actions.ts`          | Al esporular con una gota en pantalla cae otra gota al instante                            |
-| [3](#3)   | `src/systems/offline.ts`       | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano           |
-| [4](#4)   | `src/main.ts`                  | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira               |
-| [5](#5)   | `src/ui/tab-upgrades.ts`       | Comprar una mejora con el teclado deja el foco perdido en la página                        |
-| [6](#6)   | `src/main.ts`, `styles.css`    | El número flotante del clic no aparece en escritorio                                       |
-| [7](#7)   | `src/ui/rain-drop.ts`          | En el móvil, tocar la gota absorbe en vez de atraparla                                     |
-| [8](#8)   | `src/ui/hint.ts`               | Cerrar un aviso de primera vez con el teclado deja el foco perdido                         |
-| [9](#9)   | `src/ui/live.ts`, `toasts.ts`  | Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…» |
-| [10](#10) | `src/main.ts`                  | Cambiar de idioma borra el aviso de que la partida no se está guardando                    |
-| [11](#11) | `src/main.ts`                  | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
-| [12](#12) | `src/ui/styles.css`            | En escritorio la página se desplaza hacia una franja vacía                                 |
-| [13](#13) | `src/main.ts`, `src/ui/app.ts` | Tras borrar la partida no se puede importar un respaldo sin absorber antes                 |
-| [14](#14) | `src/ui/styles.css`            | En el móvil, deslizar sobre los generadores o las mejoras no desplaza la página            |
+| #         | Zona                                                                      | Bug                                                                                        |
+| --------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [1](#1)   | `src/i18n/format.ts`                                                      | Un contador que muestra «1.00 M» no tiene tooltip al pasar encima                          |
+| [2](#2)   | `src/core/actions.ts`                                                     | Al esporular con una gota en pantalla cae otra gota al instante                            |
+| [3](#3)   | `src/systems/offline.ts`                                                  | «Sin prisa» no se otorga al volver a una pestaña tras una noche en segundo plano           |
+| [4](#4)   | `src/main.ts`                                                             | Una pestaña abierta en segundo plano pierde todo el tiempo hasta que se mira               |
+| [5](#5)   | `src/ui/tab-upgrades.ts`                                                  | Comprar una mejora con el teclado deja el foco perdido en la página                        |
+| [6](#6)   | `src/main.ts`, `styles.css`                                               | El número flotante del clic no aparece en escritorio                                       |
+| [7](#7)   | `src/ui/rain-drop.ts`                                                     | En el móvil, tocar la gota absorbe en vez de atraparla                                     |
+| [8](#8)   | `src/ui/hint.ts`                                                          | Cerrar un aviso de primera vez con el teclado deja el foco perdido                         |
+| [9](#9)   | `src/ui/live.ts`, `toasts.ts`                                             | Los logros ganados offline no se anuncian ni se ven tras el informe «Mientras no estabas…» |
+| [10](#10) | `src/main.ts`                                                             | Cambiar de idioma borra el aviso de que la partida no se está guardando                    |
+| [11](#11) | `src/main.ts`                                                             | Importar o borrar dice «hecho» pero no guarda si el guardado estaba bloqueado              |
+| [12](#12) | `src/ui/styles.css`                                                       | En escritorio la página se desplaza hacia una franja vacía                                 |
+| [13](#13) | `src/main.ts`, `src/ui/app.ts`                                            | Tras borrar la partida no se puede importar un respaldo sin absorber antes                 |
+| [14](#14) | `src/ui/styles.css`                                                       | En el móvil, deslizar sobre los generadores o las mejoras no desplaza la página            |
+| [15](#15) | `src/ui/tab-partners.ts`                                                  | «Ver la placa» dejaba el foco en `<body>` en cuanto llegaba la vista del plasmodio         |
+| [16](#16) | `src/partners/plasmodium/view/plasmodium-view.ts`                         | La calidad de la red se leía «0,66» junto a «falta»                                        |
+| [17](#17) | `src/ui/tab-partners.ts`, `src/ui/partner-loader.ts`, `src/main.ts`       | Un error del código del plasmodio podía parar el juego entero                              |
+| [18](#18) | `src/partners/plasmodium/state.ts`, `src/partners/plasmodium/advance.ts`  | Un guardado editado podía dejar al plasmodio sin guardarse para siempre                    |
+| [19](#19) | `src/partners/plasmodium/view/plasmodium.css`, `plasmodium-view.ts`       | La placa ampliada no volvía a su tamaño al cerrarla                                        |
+| [20](#20) | `src/ui/app.ts`, `src/ui/pinning.ts`, `src/ui/styles.css`                 | En el móvil, al bajar a las pestañas no había con qué absorber                             |
+| [21](#21) | `src/ui/tab-generators.ts`, `src/ui/tab-upgrades.ts`, `src/ui/styles.css` | Comprar un generador o una mejora hacía saltar la lista                                    |
+| [22](#22) | `src/i18n/index.ts`                                                       | El nivel de esporas se leía con todas sus cifras                                           |
+| [23](#23) | `scripts/service-worker.ts`                                               | Sin conexión, la app instalada no arrancaba                                                |
+| [24](#24) | `src/systems/save.ts`, `src/main.ts`                                      | Una versión vieja, sin conexión, podía pisar la partida de una más nueva                   |
 
 ---
 
@@ -316,6 +326,8 @@ Mejoras, Mutaciones y Ajustes. Falla sin el arreglo (comprobado: la página se q
 WebKit no expone ese protocolo, así que en iPhone el arreglo se apoya en la misma regla de CSS
 pero no tiene prueba propia.
 
+<a id="15"></a>
+
 ## 15. «Ver la placa» dejaba el foco en `<body>` en cuanto llegaba la vista del plasmodio
 
 **Zona:** `src/ui/tab-partners.ts` (familia de #5 y #8)
@@ -336,6 +348,8 @@ vuelve a poner en el título nuevo con el mismo id.
 también tras el offline, y «Ver la placa» lleva a Socios»: comprueba que el título queda
 enfocado. Falló sin el arreglo (primera corrida de la fase 9).
 
+<a id="16"></a>
+
 ## 16. La calidad de la red se leía «0,66» junto a «falta»
 
 **Zona:** `src/partners/plasmodium/view/plasmodium-view.ts` (familia de #1)
@@ -355,6 +369,8 @@ el objetivo se cumple.
 **Qué lo sostiene.** `tests/ui-plasmodium.test.ts` → «una calidad de 0,6588 se lee «0,65 … falta»
 y no «0,66 … falta»» y «en el Laberinto una longitud de 1,104 se lee «1,11 … falta», con el
 objetivo a dos decimales». Fallan sin el arreglo.
+
+<a id="17"></a>
 
 ## 17. Un error del código del plasmodio podía parar el juego entero
 
@@ -380,6 +396,8 @@ update, frame y onEvent no sale del bucle: el socio se da de baja y la sección 
 refrescos no reintentan la carga: el mismo botón «Recargar» sigue en su sitio y con el foco».
 Fallan sin el arreglo.
 
+<a id="18"></a>
+
 ## 18. Un guardado editado podía dejar al plasmodio sin guardarse para siempre
 
 **Zona:** `src/partners/plasmodium/state.ts`, `src/partners/plasmodium/advance.ts`
@@ -404,6 +422,8 @@ mapa, o en la última, carga en 0 sin rechazar el guardado» y «un contador de 
 reiniciado en 0 sin rechazar el guardado»; `tests/plasmodium-model.test.ts` → «la espera de la
 apertura sola no abre una placa sin la anterior cartografiada». Fallan sin el arreglo.
 
+<a id="19"></a>
+
 ## 19. La placa ampliada no volvía a su tamaño al cerrarla
 
 **Zona:** `src/partners/plasmodium/view/plasmodium.css`, `plasmodium-view.ts` (familia de #5 y #8)
@@ -424,6 +444,8 @@ al cerrar, si «Ampliar» ya no sirve, el foco va al título.
 **Qué lo sostiene.** `tests/e2e/plasmodium.spec.ts` → «ampliar la placa y cerrarla la devuelve al
 ancho del panel, con el foco en «Ampliar»» y «al estrechar la ventana, la placa se encoge con el
 panel». Fallan sin el arreglo.
+
+<a id="20"></a>
 
 ## 20. En el móvil, al bajar a las pestañas no había con qué absorber
 
@@ -451,6 +473,8 @@ barra de pestañas sigue bajo la franja» y «en el móvil, los efectos van sobr
 `tests/e2e/plasmodium.spec.ts` → «en Socios la franja de arriba se va al bajar y la placa queda
 entera y sin tapar»; `tests/ui-pinning.test.ts`. La primera falla sin el arreglo (el núcleo se
 movía 365–1.052 px). Las pruebas del núcleo de bolsillo se fueron con él.
+
+<a id="21"></a>
 
 ## 21. Comprar un generador o una mejora hacía saltar la lista
 
@@ -484,6 +508,8 @@ queda en su sitio como «Comprada», sin poder pulsarse, y luego se pliega», «
 mide para desplegarse con sus textos ya puestos» y «al comprar la última, «No hay mejoras» no
 aparece encima de la comprada hasta que se pliega». Fallan sin el arreglo.
 
+<a id="22"></a>
+
 ## 22. El nivel de esporas se leía con todas sus cifras
 
 **Zona:** `src/i18n/index.ts` (`formatCount`, `tp`)
@@ -500,6 +526,56 @@ detrás, el español lleva «de» («2 millones de esporas»); el inglés no.
 **Qué lo sostiene.** `tests/format.test.ts` → «un nivel de esporas enorme se escribe con nombre de
 magnitud, no con todas sus cifras» y «una cuenta de millones lleva «de» en español y nada en
 inglés». Fallan sin el arreglo.
+
+<a id="23"></a>
+
+## 23. Sin conexión, la app instalada no arrancaba
+
+**Zona:** `scripts/service-worker.ts` (v1.5.0)
+
+**Síntoma.** Lo encontró la prueba de navegador antes de publicar: con el service worker ya
+instalado, sin red y al recargar, la página salía en blanco. En Chromium, la página llegaba pero
+los scripts y la hoja de estilos daban `net::ERR_FAILED`; en Firefox, ni la página.
+
+**Causa.** Dos. El plugin que escribe `sw.js` corría antes que el de HTML de Vite, así que
+`index.html` no entraba en la lista de lo que se guarda (y la versión no dependía de él). Y el
+servidor manda `Vary: Origin`: los scripts de módulo se piden con `Origin` y la precarga sin él, y
+Chromium, que respeta `Vary`, no los encontraba en la caché.
+
+**Arreglo.** El plugin corre al final (`enforce: 'post'`) y las búsquedas en la caché ignoran
+`Vary` (los archivos son estáticos y llevan el hash en el nombre).
+
+**Qué lo sostiene.** `tests/e2e/pwa.spec.ts` → «sin conexión el juego vuelve a cargar, con su
+partida y con lo que llega aparte» (Chromium y Firefox); `tests/pwa.test.ts` → «el código generado
+es JavaScript válido y nombra cada archivo y su versión» (comprueba `ignoreVary`). Fallan sin el
+arreglo.
+
+---
+
+<a id="24"></a>
+
+## 24. Una versión vieja, sin conexión, podía pisar la partida de una más nueva
+
+**Zona:** `src/systems/save.ts`, `src/main.ts` (v1.5.0, antes de publicarla)
+
+**Síntoma.** Lo encontró la revisión, antes de que ocurriera: con el juego instalado, se recarga
+con conexión y se juega a la versión nueva (que migra el guardado), y luego se abre sin conexión.
+El service worker sirve la versión anterior, que da el guardado por dañado, lo copia a la de
+respaldo, empieza una partida nueva y el autoguardado la escribe encima. De vuelta en línea, la
+partida está vacía.
+
+**Causa.** El service worker nuevo espera a que se cierre el juego para activarse (sin
+skipWaiting), y una recarga no lo cierra: la caché activa sigue siendo la de la versión anterior.
+Y la carga trataba igual un guardado roto que uno que no entiende porque es más nuevo.
+
+**Arreglo.** Cada guardado lleva la versión del juego que lo escribió (`game`). Si no se entiende
+y viene de un formato o de una versión posteriores, la carga devuelve `newer`: ni copia ni
+partida encima, el juego no guarda nada (tampoco al borrar o importar) y un aviso pide recargar
+con conexión.
+
+**Qué lo sostiene.** `tests/save.test.ts` → «guardados de un juego más nuevo» (fallan sin el
+arreglo); `tests/e2e/regressions.spec.ts` → «una versión anterior no pisa la partida que guardó
+una más nueva, ni al borrar».
 
 ---
 

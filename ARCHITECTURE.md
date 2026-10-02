@@ -516,6 +516,59 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   navegador no se escondería y vuelve el riesgo de #14) y dos columnas en horizontal (el núcleo no
   cabía en 740 × 300 y las fórmulas de tamaño suponen el escenario a todo lo ancho).
 
+### 4.31 Instaladores para el móvil (petición del usuario, v1.5.0)
+
+- **App instalable (PWA), para Android y el iPhone:** `public/manifest.webmanifest`, los iconos y un
+  service worker que deja jugar sin conexión. Sin cuentas ni tiendas. En Android la app instalada
+  comparte la partida con la web (mismo origen); en el iPhone, la de la pantalla de inicio guarda
+  aparte de Safari, y Ajustes lo dice (exportar e importar).
+- **Service worker propio, sin Workbox** (`scripts/service-worker.ts`): un plugin de Vite escribe
+  `sw.js` con la lista exacta del build (también lo que llega aparte). Páginas primero de la red
+  (con conexión se ve siempre la última versión), lo demás primero de la caché, nunca se salta la
+  espera (una página abierta no se queda sin los trozos de su versión) y nunca toca el guardado.
+  Solo en el build de la web: en desarrollo guardaría lo que se edita. Las pruebas de navegador lo
+  bloquean salvo `tests/e2e/pwa.spec.ts`. Tras la revisión: al instalarse pide cada archivo al
+  servidor (`cache: 'reload'`; la caché HTTP de Pages dura 10 minutos) y no se instala si
+  `index.html` no nombra su script de entrada; con señal débil, la página sale de la copia a los
+  4 s; una caché rota cuenta como vacía; y su versión depende también del contenido de `public/`.
+  `tests/pwa.test.ts` ejecuta su código con la caché y la red simuladas.
+- **Una versión vieja nunca pisa una partida más nueva.** Sin skipWaiting, quien recarga con
+  conexión juega a la versión nueva, pero la caché activa sigue siendo la anterior: sin conexión,
+  vuelve la vieja. Por eso cada guardado lleva `game` (§5) y, si la versión que carga no lo entiende
+  y es posterior, no guarda nada hasta recargar con conexión, ni al borrar o importar.
+- **App de Android con Capacitor 8** (`capacitor.config.ts`, `android/`): `vite build --mode native`
+  (rutas relativas, sin service worker) servido desde `https://localhost` dentro de la app. El
+  código del juego no importa nada de Capacitor. El `appId`, el esquema y el host no cambian nunca:
+  son la identidad de la app y el origen de su guardado. `.github/workflows/android.yml` compila en
+  cada cambio y, al publicar una release, firma con la clave del proyecto (secretos del
+  repositorio; la crea `scripts/android-keystore.ps1` en el PC del dueño) y adjunta `micelio.apk`.
+  `versionCode` sale de `package.json` (1.5.0 → 10500) y solo puede subir; menor y parche hasta 99.
+- **La clave de firma es la partida de los jugadores de Android:** con otra, una actualización no
+  se instala encima y desinstalar borra el guardado. El script nunca crea una segunda clave (se
+  detiene si GitHub ya tiene una) y escribe la huella del certificado en
+  `android/signing-cert.sha256`; el workflow no adjunta un .apk firmado con otra. La clave solo se
+  usa al publicar: en cada cambio se compila la de depuración, con otro paquete (`.debug`), que se
+  instala al lado y no estorba. El trabajo que compila no puede escribir en el repositorio; adjuntar
+  va en un trabajo aparte. El orden de publicación está en AGENTS.md («Versiones»).
+- **Atrás** deja el juego en segundo plano (`MainActivity`), sin plugin: en Android 7 a 11 cerraba
+  la actividad.
+- **De borde a borde** (Android 15+, con SystemBars de Capacitor): `--sat`, `--sab`, `--sal` y
+  `--sar` en `styles.css`, con el respaldo que recomienda Capacitor (sus variables o `env()`); la
+  franja fija y la cabecera se pegan bajo la barra de estado y `pinning.ts` la cuenta. En la web
+  normal valen 0.
+- **Iconos generados por código**, como todo el arte: el dibujo del núcleo vive en
+  `src/ui/core-art.ts` (lo usan el botón y los iconos) y `scripts/icons.ts` lo rasteriza con el
+  Chromium de Playwright: PWA (192, 512, «maskable»), iPhone (180), favicon SVG y, en Android, las
+  cinco densidades del lanzador, el icono adaptable con su capa monocroma y las pantallas de
+  arranque.
+- **Para hacer sitio**, las noticias del sotobosque llegan aparte (`src/i18n/news/`), como los
+  textos del plasmodio: el JS inicial bajó de 94,6 a 86,3 kB.
+- **Descartado:** Workbox (más código que el service worker entero), `@capacitor/assets` (fija
+  `sharp` 0.32 con avisos de seguridad y no se publica desde 2024), las tiendas por ahora (Google
+  Play pide una prueba cerrada con testers y la App Store la cuenta de 99 USD al año: decisión del
+  usuario, iOS queda para más adelante) y guardar con el plugin Preferences de Capacitor
+  (añadiría JS; el .apk usa `localStorage`, con la copia de seguridad de Android activada).
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -529,14 +582,18 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
 | `happy-dom`                                                | DOM simulado para las pocas pruebas de interfaz (foco, listas); el resto corre sin DOM |
 | `@playwright/test`                                         | Pruebas de navegador en Chromium, Firefox y WebKit (§4.25)                             |
 | `@fontsource/im-fell-english`, `@fontsource/source-sans-3` | Fuentes autoalojadas (§4.13)                                                           |
+| `@capacitor/core`, `@capacitor/android`, `@capacitor/cli`  | App de Android (§4.31); el juego no las importa: solo el proyecto `android/`           |
 
 ## 5. Datos
 
 Todo el estado de una partida es un `GameState` (ver `docs/STATUS.md`). Vive en
-`localStorage` bajo `micelio:save` como `{ version, savedAt, state }`. No hay datos
+`localStorage` bajo `micelio:save` como `{ version, savedAt, game, state }`. No hay datos
 personales: nada sale del navegador.
 
 - Cada cambio de formato sube `version` y añade `migrations[n]` (de n a n + 1).
+- `game` es la versión del juego que guardó (desde la 1.5.0). Si un guardado no se entiende y viene
+  de un formato o de una versión del juego posteriores, no se toca: el juego no guarda nada y pide
+  recargar con conexión (§4.31, BUG-JOURNAL #24).
 - Si el guardado está dañado, se copia a `micelio:save:backup` y se empieza de cero.
 
 ## 6. Entrada no confiable
@@ -556,9 +613,11 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 | Operación                                       | Presupuesto                   | Medido                                                                                                                                                 | Cómo                                    |
 | ----------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | JavaScript del build                            | < 150 kB comprimido           | 89.5 kB inicial + 18.6 kB del plasmodio (fase 9; 76.4 kB en la fase 8)                                                                                 | `npm run build` (gzip que informa Vite) |
-| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 89.5 kB                                                                                                                                                | `npm run budget`, también en CI         |
+| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 86.3 kB (v1.5.0: las noticias salen aparte; 94.6 kB en la v1.4.2)                                                                                      | `npm run budget`, también en CI         |
 | JS del plasmodio (modelo, acciones y vista)     | ≤ 20 kB comprimido            | 18.6 kB (estimado ~15 kB en el diseño)                                                                                                                 | `npm run budget`                        |
 | Catálogo de un socio (un idioma)                | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                               | `npm run budget`                        |
+| Catálogo de noticias (un idioma)                | ≤ 7 kB comprimido             | 5.8 kB (es), 5.5 kB (en)                                                                                                                               | `npm run budget`                        |
+| .apk de Android                                 | —                             | 5.0 MB                                                                                                                                                 | `.github/workflows/android.yml`         |
 | Vaciar 1.200 s de modelo del plasmodio          | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                              | a mano con `advancePlasmodium` (fase 9) |
 | Rastro del plasmodio                            | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                 | `npm run sim:plasmodio`                 |
 | Frame                                           | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local) | `npm run perf`                          |

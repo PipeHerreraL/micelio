@@ -11,6 +11,17 @@ enteros. Al madurar, liberas esporas y vuelves a empezar, cada vez más fuerte.
 Funciona en escritorio y en móvil, en español y en inglés. No tiene cuentas, anuncios ni
 analítica: la partida se guarda en tu navegador.
 
+## Instalar en el móvil
+
+- **Android, como app desde el navegador:** abre el juego en Chrome y elige «Instalar app» (o
+  Ajustes → «Instalar la app»). Comparte la partida con la web y funciona sin conexión.
+- **Android, con instalador:** descarga
+  [micelio.apk](https://github.com/PipeHerreraL/micelio/releases/latest/download/micelio.apk) de la
+  última versión y ábrelo (Android pedirá permiso para instalar apps de esa fuente). La app guarda
+  su propia partida: para llevarte la de la web, expórtala en Ajustes e impórtala en la app.
+- **iPhone y iPad:** abre el juego en Safari, botón Compartir → «Añadir a pantalla de inicio».
+  Esa app no ve la partida de Safari: expórtala antes e impórtala en ella.
+
 ## Cómo se juega
 
 - **Absorbe** tocando el núcleo de la red (también con Espacio o Enter).
@@ -78,6 +89,24 @@ de Vite es `/micelio/`; con dominio propio habría que cambiarla a `/` en `vite.
 
 Para publicar desde un fork: activa Pages con origen GitHub Actions
 (`gh api -X POST repos/<usuario>/micelio/pages -f build_type=workflow`) y haz push a `main`.
+
+### App de Android
+
+`.github/workflows/android.yml` compila el .apk con Capacitor en cada cambio y, al publicar una
+release, lo firma y lo adjunta como `micelio.apk`. La clave de firma se crea una sola vez, en el PC
+del dueño del repositorio (necesita Java y el GitHub CLI autenticado):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\android-keystore.ps1
+```
+
+Guarda la carpeta que crea (Documentos\Micelio-firma-android) fuera del PC: sin esa clave no se
+pueden publicar actualizaciones de la app. El script nunca crea una segunda clave y escribe la
+huella del certificado en `android/signing-cert.sha256`, que se sube al repositorio: el workflow no
+publica un .apk firmado con otra. En cada cambio se compila la versión de depuración
+(`io.github.pipeherreral.micelio.debug`), que se instala al lado de la app. Para compilar en local
+hacen falta JDK 21 y el Android SDK (`npm run build:android` y luego `android/gradlew
+assembleDebug`). Los iconos se rehacen con `npm run icons`.
 
 ## Licencia
 

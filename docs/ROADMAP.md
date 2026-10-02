@@ -38,14 +38,17 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 
 ## Fases
 
+La 1.5.0 no es una fase: son los instaladores para el móvil, que pidió el usuario antes de la
+fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor más.
+
 | Fase | Versión | Contenido                                                           | Tamaño |
 | ---- | ------- | ------------------------------------------------------------------- | ------ |
 | 6    | 1.1.0   | Cimientos (hecha)                                                   | S      |
 | 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                            | M      |
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica (hecha) | L      |
 | 9    | 1.4.0   | El Plasmodio y la estructura de socios (hecha)                      | L      |
-| 10   | 1.5.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
-| 11   | 1.6.0   | Tiempo profundo: las eras geológicas                                | L      |
+| 10   | 1.6.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
+| 11   | 1.7.0   | Tiempo profundo: las eras geológicas                                | L      |
 
 ### Fase 6 — Cimientos (S)
 
