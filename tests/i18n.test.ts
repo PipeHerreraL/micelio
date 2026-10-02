@@ -13,6 +13,8 @@ import { plasmodiumEn } from '../src/i18n/partners/plasmodium.en.ts';
 import { plasmodiumEs } from '../src/i18n/partners/plasmodium.es.ts';
 import { PLASMODIUM_ACHIEVEMENT_IDS, PLASMODIUM_UPGRADES } from '../src/data/plasmodium.ts';
 import { PLATES } from '../src/data/plasmodium-plates.ts';
+import { newsEn } from '../src/i18n/news/en.ts';
+import { newsEs } from '../src/i18n/news/es.ts';
 
 const placeholders = (text: string): string[] =>
   [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1] ?? '').sort();
@@ -66,7 +68,6 @@ describe('catálogos de idioma', () => {
       required.push(`ach.${a.id}.name`);
       if (a.secret || a.reveal) required.push(`ach.${a.id}.desc`);
     }
-    for (const n of NEWS) required.push(`news.${n.id}`);
     // Viento de esporas (fase 8): cada bioma y cada adaptación de bioma con sus textos.
     for (const b of BIOMES) required.push(`biome.${b.id}.name`, `biome.${b.id}.soil`, `biome.${b.id}.here`);
     for (const b of DESTINATION_IDS) {
@@ -105,6 +106,30 @@ describe('catálogos de idioma', () => {
   it('el Anillo de hadas y el Árbol madre conservan su nombre acordado en inglés', () => {
     expect(en['gen.fairyRing.name']).toBe('Fairy ring');
     expect(en['gen.motherTree.name']).toBe('Mother tree');
+  });
+});
+
+describe('catálogos de las noticias (llegan aparte)', () => {
+  const NEWS_CATALOGS: Record<string, Readonly<Record<string, string>>> = { es: newsEs, en: newsEn };
+  const ids = new Set(NEWS.map((n) => n.id));
+  const biomes = new Set(BIOMES.map((b) => b.id));
+
+  it('cada noticia tiene su texto en los dos idiomas, ninguno vacío y sin marcadores', () => {
+    for (const [locale, catalog] of Object.entries(NEWS_CATALOGS)) {
+      for (const id of ids) expect(catalog[id]?.trim().length ?? 0, `${locale}:${id}`).toBeGreaterThan(0);
+      for (const [key, text] of Object.entries(catalog))
+        expect(placeholders(text), `${locale}:${key}`).toEqual([]);
+    }
+    expect(Object.keys(newsEn).sort()).toEqual(Object.keys(newsEs).sort());
+  });
+
+  it('las claves de más son versiones de una noticia para un bioma que existe', () => {
+    for (const key of Object.keys(newsEs)) {
+      if (ids.has(key)) continue;
+      const cut = key.lastIndexOf('.');
+      expect(ids.has(key.slice(0, cut)), key).toBe(true);
+      expect(biomes.has(key.slice(cut + 1) as never), key).toBe(true);
+    }
   });
 });
 
@@ -153,7 +178,7 @@ describe('catálogos del plasmodio (fase 9)', () => {
   });
 
   it('ningún texto usa signos fuera del estilo de la casa (≤, ≥, flechas)', () => {
-    for (const catalog of [plasmodiumEs, plasmodiumEn, es, en]) {
+    for (const catalog of [plasmodiumEs, plasmodiumEn, es, en, newsEs, newsEn]) {
       for (const [key, text] of Object.entries(catalog)) expect(/[≤≥→←↑↓]/.test(text), key).toBe(false);
     }
   });
@@ -181,7 +206,13 @@ describe('cobertura de las fuentes', () => {
   const fonts = ['source-sans-3', 'im-fell-english'].map(latinRanges);
 
   it('cada carácter de cada idioma lo cubren las fuentes importadas', () => {
-    const all = { ...CATALOGS, 'plasmodio-es': plasmodiumEs, 'plasmodio-en': plasmodiumEn };
+    const all = {
+      ...CATALOGS,
+      'plasmodio-es': plasmodiumEs,
+      'plasmodio-en': plasmodiumEn,
+      'noticias-es': newsEs,
+      'noticias-en': newsEn,
+    };
     for (const [locale, catalog] of Object.entries(all)) {
       // Se recorre por puntos de código, que es lo que cubre unicode-range.
       const chars = new Set<string>();

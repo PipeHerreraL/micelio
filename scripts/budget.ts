@@ -59,7 +59,9 @@ if (entries.length !== 1) throw new Error(`Se esperaba una sola entrada y hay ${
 const entryKey = entries[0]?.[0] ?? '';
 const initial = staticClosure(entryKey);
 
-const isCatalog = (key: string): boolean => /src\/i18n\/partners\/plasmodium\.\w+\.ts$/.test(key);
+// Catálogos que llegan aparte: los textos del plasmodio y las noticias del sotobosque (v1.5.0).
+const isCatalog = (key: string): boolean =>
+  /src\/i18n\/partners\/plasmodium\.\w+\.ts$/.test(key) || /src\/i18n\/news\/\w+\.ts$/.test(key);
 const isPartner = (key: string): boolean => key.startsWith('src/partners/');
 
 const dynamicKeys = Object.keys(manifest).filter((key) => manifest[key]?.isDynamicEntry === true);
@@ -94,7 +96,7 @@ const rows: { name: string; kb: number; limit: number }[] = [
   { name: 'JS del plasmodio (modelo, acciones y vista)', kb: sum(plasmodiumJs), limit: LIMITS.plasmodiumJs },
   { name: 'CSS del plasmodio', kb: sum(plasmodiumCss), limit: LIMITS.plasmodiumCss },
   ...catalogs.map((key) => ({
-    name: `Catálogo ${key.replace(/^.*\//, '')}`,
+    name: `Catálogo ${key.replace(/^src\/i18n\/(partners\/)?/, '')}`,
     kb: sum(filesOf([key], 'js')),
     limit: LIMITS.catalog,
   })),

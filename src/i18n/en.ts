@@ -497,63 +497,8 @@ export const en: Catalog = {
   'upg.motherTree.u4.name.choco': 'Memory of the tree',
   'upg.motherTree.u4.flavor.choco': 'Centuries of roots know where the soil stays above water.',
   'upg.autumnLitter.name.choco': 'Year-round leaf litter',
-  'news.motherTree.choco':
-    'An emergent tree has visitors. Some believe it feeds the young trees in its shade; science is still debating it.',
   'dev.actOne': 'Close Act I',
   'dev.colonize': 'Colonize this biome',
-  // Noticias de los biomas y del viento
-  'news.taiga.arrival': "Unfamiliar spores land in the taiga. The spruces don't ask where from.",
-  'news.taiga.podzol':
-    'Podzol comes from the Russian for “under the ash.” Nothing burned: the gray comes from water washing the soil for centuries.',
-  'news.taiga.circumpolar':
-    'The taiga rings the planet across the north: Scandinavia, Russia, Alaska and Canada. The network has started in one corner.',
-  'news.taiga.ecto':
-    'Spruce, pine, larch and birch: almost every tree in the taiga lives with ectomycorrhizal fungi. Nobody grows alone here.',
-  'news.taiga.carbon':
-    "A study on boreal islands in Sweden estimated that 50 to 70% of the soil's carbon came from roots and their fungi. The network keeps more than it shows.",
-  'news.taiga.rockEating':
-    "In the podzol's gray horizon, feldspar grains are riddled with tiny tunnels. Hyphae hunting for minerals are thought to bore them; geologists call it weathering, and the network calls it lunch.",
-  'news.taiga.amanita':
-    "Amanita muscaria, the red cap with white spots, partners with birches and spruces. Fairy-tale fame doesn't make it edible: it's toxic.",
-  'news.taiga.snowMold':
-    'Under the snow, close to freezing, some snow molds keep growing, helped among other things by antifreeze proteins. Not everyone hibernates.',
-  'news.taiga.morels':
-    'After a fire in the boreal forest, morels can come up by the hundreds. No forest ranger recommends the method.',
-  'news.taiga.lichen':
-    'Reindeer lichen grows a few millimeters a year. A reindeer eats decades of it in an afternoon, and the lichen holds no grudge.',
-  'news.taiga.chaga':
-    'Chaga grows on northern birches and looks like a lump of burnt charcoal. The birch disagrees with the description.',
-  'news.taiga.permafrost':
-    'In parts of Siberia, the taiga grows on ground that stays frozen all year. Roots live in the top layer, the only one that thaws in summer.',
-  'news.choco.arrival':
-    'Spores reach the Chocó rainforest. Here nobody asks whether it will rain, only when.',
-  'news.choco.forecast': 'Forecast for the Chocó today: rain. Tomorrow: same.',
-  'news.choco.lloro':
-    'In Lloró, in the Chocó, an estimated 13,000 mm of rain falls each year. It disputes the world record with a village in India.',
-  'news.choco.endemic':
-    'From the Darién in Panama to northwestern Ecuador, the biogeographic Chocó holds thousands of species found nowhere else. Almost nobody has counted the fungi.',
-  'news.choco.leafcutter':
-    "Leafcutter ants don't eat leaves: they chew them up to grow a fungus, and they eat the fungus. Farming on six legs.",
-  'news.choco.farmers':
-    "Genetic estimates suggest ants have been farming fungi for some 55 to 60 million years; humans, for about twelve thousand. The ants don't brag.",
-  'news.choco.arbuscular':
-    'Most rainforest trees live with arbuscular mycorrhizae. Fossils suggest the partnership is over 400 million years old: older than trees themselves.',
-  'news.choco.litter':
-    'In the rainforest a fallen leaf can vanish in a few months; in the taiga it takes years. Leaf litter here has no time to pile up.',
-  'news.choco.rootMat':
-    'On poor tropical soils, a mat of roots and fungi catches nutrients before the rain washes them away. In an Amazon experiment it held on to more than 99.9%.',
-  'news.choco.splash':
-    "Bird's nest fungi use every raindrop as a catapult: the impact flings their spore packets out of the cup. In the Chocó they never run out of ammunition.",
-  'news.choco.plastic':
-    'A fungus from the Ecuadorian Amazon, Pestalotiopsis microspora, can grow on polyurethane in the lab. The network still prefers leaves.',
-  'news.choco.glow':
-    'Some tropical mushrooms glow green at night. In one Brazilian species the light was found to attract insects, which may help spread its spores.',
-  'news.wind.rust':
-    'Wheat rust spores have been documented crossing on the wind from Australia to New Zealand: some two thousand kilometers, no luggage.',
-  'news.wind.buller':
-    "Many mushrooms launch each spore with a droplet that merges in microseconds: Buller's drop. Liftoff reaches thousands of times the force of gravity.",
-  'news.wind.altitude':
-    'Fungal spores have been collected kilometers up in the atmosphere. The wind carries passengers no map shows.',
 
   // Autocompra
   'autobuy.title': 'Autobuy',
@@ -763,102 +708,6 @@ export const en: Catalog = {
 
   // Noticias del sotobosque
   'news.label': 'Understory news',
-  'news.worm': 'An earthworm reports that the soil is suspiciously well organized.',
-  'news.fairyStep': 'Residents are advised not to step inside fairy rings. Just in case.',
-  'news.quietSoil': 'Today in the soil: damp and dark, with a very productive silence.',
-  'news.firstThread': 'A lone filament announces that this is going to take a while.',
-  'news.beetle': 'A beetle asks for an appointment to visit the network. It is told to come back in spring.',
-  'news.hairWidth':
-    'A hypha is a few microns wide; a human hair, about seventy. You make up for it in numbers.',
-  'news.kilometers': 'By some estimates, a single gram of forest soil can hold hundreds of meters of hyphae.',
-  'news.rhizoHighway': 'Rhizomorphs open an underground highway. Toll: a little glucose.',
-  'news.molePetition': 'A mole files a formal complaint: those tunnels were already taken.',
-  'news.button': 'A primordium pokes up. Its family calls it “the button,” and it is not amused.',
-  'news.pickers': 'Foragers report mushrooms in impossible places. The mushrooms decline to comment.',
-  'news.sporePrint':
-    'Rest a cap on a sheet of paper and it leaves a drawing made of spores. Mycologists call it a spore print.',
-  'news.brainNotFound':
-    'Some researchers compare mycelial networks to transport networks. The mycelium never asked for the compliment.',
-  'news.fairyAdvice':
-    'Folklore says whoever steps into a fairy ring dances until dawn. Comfortable shoes are recommended.',
-  'news.ringGrowth': 'A fairy ring grows outward every year. Some have been widening for centuries.',
-  'news.oakDeal': 'The northern oaks close a deal: sugar in exchange for phosphorus.',
-  'news.ninetyPercent':
-    'The vast majority of land plants live in symbiosis with mycorrhizal fungi. The rest are missing out.',
-  'news.woodWideWeb': 'The press called it the “Wood Wide Web.” The fungi would rather stay nameless.',
-  'news.motherTree':
-    'An old fir receives visitors. Some believe it feeds its seedlings; scientists are still debating it.',
-  'news.debate':
-    'Ecology conference: three hours debating how much trees share. Nobody thought to ask the fungi.',
-  'news.ancientForest': 'An ancient forest counts its age in rings. You count yours in kilometers.',
-  'news.squirrelLawyer': 'A squirrel hires a lawyer, claiming the buried truffles were its own.',
-  'news.readyToSpore': 'Rumors in the understory: something big is getting ready to sporulate.',
-  'news.firstRain': 'Rain at last. The whole forest smells of promise.',
-  'news.petrichor':
-    'After rain, mushrooms pop up within hours: water inflates structures that were already in place.',
-  'news.lightning':
-    'Some swear more mushrooms come up after thunderstorms. In Japan, they have tested it with electric shocks.',
-  'news.sporeCloud': 'A single mushroom can release billions of spores. It only takes one to travel far.',
-  'news.trillions': 'The wind reports an unusual rise in microscopic passengers.',
-  'news.deja': 'A feeling of déjà vu in the understory. This time the network knows where the water was.',
-  'news.malheur':
-    'In the Malheur National Forest in Oregon, a single Armillaria ostoyae covers nearly ten square kilometers.',
-  'news.oldest':
-    'The Oregon giant is estimated to be between two and eight thousand years old. Nobody has asked to see its ID.',
-  'news.planetary': 'Beneath every meadow, one shared pulse. The earthworms are starting to keep the beat.',
-  'news.glow': 'Some fungi glow in rotting wood. The old name for that light is foxfire.',
-  'news.kingdom': 'Reminder: fungi are not plants. They are more closely related to animals.',
-  'news.lichen': 'A lichen is a fungus and an alga living together. Neither remembers whose idea it was.',
-  'news.penicillin':
-    "In 1928, a mold spoiled one of Alexander Fleming's cultures. That was how penicillin began.",
-  'news.cordyceps':
-    'A fungus of the genus Ophiocordyceps manipulates ants. The network promises never to try it on anyone.',
-  'news.truffle':
-    "Pigs find truffles by smell, but they eat them. That's why dogs are the usual choice today.",
-  'news.radiation':
-    'At Chernobyl, fungi were found growing toward the radiation. Some suspect they put it to use.',
-  'news.patience': 'Eight sporulations later, the network is in no hurry. It never was.',
-  'news.undergroundWeather': 'Underground forecast: dark, damp, with a high chance of mushrooms.',
-  'news.snailAssembly': 'A snail asks for the floor at the soil assembly. The assembly is still waiting.',
-  'news.chitin': "Hyphal walls contain chitin, the same stuff as a beetle's shell.",
-  'news.yeast': 'The yeast in bread and beer is a fungus. It has worked for thousands of years without pay.',
-  'news.pineCone': 'A pine cone lands on the network. The network adds it to its plans.',
-  'news.pineCone.choco': 'A palm fruit lands on the network. The network adds it to its plans.',
-  'news.asphalt':
-    "A mushroom lifts the asphalt of a path. It doesn't shove: it pushes with water, patiently.",
-  'news.rootsGossip': 'The roots complain that the network hears everything before they do.',
-  'news.ownWind':
-    'Some mushrooms make their own wind: evaporating water cools the air and carries their spores away.',
-  'news.puffball':
-    "A single giant puffball can release trillions of spores. Almost none come to anything, and that's fine.",
-  'news.species':
-    'About 150,000 species of fungi have been described. Millions more are thought to be unnamed.',
-  'news.stinkhorn': 'The stinkhorn smells of carrion on purpose: the flies it lures carry off its spores.',
-  'news.rootMeeting': 'Root meeting: nobody knows who called it, but everyone came through the network.',
-  'news.blueCheese': 'The veins in blue cheese are a mold, Penicillium roqueforti. Nobody complains.',
-  'news.employee': 'The network is named employee of the month yet again. It asks to be paid in sugar.',
-  'news.prototaxites':
-    'About 400 million years ago, Prototaxites, maybe a fungus or something stranger, stood up to 8 meters tall.',
-  'news.lostSpore': 'Lost spore. Answers to any name, and to none.',
-  'news.pilobolus':
-    'The fungus Pilobolus fires its spore capsule more than 2 meters, with an acceleration of about 20,000 g.',
-  'news.termites':
-    'Some termites have farmed fungi in their nests for millions of years. Long before we did.',
-  'news.carboniferous':
-    'One hypothesis: so much coal built up in the Carboniferous because no fungus could digest lignin yet.',
-  'news.birdsNest':
-    'Bird\'s nest fungi wait for rain: each drop that lands in their cup flings out their spore "eggs".',
-  'news.cloudSpores':
-    'Some spores rise as high as the clouds, and some may help raindrops form. The rain comes back around.',
-  'news.oysterHunter':
-    'The oyster mushroom hunts microscopic worms when it runs short of nitrogen. It looks so calm.',
-  'news.noose': 'Some fungi trap nematodes in loops that snap shut in a tenth of a second.',
-  'news.myceliumBricks':
-    'Packaging and bricks are already being made from mycelium. The network asks about royalties.',
-  'news.postcard':
-    'The home forest gets a postcard: "All well here. Lots of rain. Will write through the network."',
-  'news.postcard.taiga':
-    'The home forest gets a postcard: "All well here. Cold, not much rain. Will write through the network."',
 
   // Números
   'num.tooltip': '{exact} · {long}',
@@ -989,30 +838,6 @@ export const en: Catalog = {
   'stats.plasmodium.trailEarned': 'Trail earned',
   'stats.plasmodium.plates': 'Plates mapped',
   'stats.plasmodium.pulses': 'Pulses sent',
-
-  'news.plasmodium.notFungus':
-    'Undergrowth clarification: the yellow mold on the log is not a fungus. Mycologists study it anyway, and it does not complain.',
-  'news.plasmodium.speed':
-    'Breaking news: the plasmodium moved a few centimeters. At its scale, that is a sprint.',
-  'news.plasmodium.shuttle':
-    'Its cytoplasm flows back and forth through the tubes, reversing every minute or two. It is called shuttle streaming.',
-  'news.plasmodium.mating':
-    'Physarum is said to have about 720 mating types. Arranging a date is complicated.',
-  'news.plasmodium.sclerotium':
-    'If it dries out, the plasmodium becomes a hard crust, the sclerotium. Add water and it wakes as if nothing happened.',
-  'news.plasmodium.blob':
-    'In 2019, the Paris zoo put it on display under the nickname “le blob.” It kept eating oats.',
-  'news.plasmodium.space':
-    'In 2021, dormant plasmodia traveled to the International Space Station for a school experiment. Water woke them up, as always.',
-  'news.plasmodium.maze': 'A mold solves a maze. It asks that nobody tell the mole.',
-  'news.plasmodium.trains':
-    'A mold drew, with oats, a network much like the Tokyo rail system. Word in the undergrowth is that railway engineers now eye oats with suspicion.',
-  'news.plasmodium.slime':
-    'The plasmodium tends to avoid places where it has already left slime: that way it wastes no time where it already searched (Reid and colleagues, 2012).',
-  'news.plasmodium.quinine':
-    'After several days crossing quinine bridges, plasmodia in a French lab stopped turning up their noses. No neurons involved.',
-  'news.plasmodium.fusion':
-    'Two plasmodia that touch can fuse into a single cell. What one learned, the other inherits.',
 
   'dev.partner': 'Bring the plasmodium',
   'dev.plate': 'Map this plate',

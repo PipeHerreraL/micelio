@@ -7,8 +7,8 @@ import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { mappedCount } from '../partners/plasmodium/state.ts';
 import { BIOME_NEWS_SHARE, NEWS, NEWS_INTERVAL, type NewsDef } from '../data/news.ts';
-import { t, type MessageKey } from '../i18n/index.ts';
-import { biomeText } from './biome-text.ts';
+import { ensureNewsCatalog, isNewsCatalogReady, newsText } from '../i18n/news/index.ts';
+import { getLocale, t } from '../i18n/index.ts';
 import { h, restartAnimation, setText } from './dom.ts';
 
 function unlocked(state: GameState, def: NewsDef): boolean {
@@ -55,6 +55,11 @@ export function createNewsTicker(): NewsTicker {
     root,
     update(state, now) {
       if (now < nextAt) return;
+      // Los textos llegan aparte (i18n/news): hasta que haya alguno, se vuelve a mirar en el
+      // siguiente refresco sin gastar el turno de la noticia.
+      const locale = getLocale();
+      if (!isNewsCatalogReady(locale)) void ensureNewsCatalog(locale).catch(() => undefined);
+      if (newsText(NEWS[0]?.id ?? '', state.forest.biome) === '') return;
       nextAt = now + NEWS_INTERVAL * 1000;
       const pool = NEWS.filter((n) => unlocked(state, n));
       // Al azar entre las desbloqueadas, evitando repetir las últimas que se vieron. En un bioma,
@@ -67,7 +72,7 @@ export function createNewsTicker(): NewsTicker {
       if (!pick) return;
       recent.push(pick.id);
       if (recent.length > Math.min(8, pool.length - 1)) recent.shift();
-      setText(text, biomeText(state, `news.${pick.id}` as MessageKey));
+      setText(text, newsText(pick.id, state.forest.biome));
       restartAnimation(text, 'is-fresh');
     },
   };

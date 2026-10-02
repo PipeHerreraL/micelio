@@ -65,6 +65,7 @@ import type { TabId } from './ui/tabs.ts';
 import { createToastContainer, removeToast, toast, type ToastOptions } from './ui/toasts.ts';
 import { installTooltipGlobalHandlers, refreshTooltip } from './ui/tooltip.ts';
 import { ensurePartnerCatalog, setPartnerPseudo } from './i18n/partners/index.ts';
+import { ensureNewsCatalog, setNewsPseudo } from './i18n/news/index.ts';
 import { PARTNER_IDS, type PartnerId } from './partners/ids.ts';
 import type { PartnerEvent } from './partners/registry.ts';
 import { mappedCount } from './partners/plasmodium/state.ts';
@@ -123,6 +124,7 @@ function applyLocale(state: GameState): void {
   // Pseudoidioma solo en desarrollo: alarga los textos un 40 % para detectar cortes.
   if (import.meta.env.DEV && params.has('pseudo')) {
     setPartnerPseudo(true);
+    setNewsPseudo(true);
     setLocale('es', pseudoCatalog(es));
   } else {
     setLocale(detectLocale(state.settings.locale, navigator.languages));
@@ -908,6 +910,8 @@ setPartnerErrorHandler(reportPartnerFailure);
 for (const id of PARTNER_IDS) {
   if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);
 }
+// Las noticias también llegan aparte: se piden ya para que estén al primer refresco del teletipo.
+void ensureNewsCatalog(getLocale()).catch(() => undefined);
 
 schedule(frame);
 
