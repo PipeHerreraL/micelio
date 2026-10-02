@@ -376,24 +376,26 @@ button {
   pointer-events: none;
 }
 
+/* La página empieza bajo la barra de estado, deja libres los lados de la muesca y termina sobre la
+   barra de navegación, a cualquier ancho: la app de Android también corre en tabletas en horizontal
+   (≥ 1024 px). En el móvil, el relleno de abajo suma la barra de pestañas (más abajo). En la web
+   todas valen 0. */
+.layout {
+  padding: var(--sat) var(--sar) var(--sab) var(--sal);
+}
+
+/* De borde a borde, lo que pasa por debajo de la barra de estado se tapa con el fondo. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 25;
+  height: var(--sat);
+  background: var(--humus);
+  pointer-events: none;
+}
+
 @media (max-width: 1023.98px) {
-  /* La página empieza bajo la barra de estado y deja libres los lados de la muesca. */
-  .layout {
-    padding-top: var(--sat);
-    padding-inline: var(--sal) var(--sar);
-  }
-
-  /* De borde a borde, lo que pasa por debajo de la barra de estado se tapa con el fondo. */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0 0 auto;
-    z-index: 25;
-    height: var(--sat);
-    background: var(--humus);
-    pointer-events: none;
-  }
-
   .layout__top {
     grid-area: top;
     position: sticky;
@@ -2164,8 +2166,8 @@ button {
 
 .toasts {
   position: fixed;
-  left: 1rem;
-  bottom: 3.5rem;
+  left: calc(1rem + var(--sal));
+  bottom: calc(3.5rem + var(--sab));
   z-index: 60;
   display: grid;
   gap: 0.5rem;
@@ -2256,7 +2258,7 @@ button {
 @media (max-width: 767.98px) {
   .toasts {
     bottom: calc(76px + var(--sab));
-    left: 0.75rem;
+    left: calc(0.75rem + var(--sal));
   }
 }
 
@@ -2266,15 +2268,15 @@ button {
    min() la estrecha cuando el escenario baja de 404 px (Mutaciones abierta a 1024 px). */
 @media (min-width: 1024px) {
   .toasts {
-    left: calc(var(--col-left) + 1rem);
-    right: calc(var(--col-right) + 1rem);
+    left: calc(var(--col-left) + 1rem + var(--sal));
+    right: calc(var(--col-right) + 1rem + var(--sar));
     width: min(22rem, calc(100vw - var(--col-left) - var(--col-right) - 2rem));
     margin-inline: auto;
   }
 
   /* Sin panel de pestañas el escenario llega hasta el borde derecho. */
   body:has(.layout--fresh) .toasts {
-    right: 1rem;
+    right: calc(1rem + var(--sar));
   }
 }
 

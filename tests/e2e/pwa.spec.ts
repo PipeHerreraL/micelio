@@ -89,3 +89,41 @@ test('en Ajustes, el móvil dice cómo instalarla: el .apk en Android y Safari e
     await expect(page.locator('#setting-install-text')).toContainText('Añadir a pantalla de inicio');
   }
 });
+
+test('de borde a borde (app de Android), nada queda bajo las barras del sistema en tableta ni en escritorio', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'chromium', 'La app de Android usa el WebView de Chromium.');
+  await seedSave(
+    page,
+    stateWith((s) => {
+      s.owned.hypha = 3;
+    }),
+  );
+  // Lo que Capacitor pone con la barra de estado arriba y la de navegación abajo.
+  const insets = { top: 30, bottom: 48, left: 40, right: 40 };
+  for (const size of [
+    { width: 900, height: 1200 },
+    { width: 1280, height: 800 },
+  ]) {
+    await page.setViewportSize(size);
+    await page.goto('./');
+    await page.addStyleTag({
+      content: `:root { ${Object.entries(insets)
+        .map(([side, px]) => `--safe-area-inset-${side}: ${String(px)}px;`)
+        .join(' ')} }`,
+    });
+    const box = async (selector: string) => {
+      const b = await page.locator(selector).first().boundingBox();
+      if (!b) throw new Error(`Sin caja: ${selector}`);
+      return b;
+    };
+    const top = await box(size.width >= 1024 ? '.layout__hud' : '.stage');
+    const footer = await box('.layout__footer');
+    expect(top.y, `arriba a ${String(size.width)} px`).toBeGreaterThanOrEqual(insets.top);
+    expect(footer.y + footer.height, `abajo a ${String(size.width)} px`).toBeLessThanOrEqual(
+      size.height - insets.bottom,
+    );
+    expect(footer.x, `a la izquierda a ${String(size.width)} px`).toBeGreaterThanOrEqual(insets.left);
+  }
+});
