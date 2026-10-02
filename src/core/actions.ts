@@ -51,6 +51,7 @@ import { DISPERSE_RESET, resetFields, SPORULATE_RESET } from './resets.ts';
 import { derived, invalidate } from './selectors.ts';
 import {
   AUTOBUY_MODES,
+  BUY_AMOUNTS,
   createState,
   hasMutation,
   hasUpgrade,
@@ -312,6 +313,7 @@ export function nextMutationInOrder(state: GameState): MutationId | null {
 }
 
 export function setBuyAmount(state: GameState, payload: { amount: BuyAmount }): void {
+  if (!BUY_AMOUNTS.includes(payload.amount)) return;
   state.settings.buyAmount = payload.amount;
 }
 

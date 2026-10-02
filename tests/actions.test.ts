@@ -5,9 +5,11 @@ import {
   buyUpgrade,
   canSporulate,
   click,
+  setBuyAmount,
   sporeGain,
   sporulate,
 } from '../src/core/actions.ts';
+import { quoteGenerator } from '../src/core/economy.ts';
 import { drain, type GameEvent } from '../src/core/events.ts';
 import { derived, invalidate } from '../src/core/selectors.ts';
 import { createState, type GameState, type RainDrop } from '../src/core/state.ts';
@@ -255,6 +257,39 @@ describe('comprar generadores', () => {
     state.nutrients = 1000;
     buyGenerator(state, { id: 'hypha', amount: 10 });
     expect(eventsOf('buyGenerator')).toEqual([{ type: 'buyGenerator', id: 'hypha', count: 10 }]);
+  });
+});
+
+describe('comprar hasta el siguiente hito', () => {
+  it('con 10 Hifas faltan 15 para el hito de 25: el botón compra justo esas', () => {
+    const s = createState(1, NOW);
+    s.owned.hypha = 10;
+    s.nutrients = 1e9;
+    s.settings.buyAmount = 'milestone';
+    const quote = quoteGenerator(s, 'hypha', 'milestone');
+    expect(quote.count).toBe(15);
+    buyGenerator(s, { id: 'hypha', amount: 'milestone' });
+    expect(s.owned.hypha).toBe(25);
+    // Ya en el hito, el siguiente es el de 50.
+    expect(quoteGenerator(s, 'hypha', 'milestone').count).toBe(25);
+  });
+
+  it('sin nutrientes para todas no compra ninguna, y pasado el último hito compra una', () => {
+    const s = createState(1, NOW);
+    s.owned.hypha = 10;
+    s.nutrients = 5;
+    buyGenerator(s, { id: 'hypha', amount: 'milestone' });
+    expect(s.owned.hypha).toBe(10);
+    s.owned.hypha = 400;
+    expect(quoteGenerator(s, 'hypha', 'milestone').count).toBe(1);
+  });
+
+  it('elegir una cantidad desconocida no cambia la elegida', () => {
+    const s = createState(1, NOW);
+    setBuyAmount(s, { amount: 'milestone' });
+    expect(s.settings.buyAmount).toBe('milestone');
+    setBuyAmount(s, { amount: 7 as 1 });
+    expect(s.settings.buyAmount).toBe('milestone');
   });
 });
 

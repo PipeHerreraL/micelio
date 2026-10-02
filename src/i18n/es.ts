@@ -52,6 +52,7 @@ export const es = {
   'buy.amount.1': '×1',
   'buy.amount.10': '×10',
   'buy.amount.100': '×100',
+  'buy.amount.milestone': 'Hito',
   'buy.amount.max': 'Máx',
 
   // Generadores

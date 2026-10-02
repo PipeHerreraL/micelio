@@ -14,8 +14,9 @@ import { toSeed } from './rng.ts';
 
 export type { GeneratorId } from '../data/generators.ts';
 
-export type BuyAmount = 1 | 10 | 100 | 'max';
-export const BUY_AMOUNTS: readonly BuyAmount[] = [1, 10, 100, 'max'];
+/** 'milestone': las unidades que faltan para el siguiente hito del generador (25, 50, 100…). */
+export type BuyAmount = 1 | 10 | 100 | 'milestone' | 'max';
+export const BUY_AMOUNTS: readonly BuyAmount[] = [1, 10, 100, 'milestone', 'max'];
 
 /**
  * names = «1,5 millones» (por defecto, estilo idle); suffix = «1,5 M»; scientific = «1,5e6»;

@@ -5,7 +5,7 @@
  */
 import { GENERATORS, getGenerator, type GeneratorDef, type GeneratorId } from '../data/generators.ts';
 import { UPGRADES, getUpgrade, type UpgradeDef } from '../data/upgrades.ts';
-import { bulkCost, maxAffordable } from './formulas.ts';
+import { bulkCost, maxAffordable, nextMilestone } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
 import { computeDerived, derived } from './selectors.ts';
@@ -59,6 +59,13 @@ export function quoteGenerator(state: GameState, id: GeneratorId, amount: BuyAmo
     const count = maxAffordable(def.baseCost, owned, discount, state.nutrients);
     const cost = bulkCost(def.baseCost, owned, Math.max(1, count), discount);
     return { count, cost, affordable: count > 0 };
+  }
+  if (amount === 'milestone') {
+    // Hasta el siguiente hito (que duplica la producción del generador); pasado el último, una.
+    const next = nextMilestone(owned);
+    const count = next === null ? 1 : next - owned;
+    const cost = bulkCost(def.baseCost, owned, count, discount);
+    return { count, cost, affordable: num.gte(state.nutrients, cost) };
   }
   const cost = bulkCost(def.baseCost, owned, amount, discount);
   return { count: amount, cost, affordable: num.gte(state.nutrients, cost) };

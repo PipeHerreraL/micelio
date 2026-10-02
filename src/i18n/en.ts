@@ -44,6 +44,7 @@ export const en: Catalog = {
   'buy.amount.1': '×1',
   'buy.amount.10': '×10',
   'buy.amount.100': '×100',
+  'buy.amount.milestone': 'Milestone',
   'buy.amount.max': 'Max',
 
   // Generadores
