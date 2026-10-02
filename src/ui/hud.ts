@@ -18,6 +18,12 @@ export interface Hud {
   effects: HTMLElement;
   /** Botón del núcleo, para que main.ts lo use como origen de números flotantes. */
   coreButton: HTMLButtonElement;
+  /** Núcleo de bolsillo: el mismo botón, fijo abajo, cuando el núcleo se pierde de vista. */
+  dock: HTMLButtonElement;
+  /** Muestra u oculta el núcleo de bolsillo; si tenía el foco al ocultarse, lo pasa al núcleo. */
+  setDockShown(shown: boolean): void;
+  /** De dónde salen los números del clic: el núcleo de bolsillo si se ve; si no, el núcleo. */
+  absorbOrigin(): HTMLButtonElement;
   update(): void;
   destroy(): void;
 }
@@ -108,6 +114,20 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     store.dispatch(click, {});
     onAbsorb(coreButton);
   });
+  // En el móvil el núcleo se va con el escenario al bajar a las pestañas: este botón lo sustituye
+  // abajo, al alcance del pulgar, mientras no se vea (app.ts decide cuándo).
+  const dock = h('button', { class: 'core-dock', attrs: { type: 'button', hidden: true } }, [coreArt()]);
+  disposer.listen(dock, 'click', () => {
+    store.dispatch(click, {});
+    onAbsorb(dock);
+  });
+
+  function setDockShown(shown: boolean): void {
+    if (dock.hidden !== shown) return;
+    // Oculto con el foco encima, el foco caería en <body> (BUG-JOURNAL #5).
+    if (!shown && document.activeElement === dock) coreButton.focus({ preventScroll: true });
+    dock.hidden = !shown;
+  }
 
   // Efectos activos
   const effectList = h('ul', { class: 'effects__list' });
@@ -140,7 +160,9 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     setText(rate, t('hud.perSecond', { value: fmt(d.production) }));
     focusableWhileTooltip(value, numberTooltip(state.nutrients) !== null);
     focusableWhileTooltip(rate, numberTooltip(d.production) !== null);
-    setAttr(coreButton, 'aria-label', t('core.label', { value: fmt(d.clickValue) }));
+    const coreLabel = t('core.label', { value: fmt(d.clickValue) });
+    setAttr(coreButton, 'aria-label', coreLabel);
+    setAttr(dock, 'aria-label', coreLabel);
     const showSpores = hasSeen(state, 'tab.sporulate');
     setHidden(spores, !showSpores);
     if (showSpores) {
@@ -177,6 +199,9 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     core,
     effects,
     coreButton,
+    dock,
+    setDockShown,
+    absorbOrigin: () => (dock.hidden ? coreButton : dock),
     update,
     destroy: () => {
       disposer.dispose();

@@ -420,3 +420,36 @@ test('en el móvil, la barra pegajosa queda bajo la cabecera y «Copo de avena»
     )
     .toEqual({ underHud: true, onFood: true });
 });
+
+// BUG-JOURNAL #20: la placa se dimensiona para llenar la pantalla y el núcleo de bolsillo tapaba los
+// sitios de su esquina inferior derecha.
+test('en el móvil, con la placa a la vista, el núcleo de bolsillo no tapa ningún sitio', async ({
+  page,
+}, info) => {
+  test.skip(!isMobile(info.project.name), 'Solo en móvil.');
+  // El mismo tamaño que la prueba de la barra pegajosa: la placa va dibujada, no en lista.
+  await page.setViewportSize({ width: 360, height: 800 });
+  await seedSave(page, plasmodiumState());
+  await page.goto('./');
+  await openPartners(page);
+  await page.evaluate(() => {
+    const home = document.querySelector('.plate__home');
+    if (home) window.scrollTo(0, home.getBoundingClientRect().top + window.scrollY - 20);
+  });
+  await page.waitForTimeout(400);
+  await expect(page.locator('.core__button')).not.toBeInViewport({ ratio: 0.5 });
+  await expect(page.locator('.core-dock')).toBeHidden();
+  const covered = await page.evaluate(() => {
+    // Entre la barra pegajosa de herramientas (bajo la cabecera) y la barra de pestañas.
+    const top = document.querySelector('.plasmodium__toolbar')?.getBoundingClientRect().bottom ?? 0;
+    const bottom = document.querySelector('.tabs__list')?.getBoundingClientRect().top ?? window.innerHeight;
+    return Array.from(document.querySelectorAll('.plate__site'))
+      .map((site) => site.getBoundingClientRect())
+      .filter((r) => r.top + r.height / 2 > top && r.top + r.height / 2 < bottom)
+      .filter(
+        (r) =>
+          !document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest('.plate__site'),
+      ).length;
+  });
+  expect(covered).toBe(0);
+});

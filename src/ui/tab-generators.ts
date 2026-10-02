@@ -218,10 +218,11 @@ export function createGeneratorsTab(store: Store): TabView {
     const buyLabel = h('span', { class: 'buy__label' });
     const buyCost = h('span', { class: 'buy__cost tabular' });
     const buyWait = h('span', { class: 'buy__wait tabular' });
+    // Coste y espera van juntos: con el botón a todo lo ancho comparten línea, y que aparezca la
+    // espera al no llegar no cambia la altura del botón ni mueve las filas de abajo.
     const buy = h('button', { class: 'gen__buy button button--primary', attrs: { type: 'button' } }, [
       buyLabel,
-      buyCost,
-      buyWait,
+      h('span', { class: 'buy__price' }, [buyCost, buyWait]),
     ]);
     const auto = h('button', {
       class: 'gen__auto toggle',

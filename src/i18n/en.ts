@@ -223,6 +223,7 @@ export const en: Catalog = {
   'upg.gainProduction': '+{value}\u00a0N/s',
   'upg.gainClick': '+{value}\u00a0N per click',
   'upg.buy': 'Buy {name}',
+  'upg.bought': 'Bought',
   'upgrades.title': 'Upgrades',
   'upgrades.empty': 'No upgrades available yet. They appear as you buy generators and gain nutrients.',
 

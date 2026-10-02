@@ -461,6 +461,31 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   turno), integrador de Euler, histéresis del tubo vivo, placas sembradas por jugador, miniaturas
   en el Atlas y un selector de socios que con uno solo no se vería.
 
+### 4.30 El núcleo siempre a mano y compras sin saltos (petición del usuario, v1.4.1)
+
+- **Núcleo de bolsillo.** Por debajo de 1024 px la página entera se desplaza (BUG-JOURNAL #14) y
+  el núcleo se va con el escenario. Un segundo botón (`.core-dock`, 64 px) aparece abajo a la
+  derecha, encima de la barra de pestañas en el móvil, mientras menos de la mitad del núcleo se
+  vea fuera de la cabecera y la barra fijas. Lo decide un `IntersectionObserver` con esas dos
+  alturas como margen negativo, rehecho cuando cambian (la cabecera mide 47–107 px según sus
+  líneas). Es fijo: aparecer no mueve nada; la página reserva abajo su hueco (salvo en la partida
+  nueva, sin pestañas) y, donde se tocan (< 444 px), los avisos suben por encima. Absorbe igual
+  que el núcleo, con su nombre; el número y el pulso salen del botón pulsado, y Espacio pulsa el
+  que se ve. La capa de números va por encima de él (z-index 16 frente a 15). No aparece en Socios
+  (la placa del plasmodio se dimensiona para llenar la pantalla y tapaba los sitios de su esquina)
+  ni con el foco del teclado en las pestañas (se absorbe con Espacio y tapaba el control enfocado).
+- **Lo que cambia con el estado no cambia la altura.** Un botón de compra a todo lo ancho lleva
+  coste y espera en una línea; el texto de producción de cada generador reserva dos líneas; en
+  móvil y tableta el panel ocupa el sobrante de la página (`1fr`), en vez de repartirlo entre las
+  filas `auto`; a tres columnas la espera reserva su línea. La lista de mejoras se reconcilia por
+  clave: la comprada se queda 0,9 s como «Comprada», inerte (un segundo toque no compra la
+  siguiente) y con su alto fijado, y se pliega en 0,22 s; las nuevas se despliegan ya pintadas.
+  Con refrescos separados más de 1 s (otra pestaña, la ventana oculta) se rehace sin animar, para
+  no enseñar como recién comprado lo que compró la autocompra entretanto.
+- **Descartado:** el escenario pegajoso (en un teléfono se comía un tercio de la pantalla), el
+  núcleo en la cabecera (lejos del pulgar, y la cabecera crecía al aparecer) y decidirlo en el
+  refresco de 10 Hz (un reflow forzado en cada refresco).
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -579,7 +604,8 @@ sostenidas.
 **Tableta (768–1023 px):** canvas arriba (40 vh) con el núcleo encima; contador y N/s sobre
 el canvas; pestañas debajo. **Móvil (< 768 px):** contador y N/s fijos arriba, canvas
 reducido con el núcleo, contenido de la pestaña, barra de pestañas fija abajo; objetivos
-táctiles ≥ 44 px.
+táctiles ≥ 44 px. Al bajar a las pestañas, el núcleo de bolsillo queda abajo a la derecha
+(§4.30).
 
 **Movimiento:** solo la esporulación está orquestada. Lo demás responde a acciones: brote
 de filamentos al comprar, onda y número flotante al hacer clic, campanilla visual del logro

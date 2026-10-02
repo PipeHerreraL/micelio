@@ -425,6 +425,67 @@ al cerrar, si «Ampliar» ya no sirve, el foco va al título.
 ancho del panel, con el foco en «Ampliar»» y «al estrechar la ventana, la placa se encoge con el
 panel». Fallan sin el arreglo.
 
+## 20. En el móvil, al bajar a las pestañas no había con qué absorber
+
+**Zona:** `src/ui/hud.ts`, `src/ui/app.ts`, `src/main.ts`, `src/ui/styles.css` (`.core-dock`)
+
+**Síntoma.** Lo reportó el usuario en su teléfono tras la versión 1.4.0: al desplazarse hasta los
+generadores o las mejoras, el núcleo se iba con el escenario y para absorber había que volver
+arriba. En tableta pasaba lo mismo.
+
+**Causa.** Por debajo de 1024 px la página entera se desplaza (#14) y el núcleo vive en el
+escenario, arriba del todo. Solo el contador es fijo; nada sustituía al núcleo al perderlo de vista.
+
+**Arreglo.** Un «núcleo de bolsillo»: el mismo botón, de 64 px, fijo abajo a la derecha (encima de
+la barra de pestañas en el móvil), que aparece mientras menos de la mitad del núcleo se ve fuera de
+la cabecera y la barra fijas. Absorbe igual, con el mismo nombre accesible; el número y el pulso
+salen del botón que se pulsó, y Espacio pulsa el que se ve. Es fijo: aparecer no mueve nada. Si se
+oculta con el foco encima, el foco pasa al núcleo. La revisión adversarial encontró cinco cosas que
+también se corrigieron: el número salía por detrás del botón (con «Reducir movimiento» no se veía
+nunca), el hueco reservado abajo alargaba la pantalla de partida nueva, los avisos subían también
+en horizontal (donde no se tocan) y sacaban el más viejo por arriba, el botón tapaba los sitios de
+la esquina de la placa del plasmodio (en Socios no aparece) y, con el teclado en las pestañas,
+tapaba el control enfocado de la esquina (ahí no aparece: se absorbe con Espacio).
+
+**Qué lo sostiene.** `tests/e2e/layout-stability.spec.ts` → «por debajo de 1024 px, al bajar a las
+pestañas aparece el núcleo de bolsillo, absorbe y se va al volver arriba» (móvil y, en los perfiles
+de escritorio, la disposición de tableta) y «en escritorio el núcleo de bolsillo no aparece»;
+`tests/e2e/plasmodium.spec.ts` → «en el móvil, con la placa a la vista, el núcleo de bolsillo no
+tapa ningún sitio»; `tests/ui-core-dock.test.ts` → «si se oculta con el foco encima, el foco pasa
+al núcleo y no cae en <body>». Fallan sin el arreglo.
+
+## 21. Comprar un generador o una mejora hacía saltar la lista
+
+**Zona:** `src/ui/tab-generators.ts`, `src/ui/tab-upgrades.ts`, `src/ui/styles.css`
+
+**Síntoma.** Lo reportó el usuario en su teléfono tras la versión 1.4.0: al comprar, los botones
+cambiaban de tamaño y el juego «saltaba». Medido a 375 px: el botón de compra pasaba de 48 a 63 px
+al dejar de llegar (la espera, «en 48 s», iba en una tercera línea) y todas las filas de abajo
+bajaban 15 px; al volver a llegar, subían. Una mejora comprada desaparecía de golpe, todo lo de
+abajo subía 96 px y un segundo toque compraba la mejora que llegaba bajo el dedo.
+
+**Causa.** Cuatro, que se sumaban. La espera solo existía sin nutrientes suficientes, en su propia
+línea. El texto de producción de cada fila cambia al comprar (cifras y porcentajes de todas las
+filas) y pasaba de dos líneas a una o al revés (20 px, medido en WebKit a 390 px). La lista de
+mejoras se rehacía entera al cambiar qué mejoras había. Y con la página más corta que la ventana,
+la rejilla repartía el sobrante entre la cabecera, los efectos y el pie: al acortarse la lista,
+todo lo de arriba bajaba 3,6 px.
+
+**Arreglo.** Con el botón a todo lo ancho, coste y espera comparten línea; a tres columnas, la
+espera reserva su línea aunque se llegue. El texto de producción reserva dos líneas. La lista de
+mejoras cambia solo las tarjetas que entran o salen: la comprada se queda 0,9 s en su sitio como
+«Comprada», inerte y con su alto fijado, y se pliega en 0,22 s; las nuevas se despliegan ya
+pintadas; el foco pasa a la siguiente sin desplazar la página, y «No hay mejoras» espera a que se
+pliegue la última. En móvil y tableta el panel ocupa el sobrante de la página (`1fr`).
+
+**Qué lo sostiene.** `tests/e2e/layout-stability.spec.ts` → «comprar un generador hasta no llegar no
+cambia la altura de los botones ni mueve las filas» (con el botón a todo lo ancho y a tres
+columnas) y «una mejora recién comprada se queda en su sitio como «Comprada» y un segundo toque no
+compra la de abajo», en los cinco perfiles; `tests/ui-upgrades.test.ts` → «la recién comprada se
+queda en su sitio como «Comprada», sin poder pulsarse, y luego se pliega», «una tarjeta nueva se
+mide para desplegarse con sus textos ya puestos» y «al comprar la última, «No hay mejoras» no
+aparece encima de la comprada hasta que se pliega». Fallan sin el arreglo.
+
 ---
 
 ## Bugs sin nada que los sostenga

@@ -229,6 +229,7 @@ export const es = {
   'upg.gainProduction': '+{value}\u00a0N/s',
   'upg.gainClick': '+{value}\u00a0N por clic',
   'upg.buy': 'Comprar {name}',
+  'upg.bought': 'Comprada',
   'upgrades.title': 'Mejoras',
   'upgrades.empty': 'No hay mejoras disponibles. Aparecen al comprar generadores y al ganar nutrientes.',
 

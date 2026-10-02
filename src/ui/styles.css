@@ -343,13 +343,22 @@ button {
 
 /* Tableta (768–1023 px): canvas arriba y pestañas debajo. */
 @media (min-width: 768px) and (max-width: 1023.98px) {
+  /* El panel en 1fr: si la página es más corta que la ventana, el sobrante va al panel. Con
+     auto, la rejilla lo repartía entre todas las filas y, al acortarse la lista (comprar una
+     mejora), lo de arriba también se movía. */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(340px, 46vh) auto auto;
+    grid-template-rows: minmax(340px, 46vh) 1fr auto;
     grid-template-areas:
       'stage'
       'panel'
       'footer';
+    /* Lo último de la página sube por encima del núcleo de bolsillo (64 px a 1rem del borde). */
+    padding-bottom: calc(64px + 2rem + env(safe-area-inset-bottom));
+  }
+
+  .layout--fresh {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .layout__hud,
@@ -400,20 +409,27 @@ button {
 
 /* Móvil (< 768 px): contador fijo arriba, canvas reducido, barra de pestañas abajo. */
 @media (max-width: 767.98px) {
+  /* El panel en 1fr, como en tableta: con la página más corta que la ventana, el sobrante se
+     repartía entre la cabecera, los efectos y el pie, y al comprar una mejora todo bajaba 3,6 px. */
   .layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(220px, 34vh) auto auto auto;
+    grid-template-rows: auto minmax(220px, 34vh) auto 1fr auto;
     grid-template-areas:
       'hud'
       'stage'
       'effects'
       'panel'
       'footer';
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    /* La barra de pestañas fija y, encima, el núcleo de bolsillo (64 + 12 px): lo último de la
+       página sube por encima de los dos. Fijo, para que mostrar el núcleo no mueva nada. */
+    padding-bottom: calc(64px + 64px + 0.75rem + env(safe-area-inset-bottom));
   }
 
+  /* Sin pestañas ni núcleo de bolsillo: sin su hueco abajo, la primera pantalla se desplazaba
+     hasta una franja vacía. */
   .layout--fresh {
     grid-template-rows: auto minmax(320px, 70vh) auto;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .layout__hud {
@@ -531,9 +547,9 @@ button {
   text-align: center;
 }
 
-.core__button {
+.core__button,
+.core-dock {
   position: relative;
-  width: clamp(120px, 15vw, 168px);
   aspect-ratio: 1;
   padding: 0;
   border-radius: 50%;
@@ -547,15 +563,22 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.core__button:hover {
+.core__button {
+  width: clamp(120px, 15vw, 168px);
+}
+
+.core__button:hover,
+.core-dock:hover {
   border-color: var(--micelio-tenue);
 }
 
-.core__button:active {
+.core__button:active,
+.core-dock:active {
   transform: scale(0.96);
 }
 
-.core__button::after {
+.core__button::after,
+.core-dock::after {
   content: '';
   position: absolute;
   inset: -2px;
@@ -565,8 +588,39 @@ button {
   pointer-events: none;
 }
 
-.core__button.is-pulsing::after {
+.core__button.is-pulsing::after,
+.core-dock.is-pulsing::after {
   animation: ripple 520ms ease-out;
+}
+
+/*
+ * Núcleo de bolsillo (tableta y móvil): al bajar a las pestañas el núcleo se iba con el escenario
+ * y no había con qué absorber sin volver arriba. Aparece abajo a la derecha, al alcance del
+ * pulgar, solo mientras el núcleo no se ve (app.ts). Fijo: mostrarlo u ocultarlo no mueve nada.
+ */
+.core-dock {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 15;
+  /* Alto explícito: con solo aspect-ratio, WebKit dejaba este botón en 64 × 66. */
+  width: 64px;
+  height: 64px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 45%);
+  animation: dock-in 160ms ease-out;
+}
+
+/* Con el teclado en las pestañas se absorbe con Espacio y el botón solo taparía el control
+   enfocado de la esquina («Auto», «Comprar»), que el navegador no desplaza mientras se vea. */
+body:has(.layout__panel :focus-visible) .core-dock {
+  display: none;
+}
+
+@keyframes dock-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
 }
 
 @keyframes ripple {
@@ -581,7 +635,10 @@ button {
   }
 }
 
+/* En bloque: en línea, el SVG dejaba bajo él el hueco de los descendentes y el botón medía
+   112 × 119 px, un óvalo; el núcleo de bolsillo, 64 × 71. */
 .core__art {
+  display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
@@ -627,6 +684,11 @@ button {
 
   .core__keyhint {
     display: none;
+  }
+
+  /* Encima de la barra de pestañas fija (64 px, ver .layout). */
+  .core-dock {
+    bottom: calc(64px + 0.75rem + env(safe-area-inset-bottom));
   }
 }
 
@@ -724,11 +786,13 @@ button {
 }
 
 .floaters {
-  /* Fija y sobre el núcleo: en escritorio el núcleo está fuera del escenario. */
+  /* Fija y sobre el núcleo: en escritorio el núcleo está fuera del escenario. Por encima del
+     núcleo de bolsillo (15), que si no tapaba su propio número (con «Reducir movimiento», entero),
+     y por debajo de la barra de pestañas (20) y los avisos. */
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 5;
+  z-index: 16;
 }
 
 .floater {
@@ -1018,6 +1082,13 @@ button {
   font-size: 0.875rem;
 }
 
+/* Dos líneas siempre: al comprar cambian las cifras y los porcentajes de todas las filas, el texto
+   pasaba de dos líneas a una (o al revés) y todo lo de abajo saltaba 20 px. Medido en WebKit a
+   390 px. Con nombres de números muy largos aún puede llegar a tres. */
+.gen__stats {
+  min-height: 2lh;
+}
+
 .gen__milestone {
   display: flex;
   align-items: center;
@@ -1067,6 +1138,12 @@ button {
   font-size: 0.95rem;
 }
 
+.buy__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
 .buy__cost {
   font-weight: 400;
   font-size: 0.85rem;
@@ -1077,13 +1154,18 @@ button {
   font-size: 0.8rem;
 }
 
-.buy__wait:empty {
-  display: none;
+/* A tres columnas la espera va en su línea y la reserva aunque se llegue (un espacio duro): si
+   no, el botón crecía 15 px al dejar de llegar. */
+.buy__wait:empty::before {
+  content: '0';
 }
 
 /* Se mide el panel y no la ventana: en escritorio el panel lateral baja a 360 px y una fila
    de tres columnas dejaba ~100 px para el texto. Por debajo de 30rem (lo que antes era el
-   corte de móvil, < 480 px) el botón de compra pasa a su propia fila, en móvil y escritorio. */
+   corte de móvil, < 480 px) el botón de compra pasa a su propia fila, en móvil y escritorio.
+   Ahí el botón decide la altura de su fila: coste y espera comparten línea, porque con la
+   espera debajo el botón crecía 15 px al dejar de llegar (al comprar o al gastar) y las filas
+   de abajo saltaban. A tres columnas la espera reserva su línea (ver .buy__wait:empty). */
 @container panels (max-width: 29.99rem) {
   .gen {
     grid-template-columns: auto minmax(0, 1fr);
@@ -1097,6 +1179,18 @@ button {
     flex: 1;
     align-items: center;
     text-align: center;
+  }
+
+  .buy__price {
+    flex-flow: row wrap;
+    justify-content: center;
+    align-items: baseline;
+    column-gap: 0.6rem;
+  }
+
+  /* En la misma línea que el coste no hace falta reservarla, y vacía descentraría el coste. */
+  .buy__wait:empty {
+    display: none;
   }
 }
 
@@ -1126,12 +1220,40 @@ button {
 /* ------------------------------------------------------------------------------------ */
 /* Mejoras */
 
+/* La separación va dentro de cada elemento (0.25rem arriba y abajo, compensados en la lista) y
+   no como gap: una tarjeta que se pliega hasta 0 se lleva también su hueco y, al quitarla, nada
+   salta los 8 px de un gap que quedaba. */
 .upg-list {
   list-style: none;
-  margin: 0;
+  margin: -0.25rem 0;
   padding: 0;
-  display: grid;
-  gap: 0.5rem;
+}
+
+.upg-item {
+  padding-block: 0.25rem;
+}
+
+/* Plegar y desplegar (tab-upgrades.ts, MOVE_MS = 220). */
+.upg-item.is-moving {
+  overflow: hidden;
+  transition:
+    height 220ms ease,
+    padding 220ms ease,
+    opacity 220ms ease;
+}
+
+.upg-item.is-collapsed {
+  padding-block: 0;
+  opacity: 0;
+}
+
+/* Con su alto fijado (tab-upgrades.ts): si «Comprada» parte el texto distinto, no sale de la caja. */
+.upg-item.is-bought {
+  overflow: hidden;
+}
+
+.upg-item.is-bought .upg {
+  opacity: 0.7;
 }
 
 .upg {
@@ -2000,6 +2122,16 @@ button {
   .toasts {
     bottom: calc(76px + env(safe-area-inset-bottom));
     left: 0.75rem;
+  }
+}
+
+/* Con el núcleo de bolsillo a la vista, la pila sube por encima de él: lo tapaba y su botón de
+   cerrar podía quedar debajo. Solo donde se tocan (la pila, de 0.75rem a min(22rem, 100vw − 2rem),
+   llega al botón, a 80 px del borde derecho, por debajo de 444 px); en un móvil en horizontal,
+   subirla sacaba el aviso más viejo por arriba. */
+@media (max-width: 443.98px) {
+  body:has(.core-dock:not([hidden])) .toasts {
+    bottom: calc(64px + 64px + 1.5rem + env(safe-area-inset-bottom));
   }
 }
 
