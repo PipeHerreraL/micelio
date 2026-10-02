@@ -28,7 +28,10 @@ function plasmodiumState(mutate: (s: GameState) => void = () => undefined, plate
   });
 }
 
-/** Archivos .js que no son del paquete inicial, según el manifiesto del build que se prueba. */
+/**
+ * Archivos .js que no son del paquete inicial, según el manifiesto del build que se prueba, salvo
+ * las noticias, que también llegan aparte pero se piden siempre (src/i18n/news).
+ */
 function lazyChunks(): string[] {
   const manifest = JSON.parse(
     readFileSync(new URL('../../dist/.vite/manifest.json', import.meta.url), 'utf8'),
@@ -42,6 +45,7 @@ function lazyChunks(): string[] {
   for (const [key, chunk] of Object.entries(manifest)) if (chunk.isEntry) visit(key);
   return Object.entries(manifest)
     .filter(([key, chunk]) => !initial.has(key) && chunk.file.endsWith('.js'))
+    .filter(([key]) => !key.startsWith('src/i18n/news/'))
     .map(([, chunk]) => chunk.file);
 }
 
