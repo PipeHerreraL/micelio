@@ -10,7 +10,7 @@
  */
 import { GENERATORS } from '../data/generators.ts';
 import { PAYBACK_MAX_PER_SECOND } from '../data/plasmodium.ts';
-import { buyGenerator, buyUpgrade } from '../core/actions.ts';
+import { purchaseGenerator, purchaseUpgrade } from '../core/actions.ts';
 import {
   availableUpgrades,
   bestPurchase,
@@ -38,14 +38,14 @@ export function runAutobuy(state: GameState): void {
       if (!def || !state.autobuy.generators[def.id] || !isGeneratorUnlocked(state, def)) continue;
       const quote = quoteGenerator(state, def.id, 1);
       if (num.lt(quote.cost, num.mul(state.nutrients, state.autobuy.threshold))) {
-        buyGenerator(state, { id: def.id, amount: 1 });
+        purchaseGenerator(state, { id: def.id, amount: 1 });
       }
     }
   }
   if (hasAutobuyUpgrades(state) && state.autobuy.upgrades) {
     const limit = num.mul(state.nutrients, state.autobuy.threshold);
     const cheapest = availableUpgrades(state)[0];
-    if (cheapest && num.lt(cheapest.cost, limit)) buyUpgrade(state, { id: cheapest.id });
+    if (cheapest && num.lt(cheapest.cost, limit)) purchaseUpgrade(state, { id: cheapest.id });
   }
 }
 
@@ -83,8 +83,8 @@ function runPaybackAutobuy(state: GameState): void {
     const best = paybackTarget(state);
     if (!best || num.lt(state.nutrients, best.cost)) return;
     const owned = best.kind === 'generator' ? state.owned[best.id] : state.upgrades.length;
-    if (best.kind === 'generator') buyGenerator(state, { id: best.id, amount: 1 });
-    else buyUpgrade(state, { id: best.id });
+    if (best.kind === 'generator') purchaseGenerator(state, { id: best.id, amount: 1 });
+    else purchaseUpgrade(state, { id: best.id });
     // Defensa: si la acción rechazó la compra (no debería: el coste es el mismo), no se insiste.
     const after = best.kind === 'generator' ? state.owned[best.id] : state.upgrades.length;
     if (after === owned) return;

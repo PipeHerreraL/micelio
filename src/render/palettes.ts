@@ -34,6 +34,20 @@ export interface SoilTuft {
   alpha: number;
 }
 
+/**
+ * Lo que se recorta tras la hojarasca: troncos (los bosques), hierba alta con un roble solo
+ * (pradera) o arbustos enanos (tundra). Los dos últimos llegan con sus biomas (fase 10).
+ */
+export type SilhouetteKind = 'trees' | 'grass' | 'shrubs';
+
+/** Hilos finos y claros en el subsuelo, como el pseudomicelio de carbonato del chernozem. */
+export interface SoilThreads {
+  tone: string;
+  alpha: number;
+  /** En (0, 1], como `leafDensity`. */
+  density: number;
+}
+
 export interface SoilPalette {
   /** Fronteras hojarasca/humus, humus/horizonte medio y medio/profundo (fracciones de la altura). */
   horizons: readonly [number, number, number];
@@ -74,6 +88,9 @@ export interface SoilPalette {
   buttress: boolean;
   /** Multiplica la profundidad que alcanza la red. */
   reach: number;
+  silhouetteKind: SilhouetteKind;
+  /** null = sin hilos: los suelos de la 1.3–1.5 pintan lo mismo que antes. */
+  threads: SoilThreads | null;
 }
 
 const NATAL: SoilPalette = {
@@ -103,6 +120,8 @@ const NATAL: SoilPalette = {
   treeWidth: 1,
   buttress: false,
   reach: 1,
+  silhouetteKind: 'trees',
+  threads: null,
 };
 
 /**
@@ -141,6 +160,8 @@ const TAIGA: SoilPalette = {
   treeWidth: 0.8,
   buttress: false,
   reach: 1,
+  silhouetteKind: 'trees',
+  threads: null,
 };
 
 /**
@@ -175,6 +196,8 @@ const CHOCO: SoilPalette = {
   treeWidth: 1,
   buttress: true,
   reach: 0.85,
+  silhouetteKind: 'trees',
+  threads: null,
 };
 
 export const SOIL_PALETTES: Readonly<Record<BiomeId, SoilPalette>> = {

@@ -6,6 +6,8 @@
  * Nuestro simulador (scripts/simulate.ts) los validó sin cambios; ver docs/BALANCE.md.
  */
 
+import type { MutationId } from './mutations.ts';
+
 export const GENERATOR_IDS = [
   'hypha',
   'rhizomorph',
@@ -23,7 +25,7 @@ export type GeneratorId = (typeof GENERATOR_IDS)[number];
 
 /** Cómo se desbloquea un generador más allá de poder pagarlo. */
 export type GeneratorUnlock =
-  { kind: 'always' } | { kind: 'sporulations'; count: number } | { kind: 'mutation'; id: string };
+  { kind: 'always' } | { kind: 'sporulations'; count: number } | { kind: 'mutation'; id: MutationId };
 
 export interface GeneratorDef {
   id: GeneratorId;

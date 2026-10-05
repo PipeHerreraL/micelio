@@ -56,6 +56,7 @@ import {
   hasMutation,
   hasUpgrade,
   isTreeComplete,
+  ownsMutation,
   type AutobuyMode,
   type AutobuyThreshold,
   type BuyAmount,
@@ -72,8 +73,22 @@ export function click(state: GameState, _payload: Record<string, never> = {}): v
   emit({ type: 'click', value });
 }
 
-/** Compra `amount` unidades (o el máximo) de un generador, si está desbloqueado y alcanza. */
+/** Compra `amount` unidades (o el máximo) de un generador: la acción del jugador. */
 export function buyGenerator(state: GameState, payload: { id: GeneratorId; amount: BuyAmount }): void {
+  purchaseGenerator(state, payload);
+}
+
+/** Compra una mejora disponible: la acción del jugador. */
+export function buyUpgrade(state: GameState, payload: { id: string }): void {
+  purchaseUpgrade(state, payload);
+}
+
+/**
+ * La compra de un generador, si está desbloqueado y alcanza, sin mirar quién compra. La acción del
+ * jugador y la autocompra pasan por aquí, y la autocompra no pasa por la acción: el voto «solo
+ * autocompra» de la fase 10 negará la del jugador y la red seguirá comprando sola.
+ */
+export function purchaseGenerator(state: GameState, payload: { id: GeneratorId; amount: BuyAmount }): void {
   if (!isGeneratorId(payload.id)) return;
   if (!isGeneratorUnlocked(state, getGenerator(payload.id))) return;
   const quote = quoteGenerator(state, payload.id, payload.amount);
@@ -85,8 +100,8 @@ export function buyGenerator(state: GameState, payload: { id: GeneratorId; amoun
   checkAchievements(state);
 }
 
-/** Compra una mejora disponible. */
-export function buyUpgrade(state: GameState, payload: { id: string }): void {
+/** La compra de una mejora disponible, sin mirar quién compra (ver `purchaseGenerator`). */
+export function purchaseUpgrade(state: GameState, payload: { id: string }): void {
   const def = getUpgrade(payload.id);
   if (!def || hasUpgrade(state, def.id) || !isUpgradeAppeared(state, def)) return;
   if (!spend(state, def.cost)) return;
@@ -266,9 +281,10 @@ export function applyRunStartBonuses(state: GameState): void {
   for (const gift of startUnits(state)) state.owned[gift.id] += gift.count;
 }
 
+/** Se puede comprar: aún no está comprada y sus requisitos sí (comprados, rijan o no). */
 export function isMutationAvailable(state: GameState, id: MutationId): boolean {
-  if (hasMutation(state, id)) return false;
-  return getMutation(id).requires.every((req) => hasMutation(state, req));
+  if (ownsMutation(state, id)) return false;
+  return getMutation(id).requires.every((req) => ownsMutation(state, req));
 }
 
 /** Compra una mutación con esporas disponibles, si se cumplen sus requisitos. */

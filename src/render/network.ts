@@ -23,6 +23,7 @@
  * anterior: costaba memoria todo el tiempo para un momento que pasa una vez por bioma.
  */
 import type { GameEvent } from '../core/events.ts';
+import { dispersalCount } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { derived } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
@@ -232,8 +233,8 @@ const DECOR_SALT = 0x51ed;
 /** Sal del grano del fondo; cada bioma suma su índice (el natal, 0: el mismo grano de la 1.2). */
 const BACKGROUND_SALT = 0xb0b;
 /**
- * Sal de la red desde el primer destino. El natal (tramo 0) sigue con mixSeed(semilla,
- * esporulaciones) para que la red de una partida 1.x no cambie al actualizar: mezclar el tramo
+ * Sal de la red desde el primer viaje. El natal antes de dispersar sigue con mixSeed(semilla,
+ * esporulaciones) para que la red de una partida 1.x no cambie al actualizar: mezclar los viajes
  * también allí la habría movido, porque mixSeed(x, 0) ≠ x.
  */
 const LEG_SALT = 0x7a1d;
@@ -448,10 +449,10 @@ export function createNetworkView(
   let wantTrees = 0;
   let wantForest = 0;
   let wantSeed = 0;
-  // Bioma y tramo que pide el estado, y el bioma que está pintado en el fondo. Difieren solo
+  // Bioma y viajes que pide el estado, y el bioma que está pintado en el fondo. Difieren solo
   // durante la dispersión: hasta que la red vieja se disuelve, sigue sobre su suelo.
   let wantBiome: BiomeId = options.biome;
-  let wantLeg = 0;
+  let wantDispersals = 0;
   let bgBiome: BiomeId = options.biome;
 
   // Lienzo y estado de dibujo.
@@ -473,7 +474,7 @@ export function createNetworkView(
   let sporePending = false;
   let sporeRequestedAt = -Infinity;
   let lastSporulations = -1;
-  let lastLeg = -1;
+  let lastDispersals = -1;
   /** La esporulación en curso es una dispersión: las esporas se las lleva el viento. */
   let windy = false;
   /** Bioma que la fase del suelo está fundiendo encima del fondo. */
@@ -1679,7 +1680,7 @@ export function createNetworkView(
     wantTarget = segmentTarget(weighted);
 
     wantBiome = state.forest.biome;
-    wantLeg = state.forest.leg;
+    wantDispersals = dispersalCount(state);
     const soil = SOIL_PALETTES[wantBiome];
 
     // Profundidad: cada nivel de generador baja la red y las esporas la ahondan un poco
@@ -1703,10 +1704,12 @@ export function createNetworkView(
     wantRings = ringsFor(state.owned.fairyRing);
     wantTrees = treesFor(state.owned.motherTree);
     wantForest = forestFor(state.owned.ancientForest);
-    // Una red por partida y, desde el primer destino, otra familia de redes por tramo.
+    // Una red por partida y, desde el primer viaje, otra familia de redes por viaje.
     const sporulations = state.stats.sporulations;
     wantSeed =
-      wantLeg === 0 ? mixSeed(seed, sporulations) : mixSeed(mixSeed(seed, LEG_SALT + wantLeg), sporulations);
+      wantDispersals === 0
+        ? mixSeed(seed, sporulations)
+        : mixSeed(mixSeed(seed, LEG_SALT + wantDispersals), sporulations);
 
     const decades = num.log10(num.add(num.ONE, derived(state).production));
     pulseRate =
@@ -1806,11 +1809,11 @@ export function createNetworkView(
       if (destroyed) return;
       readState(state);
       const sporulations = state.stats.sporulations;
-      // Un tramo nuevo es una dispersión aunque su evento no haya llegado; si además esporuló,
-      // es la misma animación.
-      if (lastLeg >= 0 && wantLeg !== lastLeg) requestSporulation(true);
+      // Un viaje nuevo es una dispersión aunque su evento no haya llegado; si además esporuló, es
+      // la misma animación.
+      if (lastDispersals >= 0 && wantDispersals !== lastDispersals) requestSporulation(true);
       else if (lastSporulations >= 0 && sporulations > lastSporulations) requestSporulation(false);
-      lastLeg = wantLeg;
+      lastDispersals = wantDispersals;
       lastSporulations = sporulations;
 
       if (!ready) {

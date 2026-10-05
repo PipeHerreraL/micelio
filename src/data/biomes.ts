@@ -62,7 +62,7 @@ export const BIOMES: readonly BiomeDef[] = [
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
     // 3,71 h (prototipo). Espera entre gotas ×2: con ×1,5 el pasivo tardaba 2,64 veces lo que el
-    // activo. Escala: ver LEG_SCALE_GROWTH.
+    // activo. Escala: ver LEG_SCALE.
     id: 'taiga',
     scale: 1e11,
     production: { mycorrhiza: 5, motherTree: 5 },
@@ -88,12 +88,16 @@ export const BIOMES: readonly BiomeDef[] = [
 ];
 
 /**
- * R crece ×3,5 del primer destino al segundo: taiga 1e11 y luego 3,5e11; Chocó 2e11 y luego
- * 7e11. Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en 1,90 h, por
- * debajo del objetivo de 2 h; con ×3,5, en 2,06 h, y la taiga segunda en 2,48 h (simulador).
- * Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h (prototipo).
+ * R de un destino = su escala × LEG_SCALE[tramo] (la posición 0, el natal, no se usa: rige
+ * prestige.ts). Es una tabla y no una potencia porque la fase 10 suma tramos con factores propios
+ * (con ×3,5 compuesto no había escala de tundra que sirviera de tercera y de cuarta).
+ *
+ * Del primer destino al segundo, ×3,5: taiga 1e11 y luego 3,5e11; Chocó 2e11 y luego 7e11, los de
+ * la 1.3–1.5 bit a bit. Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en
+ * 1,90 h, por debajo del objetivo de 2 h; con ×3,5, en 2,06 h, y la taiga segunda en 2,48 h
+ * (simulador). Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h (prototipo).
  */
-export const LEG_SCALE_GROWTH = 3.5;
+export const LEG_SCALE: readonly number[] = [1, 1, 3.5];
 /** Nivel local de esporas que coloniza un bioma (ROADMAP). Con 300, el Chocó segundo bajaba de 2 h. */
 export const COLONIZE_LEVEL = 500;
 /**

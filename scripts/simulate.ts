@@ -33,7 +33,7 @@ import {
   nextBiomeAdaptationCost,
   sporulateRequirement,
 } from '../src/core/forest.ts';
-import { createState, hasMutation, type GameState } from '../src/core/state.ts';
+import { createState, ownsMutation, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import { BIOME_ADAPTATION_IDS, DISPERSE_COST, type DestinationId } from '../src/data/biomes.ts';
@@ -124,10 +124,10 @@ function buyBiomeAdaptations(state: GameState, reserve: number): void {
 /** Compra mutaciones en el orden de la tabla en cuanto alcanzan las esporas. */
 function buyMutationsInOrder(state: GameState): void {
   for (const m of MUTATIONS) {
-    if (hasMutation(state, m.id)) continue;
+    if (ownsMutation(state, m.id)) continue;
     if (state.spores.available < m.cost) return;
     buyMutation(state, { id: m.id });
-    if (!hasMutation(state, m.id)) return;
+    if (!ownsMutation(state, m.id)) return;
   }
 }
 

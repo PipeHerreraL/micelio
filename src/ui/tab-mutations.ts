@@ -4,7 +4,7 @@
  * posición real de los nodos, así que el árbol sigue bien dibujado al cambiar el ancho.
  */
 import { buyMutation, isMutationAvailable } from '../core/actions.ts';
-import { hasMutation } from '../core/state.ts';
+import { ownsMutation } from '../core/state.ts';
 import { MUTATIONS, getMutation, type MutationDef, type MutationId } from '../data/mutations.ts';
 import { getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setText, svg, toggleClass } from './dom.ts';
@@ -112,7 +112,7 @@ export function createMutationsTab(store: Store): TabView {
         const x2 = child.left + child.width / 2 - box.left;
         const y2 = child.top - box.top;
         const mid = (y1 + y2) / 2;
-        const owned = hasMutation(store.state, req) && hasMutation(store.state, node.def.id);
+        const owned = ownsMutation(store.state, req) && ownsMutation(store.state, node.def.id);
         paths.push(
           svg('path', {
             d: `M${x1.toFixed(1)} ${y1.toFixed(1)}C${x1.toFixed(1)} ${mid.toFixed(1)} ${x2.toFixed(1)} ${mid.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
@@ -135,7 +135,7 @@ export function createMutationsTab(store: Store): TabView {
   let ownedSignature = '';
 
   function stateOf(id: MutationId): NodeState {
-    if (hasMutation(store.state, id)) return 'owned';
+    if (ownsMutation(store.state, id)) return 'owned';
     return isMutationAvailable(store.state, id) ? 'available' : 'locked';
   }
 

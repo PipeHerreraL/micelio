@@ -12,7 +12,7 @@ import {
 import { quoteGenerator } from '../src/core/economy.ts';
 import { drain, type GameEvent } from '../src/core/events.ts';
 import { derived, invalidate } from '../src/core/selectors.ts';
-import { createState, type GameState, type RainDrop } from '../src/core/state.ts';
+import { createState, hasMutation, ownsMutation, type GameState, type RainDrop } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import type { MutationId } from '../src/data/mutations.ts';
 import { checkAchievements, grantAchievement } from '../src/systems/achievements.ts';
@@ -752,6 +752,16 @@ describe('mutaciones', () => {
     expect(state.spores).toEqual({ level: 15, available: 14 });
     expect(state.mutations).toEqual(['soilMemory']);
     expect(eventsOf('buyMutation')).toEqual([{ type: 'buyMutation', id: 'soilMemory' }]);
+  });
+
+  it('una mutación comprada está en el árbol y su efecto rige; una sin comprar, ninguna de las dos', () => {
+    const state = fresh();
+    state.spores = { level: 5, available: 5 };
+    buyMutation(state, { id: 'soilMemory' });
+    expect(ownsMutation(state, 'soilMemory')).toBe(true);
+    expect(hasMutation(state, 'soilMemory')).toBe(true);
+    expect(ownsMutation(state, 'lightChitin')).toBe(false);
+    expect(hasMutation(state, 'lightChitin')).toBe(false);
   });
 
   it('no compra una mutación sin su requisito', () => {

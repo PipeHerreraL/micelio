@@ -266,13 +266,24 @@ export function createState(seed: number, now: number): GameState {
   };
 }
 
-export function hasMutation(state: GameState, id: MutationId): boolean {
+/** La mutación está comprada: cuenta para el árbol, el Acto I y lo que se puede comprar. */
+export function ownsMutation(state: GameState, id: MutationId): boolean {
   return state.mutations.includes(id);
+}
+
+/**
+ * El efecto de la mutación rige: es lo que leen la producción, la lluvia, el sin conexión, la
+ * autocompra y los desbloqueos. Hoy coincide con tenerla comprada; el voto «sin mutaciones» de la
+ * fase 10 dormirá mutaciones compradas, y por eso son dos preguntas y no una (confundirlas dejaría
+ * recomprar una dormida o cerrar mal el Acto I).
+ */
+export function hasMutation(state: GameState, id: MutationId): boolean {
+  return ownsMutation(state, id);
 }
 
 /** Árbol de mutaciones completo: abre las Adaptaciones y es la mitad del Acto I. */
 export function isTreeComplete(state: GameState): boolean {
-  return MUTATION_IDS.every((id) => state.mutations.includes(id));
+  return MUTATION_IDS.every((id) => ownsMutation(state, id));
 }
 
 export function hasUpgrade(state: GameState, id: string): boolean {

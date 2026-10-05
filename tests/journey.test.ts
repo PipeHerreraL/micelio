@@ -11,8 +11,11 @@ import {
 import { drain, type GameEvent } from '../src/core/events.ts';
 import {
   biomeAdaptationGate,
+  colonizedCount,
   destinations,
+  dispersalCount,
   isActOneClosed,
+  lineageFactor,
   nextBiomeAdaptationCost,
   sporulateRequirement,
 } from '../src/core/forest.ts';
@@ -20,7 +23,7 @@ import { DISPERSE_RESET, SPORULATE_RESET } from '../src/core/resets.ts';
 import { computeDerived, derived, invalidate } from '../src/core/selectors.ts';
 import { createState, emptyOwned, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
-import { BIOMES, getBiome, getBiomeAdaptation } from '../src/data/biomes.ts';
+import { BIOMES, DESTINATION_IDS, LEG_SCALE, getBiome, getBiomeAdaptation } from '../src/data/biomes.ts';
 import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { RAIN_EFFECTS } from '../src/data/rain.ts';
 import { checkAchievements } from '../src/systems/achievements.ts';
@@ -92,6 +95,43 @@ describe('consultas del viaje', () => {
     colonize(viaTaiga);
     disperse(viaTaiga, { to: 'choco', now: NOW + 9000 });
     expect(sporulateRequirement(viaTaiga)).toBe(7e11);
+  });
+
+  it('hay un factor de R por tramo del viaje, y los de los tramos 1 y 2 son los de la 1.3–1.5', () => {
+    expect(LEG_SCALE).toHaveLength(DESTINATION_IDS.length + 1);
+    expect(LEG_SCALE[1]).toBe(1);
+    expect(LEG_SCALE[2]).toBe(3.5);
+  });
+
+  it('el linaje cuenta destinos colonizados: una entrada del natal en un tramo posterior no lo multiplica', () => {
+    const s = arrivedIn('taiga');
+    colonize(s);
+    expect(colonizedCount(s)).toBe(1);
+    expect(lineageFactor(s)).toBe(2);
+    // La entrada que escribirá El regreso (fase 10): el natal, cerrado en un tramo posterior al 0.
+    // Hoy el validador la rechaza; la consulta debe ignorarla igual.
+    s.chronicle.push({
+      biome: 'natal',
+      leg: 2,
+      arrivedAt: NOW + 9000,
+      colonizedAt: NOW + 20_000,
+      sporulations: 4,
+      playTime: 3600,
+      leftAt: null,
+      levelReached: null,
+    });
+    expect(colonizedCount(s)).toBe(1);
+    expect(lineageFactor(s)).toBe(2);
+  });
+
+  it('los viajes cuentan cada dispersión: 0 en el natal, 1 y 2 tras dispersar dos veces', () => {
+    const s = actOneState();
+    expect(dispersalCount(s)).toBe(0);
+    disperse(s, { to: 'taiga', now: NOW + 1000 });
+    expect(dispersalCount(s)).toBe(1);
+    colonize(s);
+    disperse(s, { to: 'choco', now: NOW + 9000 });
+    expect(dispersalCount(s)).toBe(2);
   });
 
   it('desde el natal quedan la taiga y el Chocó; desde la taiga, el Chocó; en el tramo 2, ninguno', () => {

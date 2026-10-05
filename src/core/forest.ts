@@ -8,10 +8,11 @@
 import {
   BIOME_ADAPTATIONS,
   DESTINATION_IDS,
-  LEG_SCALE_GROWTH,
+  LEG_SCALE,
   LINEAGE_FACTOR,
   getBiome,
   getBiomeAdaptation,
+  isDestinationId,
   type BiomeAdaptationId,
   type BiomeId,
   type DestinationId,
@@ -23,10 +24,15 @@ import { adaptationCost } from './formulas.ts';
 import type { Num } from './num.ts';
 import type { ChronicleEntry, GameState } from './state.ts';
 
-/** R del bosque actual: requisito y escala de esporas, × LEG_SCALE_GROWTH por tramo desde el primer destino. */
+/**
+ * R del bosque actual: requisito y escala de esporas, la escala del bioma × el factor de su tramo.
+ * Hay un factor por tramo (journey.test lo comprueba) y el validador del guardado acota el tramo;
+ * si aun así faltara, rige el último y no ×1, que abarataría el bosque.
+ */
 function legScale(state: GameState): number {
   const { biome, leg } = state.forest;
-  return getBiome(biome).scale * LEG_SCALE_GROWTH ** Math.max(0, leg - 1);
+  const factor = LEG_SCALE[Math.min(leg, LEG_SCALE.length - 1)] ?? 1;
+  return getBiome(biome).scale * factor;
 }
 
 /** Nutrientes ganados en la partida que pide Esporular en este bosque. */
@@ -57,16 +63,28 @@ export function isColonized(state: GameState, biome: DestinationId): boolean {
   return state.chronicle.some((e) => e.leg >= 1 && e.biome === biome);
 }
 
-/** Biomas colonizados fuera del natal (c). */
+/**
+ * Destinos colonizados (c). Cuenta por bioma y no por tramo: la entrada del natal de El regreso
+ * (fase 10) cierra un tramo posterior al 0 y no debe multiplicar el linaje.
+ */
 export function colonizedCount(state: GameState): number {
   let count = 0;
-  for (const e of state.chronicle) if (e.leg >= 1) count += 1;
+  for (const e of state.chronicle) if (isDestinationId(e.biome)) count += 1;
   return count;
 }
 
-/** Linaje: ×2 de producción por bioma colonizado fuera del natal (ρ = 2^c). */
+/** Linaje: ×2 de producción por destino colonizado (ρ = 2^c). */
 export function lineageFactor(state: GameState): number {
   return LINEAGE_FACTOR ** colonizedCount(state);
+}
+
+/**
+ * Viajes del linaje: la semilla de la red y la transición del suelo cambian con cada uno. Hoy es
+ * el tramo; el ciclo libre de la fase 10 sumará las siembras, que vuelven a un bioma sin cambiar de
+ * tramo.
+ */
+export function dispersalCount(state: Readonly<GameState>): number {
+  return state.forest.leg;
 }
 
 /** Biomas por los que pasó el linaje, incluido el actual. Solo se sale de un bosque cerrado. */

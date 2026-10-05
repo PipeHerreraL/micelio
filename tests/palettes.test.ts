@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BIOME_IDS } from '../src/data/biomes.ts';
 import { BIRCH_TONE, LITTER_DEPTH, SOIL_PALETTES, type SoilPalette } from '../src/render/palettes.ts';
 
-/** Todos los textos de una paleta (colores), recorriendo listas y matas. */
+/** Todos los colores de una paleta, recorriendo listas, matas e hilos (la silueta es un nombre). */
 function tonesOf(palette: SoilPalette): string[] {
   const out: string[] = [];
   const visit = (value: unknown): void => {
@@ -10,7 +10,8 @@ function tonesOf(palette: SoilPalette): string[] {
     else if (Array.isArray(value)) value.forEach(visit);
     else if (typeof value === 'object' && value !== null) Object.values(value).forEach(visit);
   };
-  visit(palette);
+  const { silhouetteKind: _kind, ...colors } = palette;
+  visit(colors);
   return out;
 }
 
@@ -45,6 +46,9 @@ describe('paletas del suelo', () => {
       treeWidth: 1,
       buttress: false,
       reach: 1,
+      // Las claves de la fase 10 no pintan nada nuevo en el natal: troncos y sin hilos.
+      silhouetteKind: 'trees',
+      threads: null,
     });
   });
 
@@ -52,6 +56,13 @@ describe('paletas del suelo', () => {
     // 0,68 − 0,06 da 0,6200000000000001: calcularlo movería el degradado de la 1.2.1.
     expect(SOIL_PALETTES.natal.deepStart).toBe(0.62);
     expect(0.68 - 0.06).not.toBe(0.62);
+  });
+
+  it('los suelos de la 1.3–1.5 se recortan con troncos y no tienen hilos', () => {
+    for (const id of ['natal', 'taiga', 'choco'] as const) {
+      expect(SOIL_PALETTES[id].silhouetteKind).toBe('trees');
+      expect(SOIL_PALETTES[id].threads).toBeNull();
+    }
   });
 
   it('hay una paleta por bioma y todas tienen las mismas claves que la natal', () => {

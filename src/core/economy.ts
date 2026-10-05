@@ -38,7 +38,7 @@ export function isGeneratorUnlocked(state: GameState, def: GeneratorDef): boolea
     case 'sporulations':
       return state.stats.sporulations >= unlock.count;
     case 'mutation':
-      return state.mutations.some((m) => m === unlock.id);
+      return hasMutation(state, unlock.id);
   }
 }
 
