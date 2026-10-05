@@ -27,7 +27,7 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 165.2 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 35.8 s de cómputo en 11 hilos). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
@@ -169,7 +169,7 @@ Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/
 
 <!-- sim:plasmodio:start -->
 
-_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 64.1 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 66.7 s de cómputo). No editar a mano entre estas marcas._
 
 ### El plasmodio (docs/ROADMAP.md, fase 9)
 
