@@ -18,6 +18,7 @@ import {
   isActOneClosed,
   lineageFactor,
   nextBiomeAdaptationCost,
+  sporeScale,
   sporulateRequirement,
 } from '../src/core/forest.ts';
 import { DISPERSE_RESET, SPORULATE_RESET } from '../src/core/resets.ts';
@@ -29,7 +30,7 @@ import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { RAIN_EFFECTS } from '../src/data/rain.ts';
 import { checkAchievements } from '../src/systems/achievements.ts';
 import { checkActOne, checkColonization } from '../src/systems/journey.ts';
-import { applyOffline } from '../src/systems/offline.ts';
+import { applyOffline, offlineCapSeconds } from '../src/systems/offline.ts';
 import { dewAmount, effectDuration, rollRainInterval, updateRain } from '../src/systems/rain.ts';
 
 /**
@@ -77,6 +78,24 @@ function colonize(s: GameState, now = NOW + 5000): void {
   s.spores.level = Math.max(s.spores.level, 500);
   checkColonization(s, now);
   invalidate(s);
+}
+
+/**
+ * Recién llegado a un bioma del segundo anillo como tercer destino, tras colonizar la taiga y el
+ * Chocó por el camino del juego; limpio como `arrivedIn` (linaje ×4).
+ */
+function arrivedInRingTwo(to: 'prairie' | 'tundra', now = NOW + 20_000): GameState {
+  const s = arrivedIn('taiga');
+  colonize(s);
+  disperse(s, { to: 'choco', now: NOW + 9000 });
+  colonize(s, NOW + 15_000);
+  disperse(s, { to, now });
+  s.achievements = [];
+  s.owned = emptyOwned();
+  s.nutrients = 0;
+  invalidate(s);
+  drain();
+  return s;
 }
 
 describe('consultas del viaje', () => {
@@ -154,10 +173,18 @@ describe('consultas del viaje', () => {
     expect(destinations(s)).toEqual([]);
   });
 
-  it('los textos escritos a mano siguen a los datos: la mitad, el doble y un clic por rango', () => {
-    // biome.taiga.rule.rain dice «llueve la mitad» y biome.choco.rule.rain «el doble».
+  it('los textos escritos a mano siguen a los datos: la mitad, el doble, un tercio y un clic por rango', () => {
+    // biome.taiga.rule.rain y biome.prairie.rule.rain dicen «llueve la mitad»,
+    // biome.choco.rule.rain «el doble» y biome.tundra.rule.rain «un tercio».
     expect(getBiome('taiga').rainInterval).toBe(2);
     expect(getBiome('choco').rainInterval).toBe(0.5);
+    expect(getBiome('prairie').rainInterval).toBe(2);
+    expect(getBiome('tundra').rainInterval).toBe(3);
+    // biome.tundra.rule.half dice «todo crece a la mitad»; ningún otro bioma cambia todos los
+    // generadores a la vez.
+    expect(BIOMES.filter((b) => b.productionFactor !== 1).map((b) => [b.id, b.productionFactor])).toEqual([
+      ['tundra', 0.5],
+    ]);
     // biome.choco.rule.storm dice «la mitad de veces».
     const stormNatal = RAIN_EFFECTS.find((e) => e.kind === 'storm')?.chance;
     const stormChoco = getBiome('choco').rainEffects?.find((e) => e.kind === 'storm')?.chance;
@@ -165,8 +192,11 @@ describe('consultas del viaje', () => {
     // badapt.leafcutters dice «un clic automático por segundo».
     const leafcutters = getBiomeAdaptation('leafcutters').effect;
     expect(leafcutters.kind === 'autoClicks' && leafcutters.perRank).toBe(1);
-    // Solo la taiga cambia la producción de generadores.
-    expect(BIOMES.filter((b) => Object.keys(b.production).length > 0).map((b) => b.id)).toEqual(['taiga']);
+    // Solo la taiga y la pradera cambian la producción de un generador en concreto.
+    expect(BIOMES.filter((b) => Object.keys(b.production).length > 0).map((b) => b.id)).toEqual([
+      'taiga',
+      'prairie',
+    ]);
   });
 
   it('cada rango de una adaptación de bioma pide su nivel local, salvo que el bioma esté colonizado', () => {
@@ -580,9 +610,16 @@ describe('dispersar', () => {
     const taiga = arrivedIn('taiga');
     expect(disperseBlock(taiga)).toBe('colonize');
 
+    // Hasta el cuarto bioma siempre queda adónde ir.
     colonize(taiga);
     disperse(taiga, { to: 'choco', now: NOW + 9000 });
-    colonize(taiga);
+    colonize(taiga, NOW + 10_000);
+    disperse(taiga, { to: 'prairie', now: NOW + 11_000 });
+    colonize(taiga, NOW + 12_000);
+    disperse(taiga, { to: 'tundra', now: NOW + 13_000 });
+    expect(taiga.forest).toMatchObject({ biome: 'tundra', leg: 4 });
+    expect(disperseBlock(taiga)).toBe('noDestination');
+    colonize(taiga, NOW + 14_000);
     expect(disperseBlock(taiga)).toBe('noDestination');
   });
 
@@ -717,5 +754,122 @@ describe('tablas de reinicio', () => {
     const forest = { ...s.forest };
     sporulate(s, { now: NOW + 7000 });
     expect(s.forest).toEqual({ ...forest, earned: forest.earned });
+  });
+});
+
+describe('el segundo anillo: la pradera y la tundra (fase 10)', () => {
+  it('no se ofrecen hasta colonizar la taiga y el Chocó, y luego en cualquier orden', () => {
+    const s = arrivedIn('taiga');
+    colonize(s);
+    expect(destinations(s)).toEqual(['choco']);
+    const before = structuredClone(s);
+    disperse(s, { to: 'prairie', now: NOW + 9000 });
+    disperse(s, { to: 'tundra', now: NOW + 9000 });
+    expect(s).toEqual(before);
+    disperse(s, { to: 'choco', now: NOW + 9000 });
+    expect(destinations(s)).toEqual([]);
+    // En el Chocó sin colonizar no falta un destino: falta colonizarlo para abrir el anillo.
+    expect(disperseBlock(s)).toBe('colonize');
+    colonize(s, NOW + 15_000);
+    expect(destinations(s)).toEqual(['prairie', 'tundra']);
+    expect(disperseBlock(s)).toBeNull();
+    disperse(s, { to: 'tundra', now: NOW + 20_000 });
+    expect(s.forest).toMatchObject({ biome: 'tundra', leg: 3 });
+    expect(destinations(s)).toEqual(['prairie']);
+  });
+
+  it('la R de los tramos 3 y 4: pradera 1,1025e12 y 5,5125e12; tundra 4,2875e10 y 2,14375e11', () => {
+    // 9e10 · 12,25 y 9e10 · 61,25; 3,5e9 · 12,25 y 3,5e9 · 61,25 (×3,5 y luego ×5).
+    expect(LEG_SCALE).toEqual([1, 1, 3.5, 12.25, 61.25]);
+    const prairie = arrivedInRingTwo('prairie');
+    expect(sporulateRequirement(prairie)).toBe(1.1025e12);
+    expect(sporeScale(prairie)).toBe(1.1025e12);
+    colonize(prairie, NOW + 30_000);
+    disperse(prairie, { to: 'tundra', now: NOW + 40_000 });
+    expect(sporulateRequirement(prairie)).toBe(2.14375e11);
+    const tundra = arrivedInRingTwo('tundra');
+    expect(sporulateRequirement(tundra)).toBe(4.2875e10);
+    colonize(tundra, NOW + 30_000);
+    disperse(tundra, { to: 'prairie', now: NOW + 40_000 });
+    expect(sporeScale(tundra)).toBe(5.5125e12);
+  });
+
+  it('en la pradera 10 Anillos de hadas rinden 320 · 10 · 6 · 4 (linaje) = 76 800 N/s', () => {
+    const s = arrivedInRingTwo('prairie');
+    s.owned.fairyRing = 10;
+    s.owned.mycorrhiza = 1;
+    invalidate(s);
+    expect(derived(s).lineage).toBe(4);
+    expect(derived(s).generatorProduction.fairyRing).toBe(76_800);
+    // Los demás, sin el factor del bioma: 1800 · 4.
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(7200);
+  });
+
+  it('en la tundra todo rinde la mitad: 10 Redes micorrícicas, 1800 · 10 · 0,5 · 4 = 36 000 N/s', () => {
+    const s = arrivedInRingTwo('tundra');
+    s.owned.mycorrhiza = 10;
+    s.owned.hypha = 10;
+    invalidate(s);
+    expect(derived(s).biomeFactor.mycorrhiza).toBe(0.5);
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(36_000);
+    // 10 Hifas · 0,1 · 0,5 · 4 = 2.
+    expect(derived(s).generatorProduction.hypha).toBe(2);
+  });
+
+  it('en la tundra el tope sin conexión suma 24 h: 48 h con Sueño invernal y 72 h con Letargo profundo 4', () => {
+    const s = arrivedInRingTwo('tundra');
+    expect(offlineCapSeconds(s)).toBe(48 * 3600);
+    s.adaptations.deepTorpor = 4;
+    expect(offlineCapSeconds(s)).toBe(72 * 3600);
+    // En la pradera, el de siempre.
+    expect(offlineCapSeconds(arrivedInRingTwo('prairie'))).toBe(24 * 3600);
+  });
+
+  it('8 h fuera de la tundra cobran 8 h de su producción, sin clics ni lluvia', () => {
+    const s = arrivedInRingTwo('tundra');
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    const nutrients = s.nutrients;
+    const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 8 * 3_600_000);
+    // Sueño invernal: eficiencia 1. 36 000 N/s · 28 800 s.
+    expect(report.effective).toBe(28_800);
+    expect(report.gained).toBe(1.0368e9);
+    expect(s.nutrients - nutrients).toBe(1.0368e9);
+  });
+
+  it('en la tundra, con Olfato de lluvia, la espera entre gotas va de 276,92 a 692,31 s', () => {
+    for (let seed = 1; seed <= 60; seed += 1) {
+      const s = arrivedInRingTwo('tundra');
+      s.rngSeed = seed;
+      const wait = rollRainInterval(s);
+      expect(wait).toBeGreaterThanOrEqual((120 * 3) / 1.3);
+      expect(wait).toBeLessThanOrEqual((300 * 3) / 1.3);
+    }
+  });
+
+  it('colonizar la pradera y la tundra otorga sus logros, y el linaje llega a ×16', () => {
+    const s = arrivedInRingTwo('prairie');
+    colonize(s, NOW + 30_000);
+    checkAchievements(s);
+    expect(s.achievements).toContain('colonize.prairie');
+    disperse(s, { to: 'tundra', now: NOW + 40_000 });
+    colonize(s, NOW + 50_000);
+    checkAchievements(s);
+    expect(s.achievements).toContain('colonize.tundra');
+    expect(colonizedCount(s)).toBe(4);
+    expect(lineageFactor(s)).toBe(16);
+  });
+
+  it('un bioma sin adaptaciones no cumple «todas sus adaptaciones al máximo» en vacío', () => {
+    const fresh = createState(61, NOW);
+    checkAchievements(fresh);
+    expect(fresh.achievements).not.toContain('adapt.biomeFull');
+    // Las tres de la taiga al máximo sí lo cumplen.
+    const s = arrivedIn('taiga');
+    s.biomeAdaptations.rockEating = 3;
+    s.biomeAdaptations.seedlingNetwork = 3;
+    s.biomeAdaptations.trehalose = 2;
+    checkAchievements(s);
+    expect(s.achievements).toContain('adapt.biomeFull');
   });
 });

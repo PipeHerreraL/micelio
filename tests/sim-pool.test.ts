@@ -88,13 +88,18 @@ describe('reparto del simulador entre hilos', () => {
 });
 
 describe('órdenes del viaje en el simulador', () => {
-  it('con un solo anillo (taiga y Chocó) salen los dos órdenes de la 1.5 y ninguna rama', () => {
+  it('con dos anillos salen los dos órdenes de la 1.5 como prefijos y la pradera y la tundra como ramas', () => {
+    // Los anillos salen de la regla del juego (destinations): si la pradera o la tundra se
+    // ofrecieran de primer destino, aparecerían en los prefijos.
     expect(journeyPlan()).toEqual({
       prefixes: [
         ['taiga', 'choco'],
         ['choco', 'taiga'],
       ],
-      branches: [[]],
+      branches: [
+        ['prairie', 'tundra'],
+        ['tundra', 'prairie'],
+      ],
     });
   });
 

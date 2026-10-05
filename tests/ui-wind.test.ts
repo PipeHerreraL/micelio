@@ -48,6 +48,21 @@ function inTaiga(): GameState {
   return s;
 }
 
+/** Coloniza el bosque actual por la vía del núcleo. */
+function colonize(state: GameState, now: number): void {
+  state.spores.level = Math.max(state.spores.level, 500);
+  checkColonization(state, now);
+  invalidate(state);
+}
+
+/** En el Chocó, segundo destino y aún sin colonizar: el anillo 2 sigue cerrado. */
+function inChocoSecond(): GameState {
+  const s = inTaiga();
+  colonize(s, NOW + 5000);
+  disperse(s, { to: 'choco', now: NOW + 9000 });
+  return s;
+}
+
 /** Monta un componente dentro de un panel de pestaña enfocable, como tabs.ts. */
 function mount(root: HTMLElement): HTMLElement {
   const panel = h('section', { attrs: { role: 'tabpanel', tabindex: 0 } }, [root]);
@@ -101,19 +116,59 @@ describe('sección Viento de esporas', () => {
     expect(document.activeElement).toBe(choco);
   });
 
-  it('en el último bioma sin colonizar lo dice, y al colonizarlo ya no queda adónde ir', () => {
+  it('con el primer bosque colonizado, bajo el otro bosque dice cuándo se abren dos biomas más', () => {
     const state = inTaiga();
-    state.spores.level = 500;
-    checkColonization(state, NOW + 5000);
-    disperse(state, { to: 'choco', now: NOW + 9000 });
-    const store = createStore(state);
-    const wind = windOf(store);
+    const wind = windOf(createStore(state));
+    const ring2 = wind.root.querySelector<HTMLElement>('.wind__ring2');
+    // Antes de colonizar nada, no: el viaje acaba de empezar.
+    expect(ring2?.hidden).toBe(true);
+    colonize(state, NOW + 5000);
+    wind.update();
+    expect(visibleButtons(wind.root).map((b) => b.textContent)).toEqual([
+      'Dispersar hacia la selva del Chocó',
+    ]);
+    expect(ring2?.hidden).toBe(false);
+    expect(ring2?.textContent).toBe(
+      'Donde acaban los árboles: dos biomas más se abren cuando tu linaje colonice la taiga y la selva del Chocó.',
+    );
+  });
+
+  it('en el Chocó segundo sin colonizar no dice que sea el último bioma; al colonizarlo ofrece la pradera y la tundra', () => {
+    const state = inChocoSecond();
+    const wind = windOf(createStore(state));
+    expect(visibleButtons(wind.root)).toEqual([]);
+    const end = wind.root.querySelector<HTMLElement>('.wind__end');
+    const ring2 = wind.root.querySelector<HTMLElement>('.wind__ring2');
+    expect(end?.hidden).toBe(true);
+    expect(ring2?.hidden).toBe(false);
+    colonize(state, NOW + 20_000);
+    wind.update();
+    expect(ring2?.hidden).toBe(true);
+    expect(end?.hidden).toBe(true);
+    const buttons = visibleButtons(wind.root);
+    expect(buttons.map((b) => b.textContent)).toEqual([
+      'Dispersar hacia la pradera',
+      'Dispersar hacia la tundra',
+    ]);
+    for (const b of buttons) expect(b.getAttribute('aria-disabled')).toBe('false');
+    // Cada fila con sus reglas, sacadas de los datos.
+    expect(wind.root.textContent).toContain('El Anillo de hadas rinde ×6.');
+    expect(wind.root.textContent).toContain('Con el frío todo crece a la mitad: la producción es ×0,5.');
+    expect(wind.root.textContent).toContain('Mientras vives aquí, tu red aguanta 24 h más sin ti.');
+  });
+
+  it('en el cuarto bioma sin colonizar dice que es el último, y al colonizarlo ya no queda adónde ir', () => {
+    const state = inChocoSecond();
+    colonize(state, NOW + 20_000);
+    disperse(state, { to: 'prairie', now: NOW + 30_000 });
+    colonize(state, NOW + 40_000);
+    disperse(state, { to: 'tundra', now: NOW + 50_000 });
+    const wind = windOf(createStore(state));
     expect(visibleButtons(wind.root)).toEqual([]);
     const end = wind.root.querySelector<HTMLElement>('.wind__end');
     expect(end?.textContent).toContain('último bioma');
-    state.spores.level = 500;
-    checkColonization(state, NOW + 20_000);
-    invalidate(state);
+    expect(wind.root.querySelector<HTMLElement>('.wind__ring2')?.hidden).toBe(true);
+    colonize(state, NOW + 60_000);
     wind.update();
     expect(end?.textContent).toContain('No quedan biomas nuevos');
   });
@@ -223,6 +278,26 @@ describe('Crónica y adaptaciones aprendidas después de colonizar', () => {
     store.dispatch(buyBiomeAdaptation, { id: 'rockEating' });
     tab.update();
     expect(tab.root.textContent).toContain('Adaptaciones de este bioma: 1 de 3');
+  });
+});
+
+describe('un bioma sin adaptaciones todavía (la pradera y la tundra, hasta las suyas)', () => {
+  it('no tiene grupo en Mutaciones ni línea de adaptaciones en la Crónica', () => {
+    const state = inChocoSecond();
+    colonize(state, NOW + 20_000);
+    disperse(state, { to: 'tundra', now: NOW + 30_000 });
+    colonize(state, NOW + 40_000);
+    const store = createStore(state);
+    const view = createBiomeAdaptations(store);
+    mount(view.root);
+    view.update();
+    expect(view.root.querySelector('#badapt-tundra-title')).toBeNull();
+    const tab = createChronicleTab(store, nav);
+    mount(tab.root);
+    tab.update();
+    const tundra = Array.from(tab.root.querySelectorAll('.chronicle__entry')).at(-1);
+    expect(tundra?.textContent).toContain('Tundra · colonizado');
+    expect(tundra?.textContent).not.toContain('Adaptaciones de este bioma');
   });
 });
 

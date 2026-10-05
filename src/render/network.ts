@@ -29,7 +29,15 @@ import { derived } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
 import { BIOME_IDS, type BiomeId } from '../data/biomes.ts';
 import { GENERATOR_IDS } from '../data/generators.ts';
-import { BIRCH_ALPHA, BIRCH_TONE, LITTER_DEPTH, SOIL_PALETTES, type SoilPalette } from './palettes.ts';
+import {
+  BIRCH_ALPHA,
+  BIRCH_TONE,
+  LITTER_DEPTH,
+  SOIL_PALETTES,
+  type SoilLenses,
+  type SoilPalette,
+  type SoilThreads,
+} from './palettes.ts';
 import { createParticlePool, PARTICLE_CREAM, PARTICLE_GLOW } from './particles.ts';
 import { createSeededRandom, mixSeed } from './random.ts';
 
@@ -149,6 +157,11 @@ const TREE_BASE_X = [0.25, 0.75, 0.37, 0.63] as const;
  */
 const BUTTRESS_SPAN = 2.5;
 const BUTTRESS_RISE = 0.4;
+/** Briznas de cada mata de hierba lejana (pradera), donde los bosques tienen un tronco. */
+const GRASS_BLADES = 5;
+/** El pingo de la tundra: centro y medio ancho (fracciones del ancho del lienzo). */
+const PINGO_X = 0.68;
+const PINGO_HALF = 0.11;
 
 // ---------------------------------------------------------------------------------------
 // Pulsos, partículas y clima
@@ -876,8 +889,27 @@ export function createNetworkView(
     }
   }
 
-  /** Bosque ancestral: troncos lejanos y tenues que se pierden en la hojarasca. */
+  /**
+   * Árboles madre que se dibujan: en la pradera, un roble solo. drawTreeLinks enlaza las raíces
+   * de los mismos, así que no queda ningún enlace desde un árbol que no está.
+   */
+  function treesShown(p: SoilPalette): number {
+    return p.silhouetteKind === 'grass' ? Math.min(1, treeCount) : treeCount;
+  }
+
+  /**
+   * Bosque ancestral: troncos lejanos y tenues que se pierden en la hojarasca. Sin bosque (fase
+   * 10), en esos mismos huecos: hierba alta en la pradera y arbustos enanos en la tundra.
+   */
   function drawForest(p: SoilPalette): void {
+    if (p.silhouetteKind === 'grass') {
+      drawFarGrass(p);
+      return;
+    }
+    if (p.silhouetteKind === 'shrubs') {
+      drawFarShrubs(p);
+      return;
+    }
     layer.fillStyle = p.distantSilhouette;
     for (let k = 0; k < forestCount; k++) {
       const xN = forestX[k] ?? 0.5;
@@ -901,9 +933,66 @@ export function createNetworkView(
     }
   }
 
+  /**
+   * Matas de hierba alta: briznas que salen de la hojarasca y se cortan arriba, como los troncos.
+   * La forma de cada brizna sale del índice y no del azar: es la misma en cada redibujado y no
+   * mueve la secuencia de adornos.
+   */
+  function drawFarGrass(p: SoilPalette): void {
+    layer.strokeStyle = p.distantSilhouette;
+    layer.lineCap = 'round';
+    for (let k = 0; k < forestCount; k++) {
+      const xN = forestX[k] ?? 0.5;
+      const scale = forestScale[k] ?? 1;
+      const x = xN * W;
+      const base = surfaceY(xN) * H * 0.85;
+      const half = clamp(W * 0.0035, 1.5 * dpr, 5 * dpr) * scale;
+      layer.globalAlpha = 0.3 + 0.15 * scale;
+      layer.lineWidth = clamp(W * 0.0012, 0.8 * dpr, 2 * dpr) * scale;
+      layer.beginPath();
+      for (let j = 0; j < GRASS_BLADES; j++) {
+        const foot = x + (j - (GRASS_BLADES - 1) / 2) * half;
+        const lean = Math.sin(k * 1.7 + j * 2.3) * half * 1.6;
+        const tip = base * (0.08 + 0.32 * (0.5 + 0.5 * Math.sin(k * 0.9 + j * 1.3)));
+        layer.moveTo(foot, base);
+        layer.quadraticCurveTo(foot + lean * 0.25, (base + tip) / 2, foot + lean, tip);
+      }
+      layer.stroke();
+    }
+  }
+
+  /**
+   * Tundra: un pingo al fondo (una colina con núcleo de hielo), siempre, y arbustos enanos en los
+   * huecos del bosque ancestral: copas bajas que no salen de la hojarasca.
+   */
+  function drawFarShrubs(p: SoilPalette): void {
+    layer.fillStyle = p.distantSilhouette;
+    const px = PINGO_X * W;
+    const pw = PINGO_HALF * W;
+    const pb = surfaceY(PINGO_X) * H * 0.85;
+    const ph = pb * 0.7;
+    layer.globalAlpha = 0.35;
+    layer.beginPath();
+    layer.moveTo(px - pw, pb);
+    layer.quadraticCurveTo(px - pw * 0.45, pb - ph * 0.95, px, pb - ph);
+    layer.quadraticCurveTo(px + pw * 0.45, pb - ph * 0.95, px + pw, pb);
+    layer.closePath();
+    layer.fill();
+    for (let k = 0; k < forestCount; k++) {
+      const xN = forestX[k] ?? 0.5;
+      const scale = forestScale[k] ?? 1;
+      const r = clamp(W * 0.006, 2 * dpr, 7 * dpr) * scale * p.distantWidth;
+      layer.globalAlpha = 0.3 + 0.15 * scale;
+      layer.beginPath();
+      layer.ellipse(xN * W, surfaceY(xN) * H * 0.85, r * 1.6, r, 0, Math.PI, TAU);
+      layer.fill();
+    }
+  }
+
   /** Árboles madre: tronco oscuro sobre la hojarasca y raíces que bajan hasta la red. */
   function drawTrees(p: SoilPalette): void {
-    for (let k = 0; k < treeCount; k++) {
+    const shown = treesShown(p);
+    for (let k = 0; k < shown; k++) {
       const xN = treeX[k] ?? 0.5;
       const scale = treeScale[k] ?? 1;
       const cx = xN * W;
@@ -945,6 +1034,10 @@ export function createNetworkView(
         rootTipY[k * ROOTS_PER_TREE + r] = ey;
       }
 
+      if (p.silhouetteKind === 'shrubs') {
+        drawShrub(p, cx, surface, half);
+        continue;
+      }
       layer.globalAlpha = 1;
       layer.fillStyle = p.silhouette;
       layer.beginPath();
@@ -980,6 +1073,44 @@ export function createNetworkView(
   }
 
   /**
+   * Arbusto enano (tundra) en lugar del tronco: tres copas bajas sobre la superficie, dentro de la
+   * hojarasca, con la luz de borde de los troncos en la de la izquierda para que no se pierda.
+   */
+  function drawShrub(p: SoilPalette, cx: number, surface: number, half: number): void {
+    const h = surface * 0.8;
+    layer.globalAlpha = 1;
+    layer.fillStyle = p.silhouette;
+    layer.beginPath();
+    for (let j = -1; j <= 1; j++) {
+      const big = j === 0;
+      layer.ellipse(
+        cx + j * half * 0.9,
+        surface - h * (big ? 0.5 : 0.36),
+        half * (big ? 1.1 : 0.85),
+        h * (big ? 0.5 : 0.38),
+        0,
+        0,
+        TAU,
+      );
+    }
+    layer.fill();
+    layer.strokeStyle = MICELIO;
+    layer.lineWidth = dpr;
+    layer.globalAlpha = RIM_ALPHA;
+    layer.beginPath();
+    layer.ellipse(
+      cx - half * 0.9,
+      surface - h * 0.36,
+      half * 0.85,
+      h * 0.38,
+      0,
+      Math.PI * 0.75,
+      Math.PI * 1.5,
+    );
+    layer.stroke();
+  }
+
+  /**
    * Raíces tablares (Chocó): dos aletas rectas a los lados del ensanche. Van después de la luz
    * de borde y la tapan donde se cruzan, así que la izquierda lleva la suya propia: sin ella,
    * la aleta se perdería sobre una hojarasca casi igual de oscura.
@@ -1010,14 +1141,15 @@ export function createNetworkView(
   }
 
   /** Micorriza: cada punta de raíz se une al nodo de la red más cercano, si lo hay a mano. */
-  function drawTreeLinks(): void {
-    if (treeCount === 0 || count === 0) return;
+  function drawTreeLinks(p: SoilPalette): void {
+    const shown = treesShown(p);
+    if (shown === 0 || count === 0) return;
     const radius = 0.14 * Math.min(W, H);
     const limit = radius * radius;
     layer.strokeStyle = MICELIO;
     layer.fillStyle = MICELIO;
     layer.lineCap = 'round';
-    for (let t = 0; t < treeCount * ROOTS_PER_TREE; t++) {
+    for (let t = 0; t < shown * ROOTS_PER_TREE; t++) {
       const tx = rootTipX[t] ?? 0;
       const ty = rootTipY[t] ?? 0;
       let best = -1;
@@ -1072,7 +1204,7 @@ export function createNetworkView(
         if ((drawn[i] ?? 0) >= 1 && isCord(i)) strokeCord(layer, i);
       }
     }
-    drawTreeLinks();
+    drawTreeLinks(p);
     drawRings();
     drawMushrooms();
     layer.globalAlpha = 1;
@@ -1238,6 +1370,11 @@ export function createNetworkView(
       }
     }
 
+    // Hilos de pseudomicelio (pradera) y lentes de hielo (tundra). Después de todo lo demás: los
+    // suelos sin ellos consumen el mismo azar que antes y pintan lo mismo.
+    if (p.threads) paintThreads(c, p, p.threads, cssArea);
+    if (p.lenses) paintLenses(c, p, p.lenses, cssArea);
+
     // Viñeta suave en los laterales: centra la mirada en la raíz.
     const side = c.createLinearGradient(0, 0, W, 0);
     side.addColorStop(0, 'rgba(8, 5, 3, 0.22)');
@@ -1247,6 +1384,64 @@ export function createNetworkView(
     c.globalAlpha = 1;
     c.fillStyle = side;
     c.fillRect(0, 0, W, H);
+  }
+
+  /** Hilos finos, casi verticales (siguen viejos canales de raíces), del horizonte medio abajo. */
+  function paintThreads(
+    c: CanvasRenderingContext2D,
+    p: SoilPalette,
+    threads: SoilThreads,
+    cssArea: number,
+  ): void {
+    const total = Math.min(400, Math.round((cssArea / 1800) * threads.density));
+    c.strokeStyle = threads.tone;
+    c.lineWidth = 0.7 * dpr;
+    c.lineCap = 'round';
+    for (let n = 0; n < total; n++) {
+      const xN = decor.next();
+      const top = horizonY(1, p.horizons[1], xN) * H;
+      let x = xN * W;
+      let y = top + (H - top) * decor.next();
+      let angle = HALF_PI + (decor.next() - 0.5) * 0.9;
+      const steps = 3 + Math.floor(decor.next() * 3);
+      const step = (2 + decor.next() * 4) * dpr;
+      // Nunca por encima del alfa de la paleta: así no se confunden con las hifas.
+      c.globalAlpha = threads.alpha * (0.6 + 0.4 * decor.next());
+      c.beginPath();
+      c.moveTo(x, y);
+      for (let k = 0; k < steps; k++) {
+        angle += (decor.next() - 0.5) * 0.8;
+        x += Math.cos(angle) * step;
+        y += Math.sin(angle) * step;
+        c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+    c.lineCap = 'butt';
+    c.globalAlpha = 1;
+  }
+
+  /** Lentes de hielo: elipses planas y horizontales bajo la última frontera. */
+  function paintLenses(
+    c: CanvasRenderingContext2D,
+    p: SoilPalette,
+    lenses: SoilLenses,
+    cssArea: number,
+  ): void {
+    const total = Math.min(160, Math.round((cssArea / 2600) * lenses.density));
+    c.fillStyle = lenses.tone;
+    for (let n = 0; n < total; n++) {
+      const xN = decor.next();
+      const top = horizonY(2, p.horizons[2], xN) * H + 4 * dpr;
+      const y = top + Math.max(0, H - top) * decor.next();
+      const rx = (6 + decor.next() * 18) * dpr;
+      const ry = (0.6 + decor.next() * 1.1) * dpr;
+      c.globalAlpha = lenses.alpha * (0.6 + 0.4 * decor.next());
+      c.beginPath();
+      c.ellipse(xN * W, y, rx, ry, (decor.next() - 0.5) * 0.08, 0, TAU);
+      c.fill();
+    }
+    c.globalAlpha = 1;
   }
 
   function paintSprite(sprite: HTMLCanvasElement, rgb: string): void {

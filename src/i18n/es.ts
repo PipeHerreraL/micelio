@@ -351,6 +351,23 @@ export const es = {
   'biome.choco.rule.dew': 'El Rocío da al menos {time} de producción.',
   'biome.choco.rule.storm':
     'Cada gota trae Tormenta eléctrica la mitad de veces: por hora, las mismas tormentas que en el bosque natal.',
+  // La pradera y la tundra (fase 10): los biomas donde acaban los árboles
+  'biome.prairie.name': 'Pradera',
+  'biome.prairie.soil': 'chernozem',
+  'biome.prairie.here': 'Tu linaje vive en la pradera.',
+  'biome.prairie.go': 'Dispersar hacia la pradera',
+  'biome.prairie.style': 'Para quien planea: aquí el motor es el Anillo de hadas, y cada hito cuenta.',
+  'biome.prairie.tag': '×{factor} en la pradera',
+  'biome.prairie.rule.ring': 'El Anillo de hadas rinde ×{factor}.',
+  'biome.prairie.rule.rain': 'Llueve la mitad: entre gota y gota pasa el doble de tiempo.',
+  'biome.tundra.name': 'Tundra',
+  'biome.tundra.soil': 'criosol',
+  'biome.tundra.here': 'Tu linaje vive en la tundra.',
+  'biome.tundra.go': 'Dispersar hacia la tundra',
+  'biome.tundra.style': 'Para quien vuelve de vez en cuando: aquí la red aguanta más tiempo sola.',
+  'biome.tundra.rule.half': 'Con el frío todo crece a la mitad: la producción es ×{factor}.',
+  'biome.tundra.rule.rain': 'Llueve un tercio: entre gota y gota pasa el triple de tiempo.',
+  'biome.tundra.rule.away': 'Mientras vives aquí, tu red aguanta {hours} h más sin ti.',
   'biome.progress': 'Colonización: nivel\u00a0{level} de\u00a0{goal}',
   'biome.colonized': 'Bioma colonizado · nivel {level}',
   'biome.actOne': 'Acto I cumplido · nivel {level}',
@@ -373,6 +390,8 @@ export const es = {
   'wind.last': 'Este es el último bioma de esta versión de Micelio: colonízalo para cerrar el viaje.',
   'wind.none':
     'No quedan biomas nuevos adonde viajar en esta versión de Micelio. Tu red puede seguir creciendo aquí, sin prisa.',
+  'wind.ring2':
+    'Donde acaban los árboles: dos biomas más se abren cuando tu linaje colonice la taiga y la selva del Chocó.',
   'wind.confirm.title': '¿Dispersar tu linaje?',
   'wind.confirm.destination': 'Destino: {name}, {soil}.',
   'wind.confirm.gain.one': 'Esta partida termina esporulando: ganarás {count} espora.',
@@ -432,6 +451,22 @@ export const es = {
   'chapter.choco.colonize.line1':
     'La lluvia intenta llevarse cada nutriente hacia el río. Tu red lo atrapa antes, entre las raíces de la superficie.',
   'chapter.choco.colonize.line2': 'El Chocó ya forma parte de tu linaje.',
+  'chapter.prairie.arrive.title': 'La pradera',
+  'chapter.prairie.arrive.line1':
+    'El viento te deja donde acaban los árboles: hierba alta hasta donde alcanza la vista. Bajo ella, el suelo es negro y hondo, hecho de siglos de raíces de hierba: un chernozem.',
+  'chapter.prairie.arrive.line2': 'Aquí llueve demasiado poco para un bosque.',
+  'chapter.tundra.arrive.title': 'La tundra',
+  'chapter.tundra.arrive.line1':
+    'El viento te deja en el norte, más allá de los últimos árboles. Bajo una capa fina de turba, el suelo solo se deshiela arriba, en verano; más abajo, el permafrost sigue helado todo el año.',
+  'chapter.tundra.arrive.line2': 'Llueve poco, el verano es corto y todo crece despacio.',
+  'chapter.prairie.colonize.title': 'Anillos en la hierba',
+  'chapter.prairie.colonize.line1':
+    'Tus anillos de hadas avanzan cada año un poco hacia fuera y dejan en su borde la hierba más verde.',
+  'chapter.prairie.colonize.line2': 'La pradera ya forma parte de tu linaje.',
+  'chapter.tundra.colonize.title': 'Bajo la nieve',
+  'chapter.tundra.colonize.line1':
+    'Bajo la nieve, el frío llega amortiguado y tus hifas siguen trabajando todo el invierno, como los mohos de nieve.',
+  'chapter.tundra.colonize.line2': 'La tundra ya forma parte de tu linaje.',
   // Crónica
   'chronicle.title': 'Crónica',
   'chronicle.intro': 'Cada bioma que habita tu linaje queda escrito aquí.',
@@ -590,6 +625,10 @@ export const es = {
   'ach.colonize.taiga.desc': 'Coloniza la taiga.',
   'ach.colonize.choco.name': 'Trece metros de lluvia',
   'ach.colonize.choco.desc': 'Coloniza la selva del Chocó.',
+  'ach.colonize.prairie.name': 'Tierra negra',
+  'ach.colonize.prairie.desc': 'Coloniza la pradera.',
+  'ach.colonize.tundra.name': 'Suelo helado',
+  'ach.colonize.tundra.desc': 'Coloniza la tundra.',
   'ach.adapt.biomeFull.name': 'Aclimatación',
   'ach.adapt.biomeFull.desc': 'Lleva al máximo las tres adaptaciones de un bioma.',
   'ach.biomeLevel.1.name': 'Echar raíces',

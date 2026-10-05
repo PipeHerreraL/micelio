@@ -1,11 +1,12 @@
 /**
- * Sección «Viento de esporas» de la pestaña Esporular (docs/ROADMAP.md, fase 8): dónde vive el
- * linaje, cuánto falta para colonizar, los destinos que quedan y su confirmación. Aparece con
- * el Acto I. Las filas de destino se crean una vez y se ocultan al visitarlas; el foco nunca se
- * queda en un botón que desaparece (BUG-JOURNAL #5 y #8).
+ * Sección «Viento de esporas» de la pestaña Esporular (docs/ROADMAP.md, fases 8 y 10): dónde vive
+ * el linaje, cuánto falta para colonizar, los destinos que quedan y su confirmación. Aparece con
+ * el Acto I. Las filas de destino se crean una vez y se ocultan al visitarlas o mientras su anillo
+ * no se abre; el foco nunca se queda en un botón que desaparece (BUG-JOURNAL #5 y #8).
  */
 import { canSporulate, disperse, disperseBlock, disperseFunds, sporeGain } from '../core/actions.ts';
 import {
+  closedRingAhead,
   colonizedCount,
   destinations,
   forestGoal,
@@ -85,6 +86,8 @@ export function createWindSection(store: Store): WindSection {
   const cost = h('p', { class: 'wind__cost tabular', text: tp('wind.cost', DISPERSE_COST) });
   const heading = h('h4', { class: 'wind__heading', text: t('wind.destinations') });
   const list = h('ul', { class: 'wind__list' });
+  // Antes del anillo 2, una línea dice cuándo se abre, en vez de dos filas bloqueadas (fase 10).
+  const ring2 = h('p', { class: 'wind__ring2', text: t('wind.ring2'), attrs: { hidden: true } });
   const end = h('p', { class: 'wind__end', attrs: { hidden: true } });
 
   const rows: DestinationRow[] = DESTINATION_IDS.map((biome) => {
@@ -130,6 +133,7 @@ export function createWindSection(store: Store): WindSection {
     cost,
     heading,
     list,
+    ring2,
     end,
   ]);
 
@@ -215,9 +219,14 @@ export function createWindSection(store: Store): WindSection {
       const remaining = destinations(state);
       const none = remaining.length === 0;
       for (const el of [intro, cost, heading, list]) setHidden(el, none);
-      // Sin destinos: o queda colonizar el último bioma, o ya no hay adónde ir en esta versión.
-      setHidden(end, !none);
-      if (none) setText(end, goal.kind === 'colonized' ? t('wind.none') : t('wind.last'));
+      // Desde el primer bosque colonizado y hasta abrirse. Sin destinos y con el anillo cerrado,
+      // el bosque actual no es el último: falta colonizarlo, y esta línea lo dice.
+      const ringAhead = count > 0 && closedRingAhead(state);
+      setHidden(ring2, !ringAhead);
+      // Sin destinos ni anillo por abrir: o queda colonizar el último bioma, o ya no hay adónde ir.
+      const last = none && !ringAhead;
+      setHidden(end, !last);
+      if (last) setText(end, goal.kind === 'colonized' ? t('wind.none') : t('wind.last'));
 
       const block = disperseBlock(state);
       const missing = DISPERSE_COST - disperseFunds(state);

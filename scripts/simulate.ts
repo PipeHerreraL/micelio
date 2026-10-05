@@ -22,7 +22,7 @@ import {
   type RunRecord,
 } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
-import { SEEDS, clock, hours, median, row, writeBlock, type Metric } from './sim-report.ts';
+import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
 setLocale('es');
@@ -34,6 +34,8 @@ const ORDERS: readonly (readonly DestinationId[])[] = PREFIXES.flatMap((prefix) 
   BRANCHES.map((branch) => [...prefix, ...branch]),
 );
 const HAS_BRANCHES = BRANCHES.some((branch) => branch.length > 0);
+/** Tramos del primer anillo: los de cada prefijo, comunes a todas sus ramas. */
+const PREFIX_LEGS = PREFIXES[0]?.length ?? 0;
 
 // ---------------------------------------------------------------------------------------
 // Corridas
@@ -81,9 +83,10 @@ async function playAll(pool: SimPool) {
   const passiveRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'passive' }));
   const activeRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'active' }));
   // Todo en un solo Promise.all: si una tarea falla, la corrida termina con ese error.
-  const [natals, winds, rateJourneys, longDoubling, longRate, campaigns, active, passive] = await Promise.all(
-    [
+  const [natals, prefixes, winds, rateJourneys, longDoubling, longRate, campaigns, active, passive] =
+    await Promise.all([
       Promise.all(natalRuns),
+      Promise.all(prefixRuns.map((runs) => Promise.all(runs))),
       Promise.all(windRuns),
       rateRuns,
       longDoublingRuns,
@@ -91,17 +94,15 @@ async function playAll(pool: SimPool) {
       campaignRuns,
       activeRuns,
       passiveRuns,
-    ],
-  );
-  return { active, passive, campaigns, longDoubling, longRate, natals, winds, rateJourneys };
+    ]);
+  return { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, rateJourneys };
 }
 
 const started = performance.now();
 const workers = poolSize();
 const pool = createPool(workers);
-const { active, passive, campaigns, longDoubling, longRate, natals, winds, rateJourneys } = await playAll(
-  pool,
-).finally(() => pool.close());
+const { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, rateJourneys } =
+  await playAll(pool).finally(() => pool.close());
 
 const first = (id: GeneratorId) => active.map((r) => r.firstOwned[id] ?? null);
 const run1Available = active.map((r) => r.sporulateAvailableAt);
@@ -223,7 +224,12 @@ metrics.push({
 });
 
 // Objetivos de Viento de esporas (docs/ROADMAP.md, fase 8).
-const BIOME_NAMES: Record<DestinationId, string> = { taiga: 'taiga', choco: 'Chocó' };
+const BIOME_NAMES: Record<DestinationId, string> = {
+  taiga: 'taiga',
+  choco: 'Chocó',
+  prairie: 'pradera',
+  tundra: 'tundra',
+};
 const orderName = (order: readonly DestinationId[]): string => order.map((b) => BIOME_NAMES[b]).join('→');
 /** Posición de un tramo en el orden del viaje, en las etiquetas. */
 const ORDINALS = ['primer', 'segundo', 'tercer', 'cuarto'];
@@ -253,10 +259,12 @@ const legRunMedians = (results: readonly Journey[], leg: number): number[] => {
   }
   return out;
 };
-ORDERS.forEach((order, o) => {
-  const results = winds[o] ?? [];
-  order.forEach((biome, leg) => {
-    const label = `Viento ${orderName(order)}, ${BIOME_NAMES[biome]} (${ordinal(leg)} destino)`;
+// Tramos del primer anillo: los de cada prefijo, que se juegan una vez por semilla y sirven a todas
+// sus ramas. Son los 16 objetivos de la 1.3–1.5, con sus mismos nombres.
+PREFIXES.forEach((prefix, p) => {
+  const results = prefixes[p] ?? [];
+  prefix.forEach((biome, leg) => {
+    const label = `Viento ${orderName(prefix)}, ${BIOME_NAMES[biome]} (${ordinal(leg)} destino)`;
     metrics.push({
       name: `${label}: partidas hasta colonizar (todas)`,
       target: '20–33 min',
@@ -341,22 +349,44 @@ const afterTable = [
   '| Orden | Partidas tras el último bioma (mediana de cada una) |',
   '| ----- | --------------------------------------------------- |',
 ];
+/**
+ * Tramos del segundo anillo (fase 10), informativos hasta que lleguen las adaptaciones de la
+ * pradera y la tundra: con ellas pasan a objetivo, con estas columnas.
+ */
+const ringTwoTable = [
+  '| Orden | Bioma | Partidas (todas, mediana) | Más corta | Más larga | Colonizar | Pasivo |',
+  '| ----- | ----- | ------------------------- | --------- | --------- | --------- | ------ |',
+];
+/** Una fila de la tabla del viaje: el tramo `leg` de los viajes `results`. */
+function windRow(name: string, biome: DestinationId, results: readonly Journey[], leg: number): string {
+  const perRun = legRunMedians(results, leg).map(clock).join(', ');
+  const all = results.flatMap((w) => w.legs[leg]?.runs ?? []);
+  const colonize = results
+    .map((w) => w.legs[leg]?.colonizeTime)
+    .filter((v): v is number => typeof v === 'number');
+  const levels = results.map((w) => w.legs[leg]?.levelAtColonize).filter((v): v is number => v !== undefined);
+  const cumulative = results.map((w) => w.legs[leg]?.cumulative).filter((v): v is number => v !== undefined);
+  return `| ${name} | ${BIOME_NAMES[biome]} | ${perRun} | ${clock(median(all))} | ${hours(median(colonize))} | ${Math.round(median(levels))} | ${hours(median(cumulative))} |`;
+}
+PREFIXES.forEach((prefix, p) => {
+  prefix.forEach((biome, leg) => windTable.push(windRow(orderName(prefix), biome, prefixes[p] ?? [], leg)));
+});
 ORDERS.forEach((order, o) => {
   const results = winds[o] ?? [];
   order.forEach((biome, leg) => {
-    const perRun = legRunMedians(results, leg).map(clock).join(', ');
-    const all = results.flatMap((w) => w.legs[leg]?.runs ?? []);
-    const colonize = results
-      .map((w) => w.legs[leg]?.colonizeTime)
-      .filter((v): v is number => typeof v === 'number');
-    const levels = results
-      .map((w) => w.legs[leg]?.levelAtColonize)
-      .filter((v): v is number => v !== undefined);
-    const cumulative = results
-      .map((w) => w.legs[leg]?.cumulative)
-      .filter((v): v is number => v !== undefined);
-    windTable.push(
-      `| ${orderName(order)} | ${BIOME_NAMES[biome]} | ${perRun} | ${clock(median(all))} | ${hours(median(colonize))} | ${Math.round(median(levels))} | ${hours(median(cumulative))} |`,
+    if (leg < PREFIX_LEGS) return;
+    windTable.push(windRow(orderName(order), biome, results, leg));
+    const medians = legRunMedians(results, leg);
+    const colonize = present(results.map((w) => w.legs[leg]?.colonizeTime ?? null));
+    const passive = present(
+      results.map((w) => {
+        const l = w.legs[leg];
+        return l?.passiveTime && l.colonizeTime ? l.passiveTime / l.colonizeTime : null;
+      }),
+    );
+    const colonized = `${colonize.length} de ${results.length}`;
+    ringTwoTable.push(
+      `| ${orderName(order)} | ${BIOME_NAMES[biome]} (${ordinal(leg)} destino) | ${clock(median(results.flatMap((w) => w.legs[leg]?.runs ?? [])))} | ${clock(medians.length > 0 ? Math.min(...medians) : null)} | ${clock(medians.length > 0 ? Math.max(...medians) : null)} | ${hours(median(colonize))} (${colonized}) | ${passive.length > 0 ? `${median(passive).toFixed(2)} ×` : '—'} |`,
     );
   });
   const after: string[] = [];
@@ -466,6 +496,10 @@ const block = [
   `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay destino por delante.`,
   '',
   ...windTable,
+  '',
+  `Tramos del segundo anillo (informativos hasta que lleguen las adaptaciones de la pradera y la tundra; sus objetivos serán: partidas de 20–33 min, la más corta ≥ 10 min, la más larga ≤ 60 min, colonizar en 2–3,5 h y el pasivo ≤ 2,5 × el activo). «Más corta» y «más larga» son medianas por partida; entre paréntesis, las semillas que colonizaron.`,
+  '',
+  ...ringTwoTable,
   '',
   `Tras colonizar el último bioma no quedan destinos en esta versión; las ${AFTER_RUNS} partidas siguientes son informativas:`,
   '',

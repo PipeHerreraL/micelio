@@ -347,6 +347,23 @@ export const en: Catalog = {
   'biome.choco.rule.dew': 'Dew gives at least {time} of production.',
   'biome.choco.rule.storm':
     'Each drop brings a Thunderstorm half as often: per hour, the same storms as in the home forest.',
+  // La pradera y la tundra (fase 10): los biomas donde acaban los árboles
+  'biome.prairie.name': 'Prairie',
+  'biome.prairie.soil': 'chernozem',
+  'biome.prairie.here': 'Your lineage lives on the prairie.',
+  'biome.prairie.go': 'Disperse to the prairie',
+  'biome.prairie.style': 'For planners: here the fairy ring is the engine, and every milestone counts.',
+  'biome.prairie.tag': '×{factor} on the prairie',
+  'biome.prairie.rule.ring': 'Fairy rings yield ×{factor}.',
+  'biome.prairie.rule.rain': 'Half the rain: twice as long between drops.',
+  'biome.tundra.name': 'Tundra',
+  'biome.tundra.soil': 'cryosol',
+  'biome.tundra.here': 'Your lineage lives in the tundra.',
+  'biome.tundra.go': 'Disperse to the tundra',
+  'biome.tundra.style': 'For players who drop by now and then: here the network holds out longer on its own.',
+  'biome.tundra.rule.half': 'In the cold everything grows at half speed: production is ×{factor}.',
+  'biome.tundra.rule.rain': 'A third of the rain: three times as long between drops.',
+  'biome.tundra.rule.away': 'While you live here, your network holds out {hours} h longer without you.',
   'biome.progress': 'Colonization: level\u00a0{level} of\u00a0{goal}',
   'biome.colonized': 'Biome colonized · level {level}',
   'biome.actOne': 'Act I complete · level {level}',
@@ -368,6 +385,8 @@ export const en: Catalog = {
   'wind.last': 'This is the last biome in this version of Micelio: colonize it to complete the journey.',
   'wind.none':
     'There are no new biomes to travel to in this version of Micelio. Your network can keep growing here, unhurried.',
+  'wind.ring2':
+    'Past the treeline: two more biomes open once your lineage colonizes the taiga and the Chocó rainforest.',
   'wind.confirm.title': 'Disperse your lineage?',
   'wind.confirm.destination': 'Destination: {name}, {soil}.',
   'wind.confirm.gain.one': 'This run ends by sporulating: you will gain {count} spore.',
@@ -427,6 +446,22 @@ export const en: Catalog = {
   'chapter.choco.colonize.line1':
     'The rain tries to carry every nutrient down to the river. Your network catches it first, among the surface roots.',
   'chapter.choco.colonize.line2': 'The Chocó is now part of your lineage.',
+  'chapter.prairie.arrive.title': 'The prairie',
+  'chapter.prairie.arrive.line1':
+    'The wind sets you down where the trees end: tall grass as far as the eye can see. Beneath it the soil is black and deep, built from centuries of grass roots: a chernozem.',
+  'chapter.prairie.arrive.line2': 'Here it rains too little for a forest.',
+  'chapter.tundra.arrive.title': 'The tundra',
+  'chapter.tundra.arrive.line1':
+    'The wind sets you down in the north, beyond the last trees. Under a thin layer of peat, the ground thaws only near the top, in summer; deeper down, the permafrost stays frozen all year.',
+  'chapter.tundra.arrive.line2': 'Rain is scarce, summer is short and everything grows slowly.',
+  'chapter.prairie.colonize.title': 'Rings in the grass',
+  'chapter.prairie.colonize.line1':
+    'Every year your fairy rings creep a little farther out, leaving the greenest grass at their edge.',
+  'chapter.prairie.colonize.line2': 'The prairie is now part of your lineage.',
+  'chapter.tundra.colonize.title': 'Under the snow',
+  'chapter.tundra.colonize.line1':
+    'Under the snow the cold arrives muffled, and your hyphae keep working all winter, like the snow molds.',
+  'chapter.tundra.colonize.line2': 'The tundra is now part of your lineage.',
   // Crónica
   'chronicle.title': 'Chronicle',
   'chronicle.intro': 'Every biome your lineage inhabits is written here.',
@@ -584,6 +619,10 @@ export const en: Catalog = {
   'ach.colonize.taiga.desc': 'Colonize the taiga.',
   'ach.colonize.choco.name': 'Thirteen meters of rain',
   'ach.colonize.choco.desc': 'Colonize the Chocó rainforest.',
+  'ach.colonize.prairie.name': 'Black earth',
+  'ach.colonize.prairie.desc': 'Colonize the prairie.',
+  'ach.colonize.tundra.name': 'Frozen ground',
+  'ach.colonize.tundra.desc': 'Colonize the tundra.',
   'ach.adapt.biomeFull.name': 'Acclimatized',
   'ach.adapt.biomeFull.desc': 'Max out all three adaptations of one biome.',
   'ach.biomeLevel.1.name': 'Putting down roots',

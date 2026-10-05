@@ -1,7 +1,7 @@
 /**
  * Textos de los biomas (docs/ROADMAP.md, fase 8): nombres, reglas y efectos de las adaptaciones
- * de bioma, con las cifras sacadas de los datos. Las reglas «la mitad» y «el doble» están
- * escritas a mano; tests/journey.test.ts falla si los datos cambian sin el texto.
+ * de bioma, con las cifras sacadas de los datos. Las reglas «la mitad», «el doble» y «un tercio»
+ * están escritas a mano; tests/journey.test.ts falla si los datos cambian sin el texto.
  */
 import type { GameState } from '../core/state.ts';
 import { getBiome, getBiomeAdaptation, type BiomeAdaptationId, type BiomeId } from '../data/biomes.ts';
@@ -34,6 +34,17 @@ export function biomeRules(id: BiomeId): string[] {
         t('biome.choco.rule.fall'),
         t('biome.choco.rule.dew', { time: formatDuration(def.dewFloorSeconds, getLocale()) }),
         t('biome.choco.rule.storm'),
+      ];
+    case 'prairie':
+      return [
+        t('biome.prairie.rule.ring', { factor: formatFactor(def.production.fairyRing ?? 1, getLocale()) }),
+        t('biome.prairie.rule.rain'),
+      ];
+    case 'tundra':
+      return [
+        t('biome.tundra.rule.half', { factor: formatFactor(def.productionFactor, getLocale()) }),
+        t('biome.tundra.rule.rain'),
+        t('biome.tundra.rule.away', { hours: formatCount(def.offlineHours) }),
       ];
   }
 }

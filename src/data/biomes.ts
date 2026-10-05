@@ -1,22 +1,27 @@
 /**
- * Viento de esporas (docs/ROADMAP.md, fase 8): biomas, constantes del viaje y adaptaciones de
- * bioma. Solo datos; el texto vive en src/i18n (`biome.<id>.*`, `badapt.<id>.*`).
+ * Viento de esporas (docs/ROADMAP.md, fases 8 y 10): biomas, constantes del viaje y adaptaciones
+ * de bioma. Solo datos; el texto vive en src/i18n (`biome.<id>.*`, `badapt.<id>.*`).
  *
- * Los valores salen del prototipo de balance de la fase 8 (9 semillas, perfil activo, regla de
- * PROMPT.md §17) y `npm run sim` confirma sus 21 objetivos del viaje (docs/BALANCE.md). Las
- * cifras de los comentarios son de ese prototipo salvo donde se dice «simulador»: explican por
- * qué se eligió cada valor frente a sus alternativas, que el simulador no vuelve a medir.
+ * Los valores de la taiga y el Chocó salen del prototipo de balance de la fase 8 (9 semillas,
+ * perfil activo, regla de PROMPT.md §17) y los de la pradera y la tundra, del de la fase 10 (C7,
+ * mismas reglas); `npm run sim` confirma sus objetivos (docs/BALANCE.md). Las cifras de los
+ * comentarios son de esos prototipos salvo donde se dice «simulador»: explican por qué se eligió
+ * cada valor frente a sus alternativas, que el simulador no vuelve a medir.
  */
 import type { GeneratorId } from './generators.ts';
 import { SPORE_SCALE } from './prestige.ts';
 import type { RainEffectDef } from './rain.ts';
 
-/** La fase 10 suma pradera y tundra. */
-export const BIOME_IDS = ['natal', 'taiga', 'choco'] as const;
+/**
+ * Los biomas nuevos van al final: la sal del grano del suelo es la posición en esta lista
+ * (render/network.ts), y la de los de antes no debe cambiar.
+ */
+export const BIOME_IDS = ['natal', 'taiga', 'choco', 'prairie', 'tundra'] as const;
 export type BiomeId = (typeof BIOME_IDS)[number];
 export type DestinationId = Exclude<BiomeId, 'natal'>;
 export const HOME_BIOME = 'natal' satisfies BiomeId;
-export const DESTINATION_IDS: readonly DestinationId[] = ['taiga', 'choco'];
+/** Por anillos y, dentro de cada uno, en el orden en que se ofrecen (ver `ringOfLeg`). */
+export const DESTINATION_IDS: readonly DestinationId[] = ['taiga', 'choco', 'prairie', 'tundra'];
 
 export interface BiomeDef {
   id: BiomeId;
@@ -36,6 +41,18 @@ export interface BiomeDef {
   dewFloorSeconds: number;
   /** La gota que no se atrapa cae sola al evaporarse (con el juego abierto) y aplica su efecto. */
   dropFallsAlone: boolean;
+  /**
+   * Anillo del viaje (fase 10): 0 el natal, 1 los bosques (taiga y Chocó) y 2 los biomas sin
+   * bosque (pradera y tundra). Un anillo se abre cuando el anterior está colonizado entero.
+   */
+  ring: 0 | 1 | 2;
+  /**
+   * Factor de todos los generadores, constante del bioma (tundra 0,5). Se dice una vez en las
+   * reglas y no en cada fila de la tienda, a diferencia de `production`.
+   */
+  productionFactor: number;
+  /** Horas que suma al tope sin conexión mientras se vive aquí (tundra 24). */
+  offlineHours: number;
 }
 
 /**
@@ -58,6 +75,9 @@ export const BIOMES: readonly BiomeDef[] = [
     rainEffects: null,
     dewFloorSeconds: 0,
     dropFallsAlone: false,
+    ring: 0,
+    productionFactor: 1,
+    offlineHours: 0,
   },
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
@@ -70,6 +90,9 @@ export const BIOMES: readonly BiomeDef[] = [
     rainEffects: null,
     dewFloorSeconds: 0,
     dropFallsAlone: false,
+    ring: 1,
+    productionFactor: 1,
+    offlineHours: 0,
   },
   {
     // Escala mayor que la de la taiga: la bonificación de la taiga cae en generadores medios y la
@@ -84,20 +107,61 @@ export const BIOMES: readonly BiomeDef[] = [
     rainEffects: CHOCO_RAIN_EFFECTS,
     dewFloorSeconds: 300,
     dropFallsAlone: true,
+    ring: 1,
+    productionFactor: 1,
+    offlineHours: 0,
+  },
+  {
+    // Chernozem. El motor es un generador barato, el quinto: Anillo de hadas ×6, medido también
+    // con el pasivo (2,23–2,42 veces el activo). Con ×10 la partida más corta bajaba a 9:22, y con
+    // ×25 se colonizaba en 1,19 h con partidas de 8 min. La lluvia es la palanca del pasivo: con la
+    // espera ×1 tardaba 3,3–3,8 veces el activo (la pradera existe donde llueve demasiado poco
+    // para un bosque). Escala: con 9e10, la pradera tercera colonizaba en 3,24–3,40 h y la cuarta,
+    // en 2,98–2,99 h.
+    id: 'prairie',
+    scale: 9e10,
+    production: { fairyRing: 6 },
+    rainInterval: 2,
+    rainEffects: null,
+    dewFloorSeconds: 0,
+    dropFallsAlone: false,
+    ring: 2,
+    productionFactor: 1,
+    offlineHours: 0,
+  },
+  {
+    // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
+    // invernal (24 h) y el bioma suma 24; sumar y no fijar en 48 deja algo también a quien tiene
+    // Letargo profundo. Llueve un tercio (desierto polar): el pasivo queda en 1,90–2,01 veces el
+    // activo. Escala: la tundra tercera colonizaba en 2,81–2,95 h y la cuarta, en 2,18–2,46 h.
+    id: 'tundra',
+    scale: 3.5e9,
+    production: {},
+    rainInterval: 3,
+    rainEffects: null,
+    dewFloorSeconds: 0,
+    dropFallsAlone: false,
+    ring: 2,
+    productionFactor: 0.5,
+    offlineHours: 24,
   },
 ];
 
 /**
  * R de un destino = su escala × LEG_SCALE[tramo] (la posición 0, el natal, no se usa: rige
- * prestige.ts). Es una tabla y no una potencia porque la fase 10 suma tramos con factores propios
- * (con ×3,5 compuesto no había escala de tundra que sirviera de tercera y de cuarta).
+ * prestige.ts). Es una tabla y no una potencia: con ×3,5 compuesto no había escala de tundra que
+ * sirviera de tercera y de cuarta (partidas de 34:08 de tercera y de 18:54 de cuarta).
  *
  * Del primer destino al segundo, ×3,5: taiga 1e11 y luego 3,5e11; Chocó 2e11 y luego 7e11, los de
  * la 1.3–1.5 bit a bit. Con el ×3 del prototipo, el Chocó como segundo destino se colonizaba en
  * 1,90 h, por debajo del objetivo de 2 h; con ×3,5, en 2,06 h, y la taiga segunda en 2,48 h
  * (simulador). Con ×10 y linaje ×2, la taiga segunda tardaba 4,74 h (prototipo).
+ *
+ * Tramos 3 y 4 (fase 10): ×3,5 hasta el tercero y ×5 del tercero al cuarto (C7). Subir el factor
+ * de crecimiento en lugar de escribir la tabla movía el Chocó segundo y la taiga segunda, que ya
+ * están al borde de sus objetivos.
  */
-export const LEG_SCALE: readonly number[] = [1, 1, 3.5];
+export const LEG_SCALE: readonly number[] = [1, 1, 3.5, 12.25, 61.25];
 /** Nivel local de esporas que coloniza un bioma (ROADMAP). Con 300, el Chocó segundo bajaba de 2 h. */
 export const COLONIZE_LEVEL = 500;
 /**
@@ -252,6 +316,16 @@ export function isBiomeId(value: unknown): value is BiomeId {
 
 export function isDestinationId(value: unknown): value is DestinationId {
   return isBiomeId(value) && value !== HOME_BIOME;
+}
+
+/**
+ * Anillo del bioma de un tramo del viaje (1 en adelante), o -1 fuera del viaje. Como los anillos
+ * se recorren enteros y en orden, el destino del tramo n es del anillo del n-ésimo de
+ * DESTINATION_IDS: los tramos 1–2 van a un bosque y los 3–4, a un bioma sin bosque.
+ */
+export function ringOfLeg(leg: number): number {
+  const id = DESTINATION_IDS[leg - 1];
+  return id === undefined ? -1 : getBiome(id).ring;
 }
 
 export function getBiomeAdaptation(id: BiomeAdaptationId): BiomeAdaptationDef {

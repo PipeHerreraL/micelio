@@ -36,6 +36,7 @@ import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } f
 import { emit } from './events.ts';
 import {
   biomeAdaptationGate,
+  closedRingAhead,
   destinations,
   isActOneClosed,
   isForestColonized,
@@ -203,7 +204,8 @@ export function disperseFunds(state: GameState): number {
 
 export function disperseBlock(state: GameState): DisperseBlock | null {
   if (!isActOneClosed(state)) return 'actOne';
-  if (destinations(state).length === 0) return 'noDestination';
+  // Con un anillo por abrir, lo que falta es colonizar el bosque actual, no un destino.
+  if (destinations(state).length === 0 && !closedRingAhead(state)) return 'noDestination';
   if (!isForestColonized(state)) return 'colonize';
   if (disperseFunds(state) < DISPERSE_COST) return 'spores';
   return null;

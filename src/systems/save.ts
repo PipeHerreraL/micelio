@@ -16,7 +16,9 @@ import {
   BIOME_ADAPTATIONS,
   HOME_BIOME,
   MAX_LEG,
+  getBiome,
   isBiomeId,
+  ringOfLeg,
   type BiomeAdaptationId,
   type BiomeId,
 } from '../data/biomes.ts';
@@ -385,6 +387,15 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
 }
 
 /**
+ * El bioma de un tramo es del anillo que le toca (fase 10): los anillos se recorren enteros y en
+ * orden, así que un bosque en el tramo 3 o la pradera en el tramo 1 solo salen de un guardado
+ * manipulado, y cambiarían la R del bosque (LEG_SCALE es por tramo).
+ */
+function inLegRing(biome: BiomeId, leg: number): boolean {
+  return leg === 0 ? biome === HOME_BIOME : getBiome(biome).ring === ringOfLeg(leg);
+}
+
+/**
  * El bosque actual. `earned` no puede superar los nutrientes de vida: las dos sumas avanzan con
  * los mismos sumandos (economy.gain) y el natal empieza con los de vida, así que solo un
  * guardado manipulado los descuadra.
@@ -395,8 +406,7 @@ function validateForest(
   lifetimeEarned: number,
 ): ForestState | null {
   if (!isObject(raw) || !isBiomeId(raw.biome)) return null;
-  if (!isCount(raw.leg) || raw.leg > MAX_LEG) return null;
-  if ((raw.leg === 0) !== (raw.biome === HOME_BIOME)) return null;
+  if (!isCount(raw.leg) || raw.leg > MAX_LEG || !inLegRing(raw.biome, raw.leg)) return null;
   const earned = num.parse(raw.earned);
   if (earned === null || num.gt(earned, lifetimeEarned)) return null;
   if (!isTimestamp(raw.arrivedAt)) return null;
@@ -425,7 +435,7 @@ function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] 
   for (let i = 0; i < raw.length; i += 1) {
     const e: unknown = raw[i];
     if (!isObject(e) || !isBiomeId(e.biome) || e.leg !== i) return null;
-    if ((i === 0) !== (e.biome === HOME_BIOME) || seen.has(e.biome)) return null;
+    if (!inLegRing(e.biome, i) || seen.has(e.biome)) return null;
     seen.add(e.biome);
     if (!isTimestamp(e.arrivedAt) || !isCount(e.sporulations) || !isNonNegative(e.playTime)) return null;
     // El Acto I se cierra sin reloj (null); los demás bosques, con la fecha de la esporulación.

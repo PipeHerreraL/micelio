@@ -7,7 +7,7 @@
 import { markSeen } from '../core/actions.ts';
 import { destinations, isActOneClosed, isColonized } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
-import { COLONIZE_LEVEL, LINEAGE_FACTOR, type DestinationId } from '../data/biomes.ts';
+import { BIOME_ADAPTATIONS, COLONIZE_LEVEL, LINEAGE_FACTOR, type DestinationId } from '../data/biomes.ts';
 import { PLATES } from '../data/plasmodium-plates.ts';
 import { formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
@@ -125,6 +125,9 @@ export function openChapter(
       break;
     case 'arrive': {
       const b = chapter.biome;
+      // Un bioma cuyas adaptaciones aún no llegaron (la pradera y la tundra, fase 10) no promete
+      // ninguna ni lleva a un grupo que no existe.
+      const learns = BIOME_ADAPTATIONS.some((a) => a.biome === b);
       kicker = t('chapter.act2.kicker');
       title = t(`chapter.${b}.arrive.title` as MessageKey);
       biome = b;
@@ -138,16 +141,18 @@ export function openChapter(
           biomeRules(b).map((rule) => h('li', { text: rule })),
         ),
         t('chapter.goal', { goal: formatCount(COLONIZE_LEVEL) }),
-        t('chapter.adaptHint'),
       );
-      actions.push({
-        label: t('chapter.toAdaptations'),
-        kind: 'quiet',
-        onSelect: () => {
-          choice = 'adaptations';
-          return undefined;
-        },
-      });
+      if (learns) {
+        body.push(t('chapter.adaptHint'));
+        actions.push({
+          label: t('chapter.toAdaptations'),
+          kind: 'quiet',
+          onSelect: () => {
+            choice = 'adaptations';
+            return undefined;
+          },
+        });
+      }
       actions.push({
         label: t('chapter.begin'),
         kind: 'primary',

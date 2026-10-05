@@ -70,14 +70,16 @@ describe('catálogos de idioma', () => {
       required.push(`ach.${a.id}.name`);
       if (a.secret || a.reveal) required.push(`ach.${a.id}.desc`);
     }
-    // Viento de esporas (fase 8): cada bioma y cada adaptación de bioma con sus textos.
+    // Viento de esporas (fases 8 y 10): cada bioma y cada adaptación de bioma con sus textos. El
+    // grupo de adaptaciones de un bioma solo existe si el bioma tiene alguna (ui/biome-adaptations).
     for (const b of BIOMES) required.push(`biome.${b.id}.name`, `biome.${b.id}.soil`, `biome.${b.id}.here`);
+    for (const b of new Set(BIOME_ADAPTATIONS.map((a) => a.biome))) {
+      required.push(`badapt.group.${b}`, `badapt.needLevel.${b}`);
+    }
     for (const b of DESTINATION_IDS) {
       required.push(
         `biome.${b}.go`,
         `biome.${b}.style`,
-        `badapt.group.${b}`,
-        `badapt.needLevel.${b}`,
         `chapter.${b}.arrive.title`,
         `chapter.${b}.arrive.line1`,
         `chapter.${b}.arrive.line2`,
@@ -98,7 +100,7 @@ describe('catálogos de idioma', () => {
   it('cada texto que cambia en un bioma sustituye a una clave que existe', () => {
     const keys = new Set(baseKeys);
     for (const key of baseKeys) {
-      const match = /^(.*)\.(taiga|choco)$/.exec(key);
+      const match = new RegExp(`^(.*)\\.(${DESTINATION_IDS.join('|')})$`).exec(key);
       if (match?.[1] && (match[1].startsWith('gen.') || match[1].startsWith('upg.'))) {
         expect(keys.has(match[1]), key).toBe(true);
       }

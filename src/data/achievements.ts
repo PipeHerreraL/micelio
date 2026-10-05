@@ -4,7 +4,7 @@
  * la descripción se arma con plantillas según la condición, salvo los secretos, que
  * tienen la suya (`ach.<id>.desc`).
  */
-import type { DestinationId } from './biomes.ts';
+import { DESTINATION_IDS, type DestinationId } from './biomes.ts';
 import { GENERATORS, type GeneratorId } from './generators.ts';
 
 export type AchievementCondition =
@@ -21,7 +21,7 @@ export type AchievementCondition =
   /** Viento de esporas (fase 8): dispersiones hechas. */
   | { kind: 'dispersals'; count: number }
   | { kind: 'colonized'; biome: DestinationId }
-  /** Algún bioma con sus tres adaptaciones al máximo. */
+  /** Algún bioma con todas sus adaptaciones al máximo (uno sin adaptaciones no cuenta). */
   | { kind: 'biomeAdaptationsMaxed' }
   /** Nivel de esporas local en un bioma lejos del natal. */
   | { kind: 'biomeLevel'; level: number };
@@ -85,10 +85,11 @@ function build(): AchievementDef[] {
     condition: { kind: 'away', seconds: AWAY_ACHIEVEMENT_SECONDS },
     secret: true,
   });
-  // Viento de esporas (fase 8). Ninguno se cumple sin dispersar, así que el natal no cambia.
+  // Viento de esporas (fases 8 y 10). Ninguno se cumple sin dispersar, así que el natal no cambia.
   list.push({ id: 'disperse.1', condition: { kind: 'dispersals', count: 1 }, reveal: 'actOne' });
-  list.push({ id: 'colonize.taiga', condition: { kind: 'colonized', biome: 'taiga' }, reveal: 'actOne' });
-  list.push({ id: 'colonize.choco', condition: { kind: 'colonized', biome: 'choco' }, reveal: 'actOne' });
+  for (const biome of DESTINATION_IDS) {
+    list.push({ id: `colonize.${biome}`, condition: { kind: 'colonized', biome }, reveal: 'actOne' });
+  }
   list.push({ id: 'adapt.biomeFull', condition: { kind: 'biomeAdaptationsMaxed' }, reveal: 'actOne' });
   list.push({
     id: 'biomeLevel.1',

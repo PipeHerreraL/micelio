@@ -25,7 +25,7 @@ interface LiveParts {
   here: HTMLElement | null;
 }
 
-/** Total de adaptaciones de un bioma (tres en esta versión; sale de los datos). */
+/** Total de adaptaciones de un bioma (sale de los datos). */
 function adaptationsOf(biome: BiomeId): number {
   return BIOME_ADAPTATIONS.filter((a) => a.biome === biome).length;
 }
@@ -117,12 +117,14 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     return entryRoot('natal', 'chronicle.status.actOne', here, lines, buttons);
   }
 
-  function learnedLine(state: GameState, biome: DestinationId): HTMLElement {
+  /** «Adaptaciones de este bioma: n de m», o nada si el bioma no tiene ninguna todavía. */
+  function learnedLine(state: GameState, biome: DestinationId): HTMLElement[] {
+    if (adaptationsOf(biome) === 0) return [];
     const node = h('p', {
       text: t('chronicle.adaptations', { count: learnedHere(state, biome), total: adaptationsOf(biome) }),
     });
     learned.push({ biome, node });
-    return node;
+    return [node];
   }
 
   function arriveButton(biome: DestinationId): HTMLButtonElement {
@@ -150,7 +152,7 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
         }),
       }),
       level,
-      learnedLine(state, biome),
+      ...learnedLine(state, biome),
       h(
         'ul',
         { class: 'chronicle__rules' },

@@ -2362,6 +2362,22 @@ body::before {
   --biome-accent: #b5523a;
 }
 
+[data-biome='prairie'] {
+  --soil-1: #181614;
+  --soil-2: #3b2e22;
+  --soil-3: #5a4430;
+  /* Hierba seca, 5,34:1 sobre el velo de la cartela; lejos del rebozuelo de las compras. */
+  --biome-accent: #9a8a5a;
+}
+
+[data-biome='tundra'] {
+  --soil-1: #1d1915;
+  --soil-2: #434a4e;
+  --soil-3: #38424a;
+  /* Gris azulado del hielo, 6,29:1 sobre el velo de la cartela. */
+  --biome-accent: #8c9aa1;
+}
+
 /* Suelo de respaldo antes de que pinte el canvas (el natal sigue con el de .stage__soil). */
 .stage[data-biome='taiga'] .stage__soil {
   background: linear-gradient(
@@ -2390,6 +2406,36 @@ body::before {
     #6e2e1b 40.5%,
     #86391f 75%,
     #8f4a26 100%
+  );
+}
+
+.stage[data-biome='prairie'] .stage__soil {
+  background: linear-gradient(
+    to bottom,
+    #2b2618 0%,
+    #2b2618 7%,
+    #181614 7.5%,
+    #181614 46%,
+    #3b2e22 46.5%,
+    #3b2e22 74%,
+    #4e3a2a 74.5%,
+    #5a4430 88%,
+    #62493a 100%
+  );
+}
+
+.stage[data-biome='tundra'] .stage__soil {
+  background: linear-gradient(
+    to bottom,
+    #1f1e17 0%,
+    #1f1e17 7%,
+    #1d1915 7.5%,
+    #1d1915 20%,
+    #434a4e 20.5%,
+    #434a4e 58%,
+    #2e3439 58.5%,
+    #38424a 80%,
+    #404c55 100%
   );
 }
 
@@ -2577,7 +2623,8 @@ body::before {
   gap: 0.5rem;
 }
 
-.wind__end {
+.wind__end,
+.wind__ring2 {
   margin-top: 0.75rem;
   color: var(--micelio-tenue);
   max-width: 60ch;

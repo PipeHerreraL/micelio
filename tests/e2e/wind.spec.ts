@@ -127,7 +127,9 @@ for (const viewport of [
   });
 }
 
-test('con la taiga y el Chocó colonizados no queda ningún destino y lo dice', async ({ page }, info) => {
+test('con la taiga y el Chocó colonizados se abren la pradera y la tundra, y se dispersa a la pradera', async ({
+  page,
+}, info) => {
   test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
   const now = Date.now();
   await seedSave(
@@ -178,17 +180,40 @@ test('con la taiga y el Chocó colonizados no queda ningún destino y lo dice', 
     }),
   );
   await page.goto('./');
-  await page.getByRole('tab', { name: /Esporular/ }).click();
-  await expect(
-    page.getByText('No quedan biomas nuevos adonde viajar en esta versión de Micelio.', { exact: false }),
-  ).toBeVisible();
-  await expect(page.locator('.wind__go:visible')).toHaveCount(0);
   await page.getByRole('tab', { name: /Crónica/ }).click();
   await expect(page.locator('.chronicle__title')).toHaveText([
     'Bosque natal · Acto I',
     'Taiga · colonizado',
     'Selva del Chocó · colonizado Aquí vive tu linaje.',
   ]);
+  // El muro de la 1.5 (fase 10): donde no quedaba ningún destino, ahora hay dos.
+  await page.getByRole('tab', { name: /Esporular/ }).click();
+  await expect(page.locator('.wind__go:visible')).toHaveText([
+    'Dispersar hacia la pradera',
+    'Dispersar hacia la tundra',
+  ]);
+  await expect(page.getByText('No quedan biomas nuevos', { exact: false })).toBeHidden();
+  const go = page.getByRole('button', { name: 'Dispersar hacia la pradera' });
+  await go.focus();
+  await page.keyboard.press('Enter');
+  await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
+  await expect(dialog(page).getByText('Destino: Pradera, chernozem.')).toBeVisible();
+  await expect(dialog(page).getByText('El Anillo de hadas rinde ×6.')).toBeVisible();
+  await dialog(page).getByRole('button', { name: 'Dispersar', exact: true }).click();
+  await expect(page.locator('#wind-title')).toBeFocused();
+  await expect(page.locator('.stage')).toHaveAttribute('data-biome', 'prairie');
+  const caption = page.locator('.caption');
+  await expect(caption).toContainText('Pradera · chernozem');
+  await expect(caption).toContainText('Colonización: nivel 0 de 500');
+  // La llegada: sus reglas y la meta. La pradera aún no tiene adaptaciones que prometer.
+  await expect(dialog(page).getByRole('heading', { name: 'La pradera' })).toBeVisible({ timeout: 10_000 });
+  await expect(dialog(page).getByRole('button', { name: 'Ver las adaptaciones' })).toHaveCount(0);
+  await dialog(page).getByRole('button', { name: 'Empezar a crecer' }).click();
+  await expect(page.locator('.core__button')).toBeFocused();
+  const saved = await savedState(page);
+  expect(saved.forest).toMatchObject({ biome: 'prairie', leg: 3 });
+  expect(saved.spores).toEqual({ level: 0, available: 1725 });
+  expect(saved.chronicle[2]?.leftAt).not.toBeNull();
 });
 
 test('una partida de la 1.2 avanzada carga sin perder esporas por ganar ni historial', async ({

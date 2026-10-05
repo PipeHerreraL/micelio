@@ -35,9 +35,12 @@ function isMet(state: GameState, def: AchievementDef): boolean {
     case 'colonized':
       return isColonized(state, c.biome);
     case 'biomeAdaptationsMaxed':
-      return DESTINATION_IDS.some((biome) =>
-        BIOME_ADAPTATIONS.every((a) => a.biome !== biome || state.biomeAdaptations[a.id] >= a.max),
-      );
+      // Un bioma sin adaptaciones (la pradera y la tundra hasta que lleguen las suyas) no lo cumple
+      // en vacío: si no, el logro y su +1 % se otorgarían a cualquiera, también en el natal.
+      return DESTINATION_IDS.some((biome) => {
+        const own = BIOME_ADAPTATIONS.filter((a) => a.biome === biome);
+        return own.length > 0 && own.every((a) => state.biomeAdaptations[a.id] >= a.max);
+      });
     case 'biomeLevel':
       return state.forest.leg >= 1 && state.spores.level >= c.level;
   }

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { canSporulate, sporeGain } from '../src/core/actions.ts';
+import { canSporulate, disperse, sporeGain } from '../src/core/actions.ts';
+import { drain } from '../src/core/events.ts';
 import { sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import { createState, type GameState } from '../src/core/state.ts';
 import { MUTATION_IDS } from '../src/data/mutations.ts';
+import { checkActOne, checkColonization } from '../src/systems/journey.ts';
 import { parseSave, serializeSave, SAVE_VERSION } from '../src/systems/save.ts';
 
 /**
@@ -139,8 +141,9 @@ describe('validación del viaje', () => {
   });
 
   it('rechaza un bioma desconocido, un tramo fuera de rango o que no casa con el bioma', () => {
-    expect(loads((s) => Object.assign(s.forest, { biome: 'tundra' }))).toBe(false);
+    expect(loads((s) => Object.assign(s.forest, { biome: 'luna' }))).toBe(false);
     expect(loads((s) => (s.forest.leg = 3))).toBe(false);
+    expect(loads((s) => (s.forest.leg = 5))).toBe(false);
     expect(loads((s) => (s.forest.leg = 0))).toBe(false);
     expect(loads((s) => (s.forest.leg = 1.5))).toBe(false);
   });
@@ -234,5 +237,69 @@ describe('fechas imposibles', () => {
     expect(loads((s) => (s.stats.startedAt = 1e16))).toBe(false);
     // El último día que Date sabe escribir sigue valiendo.
     expect(loads((s) => Object.assign(s.chronicle[0] ?? {}, { leftAt: 8.64e15 }))).toBe(true);
+  });
+});
+
+describe('validación de los anillos del viaje (fase 10)', () => {
+  /**
+   * En la tundra, tercer destino, con la taiga y el Chocó colonizados: construido solo con
+   * acciones, por el camino que el juego permite.
+   */
+  function inTundra(): GameState {
+    const s = createState(8, NOW);
+    s.mutations = [...MUTATION_IDS];
+    s.achievements = ['own.planetary.1'];
+    s.stats.sporulations = 9;
+    s.stats.totalTime = 11_000;
+    s.spores = { level: 1941, available: 2025 };
+    checkActOne(s);
+    const legs = [
+      ['taiga', NOW + 1000],
+      ['choco', NOW + 9000],
+      ['tundra', NOW + 17_000],
+    ] as const;
+    for (const [to, at] of legs) {
+      if (s.forest.leg > 0) {
+        s.spores.level = 500;
+        checkColonization(s, at - 1000);
+      }
+      disperse(s, { to, now: at });
+    }
+    drain();
+    return s;
+  }
+
+  function loadsTundra(mutate: (s: GameState) => void): boolean {
+    const s = inTundra();
+    mutate(s);
+    return parseSave(textOf(s)).ok;
+  }
+
+  it('una partida en la tundra, tercer destino, va y vuelve idéntica', () => {
+    const state = inTundra();
+    expect(state.forest).toMatchObject({ biome: 'tundra', leg: 3 });
+    expect(state.chronicle.map((e) => e.biome)).toEqual(['natal', 'taiga', 'choco']);
+    expect(parseSave(serializeSave(state, SAVED_AT))).toEqual({
+      ok: true,
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state },
+      partnersReset: [],
+    });
+  });
+
+  it('rechaza la pradera o la tundra de primer o segundo destino', () => {
+    expect(loads((s) => Object.assign(s.forest, { biome: 'prairie' }))).toBe(false);
+    expect(loads((s) => Object.assign(s.forest, { biome: 'tundra' }))).toBe(false);
+    // Una Crónica con la pradera en el tramo 1, aunque el bosque actual sea del anillo 2.
+    expect(
+      loadsTundra((s) => {
+        const taiga = s.chronicle[1];
+        if (taiga) taiga.biome = 'prairie';
+      }),
+    ).toBe(false);
+  });
+
+  it('acepta el otro bioma del anillo 2 de tercer destino y rechaza un bosque', () => {
+    expect(loadsTundra((s) => (s.forest.biome = 'prairie'))).toBe(true);
+    expect(loadsTundra((s) => (s.forest.biome = 'choco'))).toBe(false);
   });
 });

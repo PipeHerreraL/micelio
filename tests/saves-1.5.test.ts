@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { disperseBlock, sporeGain } from '../src/core/actions.ts';
-import { isActOneClosed, sporeScale, sporulateRequirement } from '../src/core/forest.ts';
+import { destinations, isActOneClosed, sporeScale, sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import type { GameState } from '../src/core/state.ts';
 import { DISPERSE_COST } from '../src/data/biomes.ts';
@@ -45,6 +45,15 @@ interface ValuesFile extends ValuesOf15 {
   game: string;
   commit: string;
 }
+
+/**
+ * Lo único que cambia a propósito desde la 1.5 (fase 10): en el muro se abren la pradera y la
+ * tundra, así que el viaje deja de estar bloqueado por falta de destinos. Lo demás, igual.
+ */
+const CHANGED_SINCE_15: Partial<Record<Fixture, Partial<ValuesOf15>>> = {
+  wall: { disperseBlock: null },
+  'wall-fusion': { disperseBlock: null },
+};
 
 function fixtureText(name: string): string {
   return readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
@@ -102,7 +111,7 @@ describe.each(FIXTURES)('guardado real de la 1.5 «%s»', (name) => {
   it('da la misma producción, clic, esporas, requisito, escala, tope sin conexión y viaje que la 1.5', () => {
     const values = fixtureText(`save-v6-${name}.values.json`);
     const { game: _game, commit: _commit, ...of15 } = JSON.parse(values) as ValuesFile;
-    expect(valuesNow(load(name))).toEqual(of15);
+    expect(valuesNow(load(name))).toEqual({ ...of15, ...CHANGED_SINCE_15[name] });
   });
 });
 
@@ -139,6 +148,16 @@ describe('cada guardado de la 1.5 es la partida que dice su nombre', () => {
       ['choco', 1],
     ]);
     expect(state.spores.available).toBeGreaterThanOrEqual(DISPERSE_COST);
+  });
+
+  it('en el muro, la 1.5 no dejaba dispersar por falta de destinos; ahora ofrece la pradera y la tundra', () => {
+    for (const name of ['wall', 'wall-fusion'] as const) {
+      const of15 = JSON.parse(fixtureText(`save-v6-${name}.values.json`)) as ValuesFile;
+      expect(of15.disperseBlock).toBe('noDestination');
+      const state = load(name);
+      expect(destinations(state)).toEqual(['prairie', 'tundra']);
+      expect(disperseBlock(state)).toBeNull();
+    }
   });
 
   it('en el muro: taiga y Chocó colonizados, nivel > 1000, linaje ×4 y el plasmodio con dos placas', () => {

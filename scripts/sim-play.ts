@@ -479,7 +479,7 @@ function playBiome(
  * Anillos de destinos (fase 10): el primero es lo que el juego ofrece al empezar y el segundo, el
  * resto, que el juego abre al colonizar entero el primero. Salen de `destinations`, la regla del
  * juego, y no de una copia: si el juego no deja ir a un destino, `disperse` no hace nada y el
- * tramo sale vacío (sin cumplir). Hasta la fase 10 hay un solo anillo, la taiga y el Chocó.
+ * tramo sale vacío (sin cumplir). Hoy, la taiga y el Chocó; y la pradera y la tundra.
  */
 function journeyRings(): DestinationId[][] {
   const first = destinations(createState(0, START_TIME));

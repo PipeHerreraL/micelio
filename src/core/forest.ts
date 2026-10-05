@@ -114,18 +114,43 @@ export function visitedBiomes(state: GameState): BiomeId[] {
   return out;
 }
 
-/** Destinos que quedan, en el orden de DESTINATION_IDS. */
+/**
+ * Anillo abierto (fase 10): el primero que aún tiene algún destino sin colonizar. Los de después
+ * esperan a que se colonice entero; con todo colonizado no queda ninguno (Infinity).
+ */
+export function openRing(state: GameState): number {
+  let open = Infinity;
+  for (const id of DESTINATION_IDS) if (!isColonized(state, id)) open = Math.min(open, getBiome(id).ring);
+  return open;
+}
+
+/**
+ * Queda un anillo por abrir. Entonces que no haya destinos no es el final del viaje: falta
+ * colonizar el bosque actual (en el Chocó segundo, sin colonizar, la pradera y la tundra esperan).
+ */
+export function closedRingAhead(state: GameState): boolean {
+  const open = openRing(state);
+  return DESTINATION_IDS.some((id) => getBiome(id).ring > open);
+}
+
+/** Destinos que quedan en los anillos abiertos, en el orden de DESTINATION_IDS. */
 export function destinations(state: GameState): DestinationId[] {
   const visited = visitedBiomes(state);
-  return DESTINATION_IDS.filter((id) => !visited.includes(id));
+  const open = openRing(state);
+  return DESTINATION_IDS.filter((id) => !visited.includes(id) && getBiome(id).ring <= open);
 }
 
 // ---------------------------------------------------------------------------------------
 // Reglas del bioma y efectos de las adaptaciones de bioma
 
-/** Multiplicador de un generador por el bioma y por las adaptaciones de bioma que lo nombran. */
+/**
+ * Multiplicador de un generador por el bioma (el de todos, `productionFactor`, y el suyo) y por
+ * las adaptaciones de bioma que lo nombran. Fuera de la tundra el factor de todos es 1, y 1 · x
+ * es x: las cifras de los demás biomas no cambian ni en el último bit.
+ */
 export function generatorBiomeFactor(state: GameState, id: GeneratorId): number {
-  let factor = getBiome(state.forest.biome).production[id] ?? 1;
+  const biome = getBiome(state.forest.biome);
+  let factor = biome.productionFactor * (biome.production[id] ?? 1);
   for (const def of BIOME_ADAPTATIONS) {
     const effect = def.effect;
     const rank = state.biomeAdaptations[def.id];
