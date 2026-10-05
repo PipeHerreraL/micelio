@@ -4,6 +4,10 @@
  * (ARCHITECTURE.md §7). Mismo cargador que los textos de los socios y el inglés de la interfaz
  * (../lazy-catalog.ts): al cambiar de idioma se siguen usando los del anterior hasta que llegan los
  * nuevos.
+ *
+ * Las noticias que solo pueden salir tras dispersar una vez (las de cada destino, las del viento y la
+ * postal) y las versiones de las demás para cada destino van en un segundo trozo, que solo se pide
+ * entonces: con la pradera y la tundra, un solo catálogo pasaba de su tope de 7 kB.
  */
 import type { Locale } from '../../core/state.ts';
 import { getLocale, pseudoize } from '../index.ts';
@@ -19,24 +23,43 @@ const news = createLazyCatalog<NewsCatalog>(
   getLocale,
 );
 
+const biomeNews = createLazyCatalog<NewsCatalog>(
+  {
+    es: () => import('./biomes/es.ts').then((m) => m.biomeNewsEs),
+    en: () => import('./biomes/en.ts').then((m) => m.biomeNewsEn),
+  },
+  getLocale,
+);
+
 /** Modo de desarrollo `?pseudo`: las noticias también se alargan y acentúan. */
 export function setNewsPseudo(on: boolean): void {
   news.setTransform(on ? pseudoize : null);
+  biomeNews.setTransform(on ? pseudoize : null);
 }
 
-/** Descarga las noticias de `locale` (una vez; un fallo deja reintentar) y las pone en uso. */
-export function ensureNewsCatalog(locale: Locale): Promise<void> {
-  return news.ensure(locale);
+/**
+ * Descarga las noticias de `locale` (una vez; un fallo deja reintentar) y las pone en uso; con
+ * `biomes`, también las de los biomas.
+ */
+export function ensureNewsCatalog(locale: Locale, biomes = false): Promise<void> {
+  return Promise.all([news.ensure(locale), biomes ? biomeNews.ensure(locale) : undefined]).then(
+    () => undefined,
+  );
 }
 
-/** Las noticias en uso son las de `locale`. */
-export function isNewsCatalogReady(locale: Locale): boolean {
-  return news.activeLocale() === locale;
+/** Las noticias en uso son las de `locale` (con `biomes`, también las de los biomas). */
+export function isNewsCatalogReady(locale: Locale, biomes = false): boolean {
+  return news.activeLocale() === locale && (!biomes || biomeNews.activeLocale() === locale);
 }
 
 /** Pone a mano un catálogo (pruebas: happy-dom no resuelve el import() del trozo). */
 export function provideNewsCatalog(locale: Locale, catalog: NewsCatalog): void {
   news.provide(locale, catalog);
+}
+
+/** Lo mismo con las noticias de los biomas. */
+export function provideBiomeNewsCatalog(locale: Locale, catalog: NewsCatalog): void {
+  biomeNews.provide(locale, catalog);
 }
 
 /**
@@ -46,5 +69,6 @@ export function provideNewsCatalog(locale: Locale, catalog: NewsCatalog): void {
 export function newsText(id: string, biome: string): string {
   const active = news.active();
   if (!active) return '';
-  return active[`${id}.${biome}`] ?? active[id] ?? '';
+  const local = biomeNews.active();
+  return local?.[`${id}.${biome}`] ?? local?.[id] ?? active[id] ?? '';
 }

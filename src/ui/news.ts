@@ -3,6 +3,7 @@
  * entre las noticias que el progreso ya desbloqueó. No es una región aria-live: cambia sola
  * y anunciarla interrumpiría.
  */
+import { dispersalCount } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { mappedCount } from '../partners/plasmodium/state.ts';
@@ -39,6 +40,15 @@ function unlocked(state: GameState, def: NewsDef): boolean {
   }
 }
 
+/**
+ * Las noticias de los biomas (i18n/news/biomes) solo hacen falta tras dispersar una vez: cada una pide
+ * un destino o una dispersión, o es la versión de otra para un destino (lo comprueba i18n.test). Una
+ * partida que no salió del natal no las descarga.
+ */
+export function needsBiomeNews(state: GameState): boolean {
+  return dispersalCount(state) > 0;
+}
+
 export interface NewsTicker {
   root: HTMLElement;
   /** Avanza el reloj del ticker; `now` en ms. */
@@ -60,12 +70,15 @@ export function createNewsTicker(): NewsTicker {
       // Los textos llegan aparte (i18n/news). Hasta que lleguen los del idioma activo no se gasta
       // el turno de la noticia ni sale una en el idioma anterior; se vuelve a mirar en el
       // siguiente refresco. Una descarga fallida no se repite en cada refresco (BUG-JOURNAL #17).
+      // Tras dispersar también hacen falta las de los biomas: sin ellas, en un destino la piña o el
+      // abeto viejo saldrían con su texto del natal.
       const locale = getLocale();
-      if (!isNewsCatalogReady(locale) && now >= retryAt) {
+      const biomes = needsBiomeNews(state);
+      if (!isNewsCatalogReady(locale, biomes) && now >= retryAt) {
         retryAt = now + NEWS_INTERVAL * 1000;
-        void ensureNewsCatalog(locale).catch(() => undefined);
+        void ensureNewsCatalog(locale, biomes).catch(() => undefined);
       }
-      if (!isNewsCatalogReady(locale)) return;
+      if (!isNewsCatalogReady(locale, biomes)) return;
       nextAt = now + NEWS_INTERVAL * 1000;
       const pool = NEWS.filter((n) => unlocked(state, n));
       // Al azar entre las desbloqueadas, evitando repetir las últimas que se vieron. En un bioma,

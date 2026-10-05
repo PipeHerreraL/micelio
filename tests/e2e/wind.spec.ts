@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { disperse } from '../../src/core/actions.ts';
 import { createState, type GameState } from '../../src/core/state.ts';
 import { MUTATION_IDS } from '../../src/data/mutations.ts';
 import { isMobile, savedState, seedRawSave, seedSave, windState } from './helpers.ts';
@@ -314,4 +316,42 @@ test('una partida de la 1.2 avanzada carga sin perder esporas por ganar ni histo
   expect(saved.forest.biome).toBe('natal');
   expect(saved.forest.earned).toBeGreaterThanOrEqual(1.6e13);
   expect(saved.spores.available).toBe(812);
+});
+
+/** Archivo del trozo con las noticias de los biomas en español, según el manifiesto del build. */
+function biomeNewsChunk(): string {
+  const manifest = JSON.parse(
+    readFileSync(new URL('../../dist/.vite/manifest.json', import.meta.url), 'utf8'),
+  ) as Record<string, { file: string }>;
+  const file = manifest['src/i18n/news/biomes/es.ts']?.file;
+  if (!file) throw new Error('El build no trae el trozo de las noticias de los biomas.');
+  return file;
+}
+
+test('quien no ha salido del natal no descarga las noticias de los biomas', async ({ page }, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  const chunk = biomeNewsChunk();
+  const requested: string[] = [];
+  page.on('request', (request) => requested.push(request.url()));
+  await seedSave(page, windState());
+  await page.goto('./');
+  // Con una noticia en pantalla, el teletipo ya decidió qué catálogos necesita.
+  await expect(page.locator('.news__text')).not.toHaveText('');
+  expect(requested.some((url) => url.endsWith(chunk))).toBe(false);
+});
+
+test('en la taiga, el teletipo descarga las noticias de los biomas y dice una', async ({ page }, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  const now = Date.now();
+  const state = windState((s) => {
+    disperse(s, { to: 'taiga', now: now - HOUR });
+    s.seen.push('chapter.arrive.taiga');
+    // Unas compras en la taiga: sin generadores a la vista, la interfaz es la de partida nueva.
+    s.owned.hypha = 10;
+  }, now);
+  const download = page.waitForRequest((request) => request.url().endsWith(biomeNewsChunk()));
+  await seedSave(page, state);
+  await page.goto('./');
+  await download;
+  await expect(page.locator('.news__text')).not.toHaveText('');
 });

@@ -12,6 +12,8 @@ import { plasmodiumEn } from '../src/i18n/partners/plasmodium.en.ts';
 import { plasmodiumEs } from '../src/i18n/partners/plasmodium.es.ts';
 import { PLASMODIUM_ACHIEVEMENT_IDS, PLASMODIUM_UPGRADES } from '../src/data/plasmodium.ts';
 import { PLATES } from '../src/data/plasmodium-plates.ts';
+import { biomeNewsEn } from '../src/i18n/news/biomes/en.ts';
+import { biomeNewsEs } from '../src/i18n/news/biomes/es.ts';
 import { newsEn } from '../src/i18n/news/en.ts';
 import { newsEs } from '../src/i18n/news/es.ts';
 
@@ -112,9 +114,17 @@ describe('catálogos de idioma', () => {
 });
 
 describe('catálogos de las noticias (llegan aparte)', () => {
-  const NEWS_CATALOGS: Record<string, Readonly<Record<string, string>>> = { es: newsEs, en: newsEn };
+  // El del sotobosque y el de los biomas, que solo se descarga tras dispersar (i18n/news/index.ts).
+  const NEWS_CATALOGS: Record<string, Readonly<Record<string, string>>> = {
+    es: { ...newsEs, ...biomeNewsEs },
+    en: { ...newsEn, ...biomeNewsEn },
+  };
   const ids = new Set(NEWS.map((n) => n.id));
-  const biomes = new Set(BIOMES.map((b) => b.id));
+  const destinations = new Set<string>(DESTINATION_IDS);
+  /** Las que solo pueden salir tras dispersar una vez: en un destino o con una dispersión. */
+  const afterDispersal = new Set(
+    NEWS.filter((n) => n.when.kind === 'biome' || n.when.kind === 'dispersals').map((n) => n.id),
+  );
 
   it('cada noticia tiene su texto en los dos idiomas, ninguno vacío y sin marcadores', () => {
     for (const [locale, catalog] of Object.entries(NEWS_CATALOGS)) {
@@ -123,14 +133,34 @@ describe('catálogos de las noticias (llegan aparte)', () => {
         expect(placeholders(text), `${locale}:${key}`).toEqual([]);
     }
     expect(Object.keys(newsEn).sort()).toEqual(Object.keys(newsEs).sort());
+    expect(Object.keys(biomeNewsEn).sort()).toEqual(Object.keys(biomeNewsEs).sort());
   });
 
-  it('las claves de más son versiones de una noticia para un bioma que existe', () => {
-    for (const key of Object.keys(newsEs)) {
+  it('las noticias que piden haber dispersado van en el catálogo de los biomas, y ninguna otra', () => {
+    // El teletipo solo descarga ese catálogo tras dispersar: una que faltara en él no saldría nunca
+    // en un destino, y una de más pesaría en la descarga de quien no ha salido del natal.
+    for (const id of ids) {
+      expect(id in biomeNewsEs, id).toBe(afterDispersal.has(id));
+      expect(id in newsEs, id).toBe(!afterDispersal.has(id));
+    }
+  });
+
+  it('las claves de más son versiones de una noticia para un destino, en el catálogo de los biomas', () => {
+    for (const key of Object.keys(newsEs)) expect(ids.has(key), key).toBe(true);
+    for (const key of Object.keys(biomeNewsEs)) {
       if (ids.has(key)) continue;
       const cut = key.lastIndexOf('.');
       expect(ids.has(key.slice(0, cut)), key).toBe(true);
-      expect(biomes.has(key.slice(cut + 1) as never), key).toBe(true);
+      expect(destinations.has(key.slice(cut + 1)), key).toBe(true);
+    }
+  });
+
+  it('cada destino tiene al menos doce noticias propias, y dos que salen nada más llegar', () => {
+    for (const biome of DESTINATION_IDS) {
+      const own = NEWS.flatMap((n) => (n.when.kind === 'biome' && n.when.biome === biome ? [n.when] : []));
+      expect(own.length, biome).toBeGreaterThanOrEqual(12);
+      const onArrival = own.filter((w) => w.level === undefined && w.owned === undefined);
+      expect(onArrival.length, biome).toBeGreaterThanOrEqual(2);
     }
   });
 });
@@ -180,7 +210,7 @@ describe('catálogos del plasmodio (fase 9)', () => {
   });
 
   it('ningún texto usa signos fuera del estilo de la casa (≤, ≥, flechas)', () => {
-    for (const catalog of [plasmodiumEs, plasmodiumEn, es, en, newsEs, newsEn]) {
+    for (const catalog of [plasmodiumEs, plasmodiumEn, es, en, newsEs, newsEn, biomeNewsEs, biomeNewsEn]) {
       for (const [key, text] of Object.entries(catalog)) expect(/[≤≥→←↑↓]/.test(text), key).toBe(false);
     }
   });
@@ -214,6 +244,8 @@ describe('cobertura de las fuentes', () => {
       'plasmodio-en': plasmodiumEn,
       'noticias-es': newsEs,
       'noticias-en': newsEn,
+      'noticias-biomas-es': biomeNewsEs,
+      'noticias-biomas-en': biomeNewsEn,
     };
     for (const [locale, catalog] of Object.entries(all)) {
       // Se recorre por puntos de código, que es lo que cubre unicode-range.

@@ -1,11 +1,15 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { disperse } from '../src/core/actions.ts';
+import { drain } from '../src/core/events.ts';
 import { createState } from '../src/core/state.ts';
+import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { NEWS_INTERVAL } from '../src/data/news.ts';
 import { loadLocale, setLocale } from '../src/i18n/index.ts';
 import { newsEn } from '../src/i18n/news/en.ts';
 import { newsEs } from '../src/i18n/news/es.ts';
 import { provideNewsCatalog } from '../src/i18n/news/index.ts';
+import { checkActOne } from '../src/systems/journey.ts';
 import { createNewsTicker } from '../src/ui/news.ts';
 
 /**
@@ -52,5 +56,37 @@ describe('noticias que aún no llegan', () => {
     provideNewsCatalog('en', newsEn);
     ticker.update(state, 100);
     expect(Object.values(newsEn)).toContain(text());
+  });
+});
+
+describe('noticias de los biomas que aún no llegan (fase 10)', () => {
+  it('en el natal no se piden; tras dispersar se piden y, mientras no lleguen, no sale ninguna noticia', () => {
+    setLocale('es');
+    provideNewsCatalog('es', newsEs);
+    ensure.mockClear();
+    const text = (ticker: { root: HTMLElement }): string =>
+      ticker.root.querySelector('.news__text')?.textContent ?? '';
+    const natal = createNewsTicker();
+    natal.update(state, 0);
+    expect(text(natal)).not.toBe('');
+    expect(ensure).not.toHaveBeenCalledWith('es', true);
+
+    // En la taiga, construida con acciones.
+    const taiga = createState(51, Date.UTC(2026, 9, 1));
+    taiga.mutations = [...MUTATION_IDS];
+    taiga.achievements = ['own.planetary.1'];
+    taiga.stats.sporulations = 9;
+    taiga.spores = { level: 1941, available: 2025 };
+    checkActOne(taiga);
+    disperse(taiga, { to: 'taiga', now: Date.UTC(2026, 9, 1) + 1000 });
+    drain();
+    const ticker = createNewsTicker();
+    // Sin las de los biomas, la piña o el abeto viejo saldrían con el texto del natal: se espera a que
+    // lleguen, turno tras turno, aunque las del sotobosque ya estén.
+    for (let turn = 0; turn < 50; turn += 1) {
+      ticker.update(taiga, turn * NEWS_INTERVAL * 1000);
+      expect(text(ticker)).toBe('');
+    }
+    expect(ensure).toHaveBeenCalledWith('es', true);
   });
 });

@@ -52,6 +52,7 @@ import { createFloaters } from './ui/floaters.ts';
 import { registerServiceWorker, watchInstall } from './ui/install.ts';
 import { announce, createLiveRegion } from './ui/live.ts';
 import { openModal } from './ui/modal.ts';
+import { needsBiomeNews } from './ui/news.ts';
 import { createSoundEngine, type SoundCue } from './audio/sound.ts';
 import { toSeed } from './core/rng.ts';
 import { createNetworkView, type NetworkView } from './render/network.ts';
@@ -1041,8 +1042,9 @@ function mount(): void {
   for (const id of PARTNER_IDS) {
     if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);
   }
-  // Las noticias también llegan aparte: se piden ya para que estén al primer refresco del teletipo.
-  void ensureNewsCatalog(getLocale()).catch(() => undefined);
+  // Las noticias también llegan aparte: se piden ya para que estén al primer refresco del teletipo
+  // (tras dispersar, también las de los biomas).
+  void ensureNewsCatalog(getLocale(), needsBiomeNews(store.state)).catch(() => undefined);
   schedule(frame);
 }
 

@@ -1,7 +1,8 @@
 /**
  * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 20 s. Cada
- * noticia se desbloquea con el progreso. El texto vive en src/i18n con la clave
- * `news.<id>`.
+ * noticia se desbloquea con el progreso. El texto vive en src/i18n/news con el id como clave; las
+ * que piden haber dispersado ('biome' y 'dispersals'), en src/i18n/news/biomes, que solo se
+ * descarga entonces.
  */
 import type { DestinationId } from './biomes.ts';
 import type { GeneratorId } from './generators.ts';
@@ -127,6 +128,46 @@ export const NEWS: readonly NewsDef[] = [
   { id: 'choco.splash', when: { kind: 'biome', biome: 'choco', level: 200 } },
   { id: 'choco.plastic', when: { kind: 'biome', biome: 'choco', owned: { id: 'ancientForest', count: 1 } } },
   { id: 'choco.glow', when: { kind: 'biome', biome: 'choco', level: 400 } },
+  // Donde acaban los árboles (fase 10).
+  { id: 'prairie.arrival', when: { kind: 'biome', biome: 'prairie' } },
+  { id: 'prairie.chernozem', when: { kind: 'biome', biome: 'prairie' } },
+  { id: 'prairie.belfort', when: { kind: 'biome', biome: 'prairie', owned: { id: 'fairyRing', count: 1 } } },
+  { id: 'prairie.rings', when: { kind: 'biome', biome: 'prairie', owned: { id: 'fairyRing', count: 25 } } },
+  {
+    id: 'prairie.bluestem',
+    when: { kind: 'biome', biome: 'prairie', owned: { id: 'mycorrhiza', count: 1 } },
+  },
+  {
+    id: 'prairie.glomalin',
+    when: { kind: 'biome', biome: 'prairie', owned: { id: 'mycorrhiza', count: 25 } },
+  },
+  {
+    id: 'prairie.roots',
+    when: { kind: 'biome', biome: 'prairie', owned: { id: 'ancientForest', count: 1 } },
+  },
+  {
+    id: 'prairie.pilobolus',
+    when: { kind: 'biome', biome: 'prairie', owned: { id: 'mushroom', count: 25 } },
+  },
+  { id: 'prairie.pseudomycelium', when: { kind: 'biome', biome: 'prairie', level: 50 } },
+  { id: 'prairie.marasmius', when: { kind: 'biome', biome: 'prairie', level: 100 } },
+  { id: 'prairie.lungworm', when: { kind: 'biome', biome: 'prairie', level: 200 } },
+  { id: 'prairie.waxcaps', when: { kind: 'biome', biome: 'prairie', level: 400 } },
+  { id: 'tundra.arrival', when: { kind: 'biome', biome: 'tundra' } },
+  { id: 'tundra.word', when: { kind: 'biome', biome: 'tundra' } },
+  { id: 'tundra.polarDesert', when: { kind: 'biome', biome: 'tundra' } },
+  { id: 'tundra.species', when: { kind: 'biome', biome: 'tundra', owned: { id: 'mycorrhiza', count: 1 } } },
+  { id: 'tundra.carbon', when: { kind: 'biome', biome: 'tundra', owned: { id: 'mycorrhiza', count: 25 } } },
+  { id: 'tundra.xanthoria', when: { kind: 'biome', biome: 'tundra', owned: { id: 'motherTree', count: 1 } } },
+  {
+    id: 'tundra.dwarfWillow',
+    when: { kind: 'biome', biome: 'tundra', owned: { id: 'ancientForest', count: 1 } },
+  },
+  { id: 'tundra.reindeer', when: { kind: 'biome', biome: 'tundra', owned: { id: 'mushroom', count: 25 } } },
+  { id: 'tundra.typhula', when: { kind: 'biome', biome: 'tundra', level: 50 } },
+  { id: 'tundra.silene', when: { kind: 'biome', biome: 'tundra', level: 100 } },
+  { id: 'tundra.lichenometry', when: { kind: 'biome', biome: 'tundra', level: 200 } },
+  { id: 'tundra.pingo', when: { kind: 'biome', biome: 'tundra', level: 400 } },
   { id: 'wind.rust', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.buller', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.altitude', when: { kind: 'dispersals', count: 1 } },

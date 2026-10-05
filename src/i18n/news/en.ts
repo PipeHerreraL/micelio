@@ -2,60 +2,6 @@
 import type { NewsKey } from './es.ts';
 
 export const newsEn: Readonly<Record<NewsKey, string>> = {
-  'motherTree.choco':
-    'An emergent tree has visitors. Some believe it feeds the young trees in its shade; science is still debating it.',
-  // Noticias de los biomas y del viento
-  'taiga.arrival': "Unfamiliar spores land in the taiga. The spruces don't ask where from.",
-  'taiga.podzol':
-    'Podzol comes from the Russian for “under the ash.” Nothing burned: the gray comes from water washing the soil for centuries.',
-  'taiga.circumpolar':
-    'The taiga rings the planet across the north: Scandinavia, Russia, Alaska and Canada. The network has started in one corner.',
-  'taiga.ecto':
-    'Spruce, pine, larch and birch: almost every tree in the taiga lives with ectomycorrhizal fungi. Nobody grows alone here.',
-  'taiga.carbon':
-    "A study on boreal islands in Sweden estimated that 50 to 70% of the soil's carbon came from roots and their fungi. The network keeps more than it shows.",
-  'taiga.rockEating':
-    "In the podzol's gray horizon, feldspar grains are riddled with tiny tunnels. Hyphae hunting for minerals are thought to bore them; geologists call it weathering, and the network calls it lunch.",
-  'taiga.amanita':
-    "Amanita muscaria, the red cap with white spots, partners with birches and spruces. Fairy-tale fame doesn't make it edible: it's toxic.",
-  'taiga.snowMold':
-    'Under the snow, close to freezing, some snow molds keep growing, helped among other things by antifreeze proteins. Not everyone hibernates.',
-  'taiga.morels':
-    'After a fire in the boreal forest, morels can come up by the hundreds. No forest ranger recommends the method.',
-  'taiga.lichen':
-    'Reindeer lichen grows a few millimeters a year. A reindeer eats decades of it in an afternoon, and the lichen holds no grudge.',
-  'taiga.chaga':
-    'Chaga grows on northern birches and looks like a lump of burnt charcoal. The birch disagrees with the description.',
-  'taiga.permafrost':
-    'In parts of Siberia, the taiga grows on ground that stays frozen all year. Roots live in the top layer, the only one that thaws in summer.',
-  'choco.arrival': 'Spores reach the Chocó rainforest. Here nobody asks whether it will rain, only when.',
-  'choco.forecast': 'Forecast for the Chocó today: rain. Tomorrow: same.',
-  'choco.lloro':
-    'In Lloró, in the Chocó, an estimated 13,000 mm of rain falls each year. It disputes the world record with a village in India.',
-  'choco.endemic':
-    'From the Darién in Panama to northwestern Ecuador, the biogeographic Chocó holds thousands of species found nowhere else. Almost nobody has counted the fungi.',
-  'choco.leafcutter':
-    "Leafcutter ants don't eat leaves: they chew them up to grow a fungus, and they eat the fungus. Farming on six legs.",
-  'choco.farmers':
-    "Genetic estimates suggest ants have been farming fungi for some 55 to 60 million years; humans, for about twelve thousand. The ants don't brag.",
-  'choco.arbuscular':
-    'Most rainforest trees live with arbuscular mycorrhizae. Fossils suggest the partnership is over 400 million years old: older than trees themselves.',
-  'choco.litter':
-    'In the rainforest a fallen leaf can vanish in a few months; in the taiga it takes years. Leaf litter here has no time to pile up.',
-  'choco.rootMat':
-    'On poor tropical soils, a mat of roots and fungi catches nutrients before the rain washes them away. In an Amazon experiment it held on to more than 99.9%.',
-  'choco.splash':
-    "Bird's nest fungi use every raindrop as a catapult: the impact flings their spore packets out of the cup. In the Chocó they never run out of ammunition.",
-  'choco.plastic':
-    'A fungus from the Ecuadorian Amazon, Pestalotiopsis microspora, can grow on polyurethane in the lab. The network still prefers leaves.',
-  'choco.glow':
-    'Some tropical mushrooms glow green at night. In one Brazilian species the light was found to attract insects, which may help spread its spores.',
-  'wind.rust':
-    'Wheat rust spores have been documented crossing on the wind from Australia to New Zealand: some two thousand kilometers, no luggage.',
-  'wind.buller':
-    "Many mushrooms launch each spore with a droplet that merges in microseconds: Buller's drop. Liftoff reaches thousands of times the force of gravity.",
-  'wind.altitude':
-    'Fungal spores have been collected kilometers up in the atmosphere. The wind carries passengers no map shows.',
   worm: 'An earthworm reports that the soil is suspiciously well organized.',
   fairyStep: 'Residents are advised not to step inside fairy rings. Just in case.',
   quietSoil: 'Today in the soil: damp and dark, with a very productive silence.',
@@ -111,7 +57,6 @@ export const newsEn: Readonly<Record<NewsKey, string>> = {
   chitin: "Hyphal walls contain chitin, the same stuff as a beetle's shell.",
   yeast: 'The yeast in bread and beer is a fungus. It has worked for thousands of years without pay.',
   pineCone: 'A pine cone lands on the network. The network adds it to its plans.',
-  'pineCone.choco': 'A palm fruit lands on the network. The network adds it to its plans.',
   asphalt: "A mushroom lifts the asphalt of a path. It doesn't shove: it pushes with water, patiently.",
   rootsGossip: 'The roots complain that the network hears everything before they do.',
   ownWind:
@@ -140,9 +85,6 @@ export const newsEn: Readonly<Record<NewsKey, string>> = {
   noose: 'Some fungi trap nematodes in loops that snap shut in a tenth of a second.',
   myceliumBricks:
     'Packaging and bricks are already being made from mycelium. The network asks about royalties.',
-  postcard: 'The home forest gets a postcard: "All well here. Lots of rain. Will write through the network."',
-  'postcard.taiga':
-    'The home forest gets a postcard: "All well here. Cold, not much rain. Will write through the network."',
   'plasmodium.notFungus':
     'Undergrowth clarification: the yellow mold on the log is not a fungus. Mycologists study it anyway, and it does not complain.',
   'plasmodium.speed':
