@@ -13,6 +13,8 @@ export default tseslint.config(
       'node_modules',
       'test-results',
       'playwright-report',
+      // Worktrees y prototipos de los agentes (ignorados por git; ESLint no lee .gitignore).
+      '.claude',
     ],
   },
   js.configs.recommended,
