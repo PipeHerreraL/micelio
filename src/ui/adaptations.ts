@@ -50,6 +50,11 @@ function effectText(state: GameState, def: AdaptationDef): string {
           });
     case 'foxfire':
       return rank === 0 ? t('adapt.none') : t('adapt.foxfire.effect');
+    // Las cosméticas de los votos aún no tienen definición ni fila (ADAPTATION_IDS).
+    case 'sporePrint':
+    case 'blackCords':
+    case 'waxcaps':
+      return t('adapt.none');
   }
 }
 

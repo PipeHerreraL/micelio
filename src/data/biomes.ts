@@ -120,6 +120,10 @@ export const MAX_LEG = DESTINATION_IDS.length;
  */
 export const ACT_ONE_ACHIEVEMENT = 'own.planetary.1';
 
+/**
+ * Las de la pradera y la tundra (fase 10) tienen su clave en el guardado desde la v7 y valen 0
+ * hasta que llegue su definición: un id sin definición en BIOME_ADAPTATIONS no se puede comprar.
+ */
 export const BIOME_ADAPTATION_IDS = [
   'rockEating',
   'seedlingNetwork',
@@ -127,6 +131,12 @@ export const BIOME_ADAPTATION_IDS = [
   'gongylidia',
   'leafcutters',
   'rootMat',
+  'ringFront',
+  'glomalin',
+  'pilobolus',
+  'dwarfBirch',
+  'snowMold',
+  'lichen',
 ] as const;
 export type BiomeAdaptationId = (typeof BIOME_ADAPTATION_IDS)[number];
 

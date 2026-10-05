@@ -10,6 +10,7 @@ import { mappedCount } from '../src/partners/plasmodium/state.ts';
 import { offlineCapSeconds } from '../src/systems/offline.ts';
 import { parseSave, serializeSave } from '../src/systems/save.ts';
 import { GAME_VERSION } from '../src/version.ts';
+import { withV7Additions } from './save-v7-additions.ts';
 
 /**
  * Guardados reales de la 1.5 (fase 10): seis partidas que escribió el código de la v1.5.0 jugando
@@ -74,15 +75,28 @@ function journeyOf(state: GameState): [string, number][] {
 }
 
 describe.each(FIXTURES)('guardado real de la 1.5 «%s»', (name) => {
-  it('carga sin cambios ni socios rehechos y vuelve a guardarse idéntico', () => {
+  it('migra a la v7 solo con las claves nuevas, sin socios rehechos, y se guarda así', () => {
     const text = fixtureText(`save-v6-${name}.json`);
-    const raw = JSON.parse(text) as { savedAt: number; game: string; state: unknown };
+    const raw = JSON.parse(text) as {
+      version: number;
+      savedAt: number;
+      game: string;
+      state: Record<string, unknown>;
+    };
     expect(raw.game).toBe('1.5.0');
+    expect(raw.version).toBe(6);
     const result = parseSave(text);
     if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
     expect(result.partnersReset).toEqual([]);
-    expect(result.save.state).toEqual(raw.state);
-    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual({ ...raw, game: GAME_VERSION });
+    // Campo a campo: lo de la 1.5 tal cual y lo que añade la v7, escrito a mano.
+    const v7 = withV7Additions(raw.state);
+    expect(result.save.state).toEqual(v7);
+    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual({
+      ...raw,
+      version: 7,
+      game: GAME_VERSION,
+      state: v7,
+    });
   });
 
   it('da la misma producción, clic, esporas, requisito, escala, tope sin conexión y viaje que la 1.5', () => {

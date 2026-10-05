@@ -13,6 +13,7 @@ import {
 } from '../src/partners/plasmodium/state.ts';
 import { checkActOne } from '../src/systems/journey.ts';
 import { GAME_VERSION } from '../src/version.ts';
+import { withV7Additions } from './save-v7-additions.ts';
 import {
   BACKUP_KEY,
   PARTNER_BACKUP_KEY,
@@ -132,18 +133,21 @@ describe('guardado de la 1.4', () => {
    * estado cambia sin subir la versión y sin migración, esta prueba falla: así ninguna partida
    * de la 1.4 se pierde al actualizar (crítica de la fase 9, hallazgo 14).
    */
-  it('carga sin cambios y vuelve a guardarse idéntico, con el plasmodio y su red', () => {
+  it('carga con solo lo que añade la v7 y vuelve a guardarse así, con el plasmodio y su red', () => {
     const text = readFileSync(new URL('./fixtures/save-v6.json', import.meta.url), 'utf8');
-    const raw = JSON.parse(text) as { savedAt: number; state: unknown };
+    const raw = JSON.parse(text) as { savedAt: number; state: Record<string, unknown> };
     const result = parseSave(text);
     if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
     expect(result.partnersReset).toEqual([]);
-    expect(result.save.state).toEqual(raw.state);
+    const v7 = withV7Additions(raw.state);
+    expect(result.save.state).toEqual(v7);
     expect(result.save.state.partners.plasmodium?.plates[0]?.foods).toEqual([7, 1, 16, 18]);
-    // Lo único que se añade es la versión del juego que guarda (desde la 1.5.0).
+    // Lo demás que se añade es la versión del juego que guarda (desde la 1.5.0).
     expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual({
       ...(JSON.parse(text) as object),
+      version: 7,
       game: GAME_VERSION,
+      state: v7,
     });
   });
 });

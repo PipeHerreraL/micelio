@@ -4,6 +4,7 @@
  */
 import { ADAPTATION_IDS, type AdaptationId } from '../data/adaptations.ts';
 import { BIOME_ADAPTATION_IDS, HOME_BIOME, type BiomeAdaptationId, type BiomeId } from '../data/biomes.ts';
+import type { VowId } from '../data/cycle.ts';
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { MUTATION_IDS, type MutationId } from '../data/mutations.ts';
 import { RAIN_INTERVAL_MAX, RAIN_INTERVAL_MIN } from '../data/rain.ts';
@@ -140,6 +141,10 @@ export interface GameState {
    * y sus logros; nada de aquí entra en computeDerived ni avanza en tick() (ARCHITECTURE.md §4.29).
    */
   partners: PartnersState;
+  /** El ciclo libre tras El regreso (fase 10): ciclos y votos del actual. */
+  cycle: CycleState;
+  /** El mejor ciclo cumplido de cada bioma y combinación de votos (fase 10). */
+  records: CycleRecord[];
 }
 
 /** El bosque donde vive el linaje. Lo colonizado y lo visitado se deducen de la Crónica. */
@@ -169,6 +174,30 @@ export interface ChronicleEntry {
   /** Al irse con el viento: fecha y nivel de esporas alcanzado. null mientras siga aquí. */
   leftAt: number | null;
   levelReached: number | null;
+}
+
+/** El ciclo libre (fase 10): vacío en el viaje y en El regreso. */
+export interface CycleState {
+  /** Ciclos empezados (0 en el viaje y en El regreso). Es también el número del ciclo actual. */
+  stays: number;
+  /** Ciclos cumplidos (nivel 500 en un ciclo). */
+  done: number;
+  /** Votos vigentes del ciclo actual, en el orden de VOW_IDS. */
+  vows: VowId[];
+  /** Con «sin mutaciones»: las ya despertadas en este ciclo. */
+  woken: MutationId[];
+}
+
+/** El mejor ciclo cumplido de un bioma con unos votos. */
+export interface CycleRecord {
+  biome: BiomeId;
+  /** Votos mantenidos hasta cumplir, en el orden de VOW_IDS. */
+  vows: VowId[];
+  /** ms de reloj desde la llegada hasta la esporulación que llegó al nivel 500; ≥ 0. */
+  time: number;
+  /** Esporulaciones en ese ciclo. */
+  runs: number;
+  at: number;
 }
 
 /** Una partida terminada al esporular: lo que la Crónica y las estadísticas recuerdan. */
@@ -201,6 +230,10 @@ export function emptyBiomeAdaptations(): Record<BiomeAdaptationId, number> {
   const ranks = {} as Record<BiomeAdaptationId, number>;
   for (const id of BIOME_ADAPTATION_IDS) ranks[id] = 0;
   return ranks;
+}
+
+export function emptyCycle(): CycleState {
+  return { stays: 0, done: 0, vows: [], woken: [] };
 }
 
 /** El bosque natal de una vida que empieza en `now`. */
@@ -263,6 +296,8 @@ export function createState(seed: number, now: number): GameState {
     chronicle: [],
     biomeAdaptations: emptyBiomeAdaptations(),
     partners: emptyPartners(),
+    cycle: emptyCycle(),
+    records: [],
   };
 }
 

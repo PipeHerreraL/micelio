@@ -10,8 +10,9 @@
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { isAchievementId } from '../data/achievements.ts';
 import { isMutationId, type MutationId } from '../data/mutations.ts';
-import { ADAPTATIONS, type AdaptationId } from '../data/adaptations.ts';
+import { ADAPTATION_IDS, ADAPTATIONS, type AdaptationId } from '../data/adaptations.ts';
 import {
+  BIOME_ADAPTATION_IDS,
   BIOME_ADAPTATIONS,
   HOME_BIOME,
   MAX_LEG,
@@ -35,6 +36,8 @@ import {
   type AutobuyThreshold,
   type BuyAmount,
   type ChronicleEntry,
+  type CycleRecord,
+  type CycleState,
   type ForestState,
   type GameState,
   type Locale,
@@ -61,7 +64,7 @@ export const PARTNER_BACKUP_KEY = 'micelio:save:partner-backup';
 export const TAB_KEY = 'micelio:tab';
 
 /** Versión actual del formato. Cada cambio la sube y añade `MIGRATIONS[n]` (n → n + 1). */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface SaveFile {
   version: number;
@@ -147,6 +150,31 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
     if (!state) return raw;
     const autobuy = isObject(state.autobuy) ? { ...state.autobuy, mode: 'threshold' } : state.autobuy;
     return { ...raw, state: { ...state, autobuy, partners: emptyPartners() } };
+  },
+  /**
+   * 6 → 7: llegan la pradera, la tundra, El regreso y el ciclo libre (fase 10). La v7 entra entera
+   * de una vez, también las claves cuyas reglas llegan después: así ninguna v7 escrita por una
+   * versión intermedia deja de cargar en la final. Solo se añaden claves (las adaptaciones nuevas a
+   * 0, el ciclo sin empezar y ningún récord); el bosque, la Crónica, los niveles, las esporas,
+   * `seen` y los socios no se tocan. Quien está en el muro carga con la pradera y la tundra
+   * abiertas porque las abre la regla de los anillos, no una marca de aquí. Los ids van escritos a
+   * mano y no salen de los datos: la migración describe la v7 aunque más adelante se sumen ids.
+   */
+  6: (raw) => {
+    const state = isObject(raw.state) ? raw.state : null;
+    if (!state || !isObject(state.biomeAdaptations) || !isObject(state.adaptations)) return raw;
+    const biomeAdaptations = {
+      ...state.biomeAdaptations,
+      ringFront: 0,
+      glomalin: 0,
+      pilobolus: 0,
+      dwarfBirch: 0,
+      snowMold: 0,
+      lichen: 0,
+    };
+    const adaptations = { ...state.adaptations, sporePrint: 0, blackCords: 0, waxcaps: 0 };
+    const cycle = { stays: 0, done: 0, vows: [], woken: [] };
+    return { ...raw, state: { ...state, biomeAdaptations, adaptations, cycle, records: [] } };
   },
 };
 
@@ -301,10 +329,13 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
 
   if (!isObject(raw.adaptations)) return null;
   const adaptations = {} as Record<AdaptationId, number>;
-  for (const def of ADAPTATIONS) {
-    const rank = raw.adaptations[def.id];
-    if (!isCount(rank) || (def.max !== null && rank > def.max)) return null;
-    adaptations[def.id] = rank;
+  for (const id of ADAPTATION_IDS) {
+    const rank = raw.adaptations[id];
+    const def = ADAPTATIONS.find((d) => d.id === id);
+    // Sin definición (las cosméticas, hasta sus votos), el único rango posible es 0.
+    const max = def ? def.max : 0;
+    if (!isCount(rank) || (max !== null && rank > max)) return null;
+    adaptations[id] = rank;
   }
   if (!isCount(raw.sporeFloor)) return null;
 
@@ -315,6 +346,10 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   const visited = new Set<BiomeId>([...chronicle.map((e) => e.biome), forest.biome]);
   const biomeAdaptations = validateBiomeAdaptations(raw.biomeAdaptations, visited);
   if (!biomeAdaptations) return null;
+  const cycle = validateCycle(raw.cycle);
+  if (!cycle) return null;
+  const records = validateRecords(raw.records);
+  if (!records) return null;
 
   // Al final: un socio inválido en modo lenient no debe ocultar un error de la red.
   const partners = validatePartners(raw.partners, mode);
@@ -343,6 +378,8 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
     chronicle,
     biomeAdaptations,
     partners: partners.partners,
+    cycle,
+    records,
   };
   return { state, partnersReset: partners.reset };
 }
@@ -434,13 +471,32 @@ function validateBiomeAdaptations(
 ): Record<BiomeAdaptationId, number> | null {
   if (!isObject(raw)) return null;
   const ranks = {} as Record<BiomeAdaptationId, number>;
-  for (const def of BIOME_ADAPTATIONS) {
-    const rank = raw[def.id];
-    if (!isCount(rank) || rank > def.max) return null;
-    if (rank > 0 && !visited.has(def.biome)) return null;
-    ranks[def.id] = rank;
+  for (const id of BIOME_ADAPTATION_IDS) {
+    const rank = raw[id];
+    if (!isCount(rank)) return null;
+    const def = BIOME_ADAPTATIONS.find((d) => d.id === id);
+    // Sin definición todavía (las de la pradera y la tundra), el único rango posible es 0.
+    if (def ? rank > def.max || (rank > 0 && !visited.has(def.biome)) : rank > 0) return null;
+    ranks[id] = rank;
   }
   return ranks;
+}
+
+/**
+ * El ciclo libre (fase 10). Hasta que lleguen sus reglas solo vale sin empezar: un ciclo empezado
+ * o un voto solo los escribe un juego más nuevo, y a ese guardado lo protege `isFromNewerGame`
+ * por la versión del juego, no este validador.
+ */
+function validateCycle(raw: unknown): CycleState | null {
+  if (!isObject(raw) || raw.stays !== 0 || raw.done !== 0) return null;
+  if (!Array.isArray(raw.vows) || raw.vows.length > 0) return null;
+  if (!Array.isArray(raw.woken) || raw.woken.length > 0) return null;
+  return { stays: 0, done: 0, vows: [], woken: [] };
+}
+
+/** Los récords del ciclo libre: hasta que lleguen sus reglas, ninguno (ver `validateCycle`). */
+function validateRecords(raw: unknown): CycleRecord[] | null {
+  return Array.isArray(raw) && raw.length === 0 ? [] : null;
 }
 
 // ---------------------------------------------------------------------------------------

@@ -38,9 +38,10 @@ import { createState, ownsMutation, type GameState } from '../src/core/state.ts'
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import {
-  BIOME_ADAPTATION_IDS,
+  BIOME_ADAPTATIONS,
   DESTINATION_IDS,
   DISPERSE_COST,
+  type BiomeAdaptationId,
   type DestinationId,
 } from '../src/data/biomes.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
@@ -106,11 +107,14 @@ function buyAdaptations(state: GameState, reserve = 0): void {
   }
 }
 
-/** Compra la adaptación de bioma más barata que esté abierta mientras alcance sin tocar la reserva. */
+/**
+ * Compra la adaptación de bioma más barata que esté abierta mientras alcance sin tocar la reserva.
+ * Recorre las definidas: un id del guardado sin definición todavía no se puede comprar.
+ */
 function buyBiomeAdaptations(state: GameState, reserve: number): void {
   for (let guard = 0; guard < 50; guard += 1) {
-    let best: { id: (typeof BIOME_ADAPTATION_IDS)[number]; cost: number } | null = null;
-    for (const id of BIOME_ADAPTATION_IDS) {
+    let best: { id: BiomeAdaptationId; cost: number } | null = null;
+    for (const { id } of BIOME_ADAPTATIONS) {
       if (biomeAdaptationGate(state, id) !== null) continue;
       const cost = nextBiomeAdaptationCost(state, id);
       if (cost !== null && (best === null || cost < best.cost)) best = { id, cost };

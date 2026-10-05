@@ -9,7 +9,21 @@
  * definitivos los fija `npm run sim`, ver docs/BALANCE.md).
  */
 
-export const ADAPTATION_IDS = ['apicalBody', 'sclerotium', 'hydraulicLift', 'deepTorpor', 'foxfire'] as const;
+/**
+ * Esporada, Cordones negros e Higróforos (fase 10, bloque B) son adaptaciones cosméticas que se
+ * abren con los votos. Su clave está en el guardado desde la v7 y vale 0 hasta que llegue su
+ * definición: un id sin definición en ADAPTATIONS no se puede comprar.
+ */
+export const ADAPTATION_IDS = [
+  'apicalBody',
+  'sclerotium',
+  'hydraulicLift',
+  'deepTorpor',
+  'foxfire',
+  'sporePrint',
+  'blackCords',
+  'waxcaps',
+] as const;
 
 export type AdaptationId = (typeof ADAPTATION_IDS)[number];
 

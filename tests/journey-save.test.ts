@@ -82,7 +82,8 @@ describe('migración 4 → 5', () => {
       arrivalPlayTime: 0,
     });
     expect(loaded.chronicle).toEqual([]);
-    expect(Object.values(loaded.biomeAdaptations)).toEqual([0, 0, 0, 0, 0, 0]);
+    // Las seis de la taiga y el Chocó (4 → 5) y las seis de la pradera y la tundra (6 → 7).
+    expect(Object.values(loaded.biomeAdaptations)).toEqual(Array.from({ length: 12 }, () => 0));
     expect(loaded.history).toEqual([
       { sporulation: 1, duration: 2400, spores: 15, endedAt: NOW - 1000, biome: 'natal' },
     ]);
