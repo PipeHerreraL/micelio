@@ -94,6 +94,8 @@ async function fresh() {
     '../src/i18n/partners/plasmodium.en.ts',
   );
   control.text = (key) => catalogs.partnerText('plasmodium', key);
+  // El catálogo inglés de la interfaz llega aparte: las pruebas que pasan a inglés lo necesitan.
+  await i18n.loadLocale('en');
   i18n.setLocale('es');
 
   function storeWithPlasmodium() {

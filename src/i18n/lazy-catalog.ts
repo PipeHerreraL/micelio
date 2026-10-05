@@ -1,6 +1,7 @@
 /**
- * Cargador común de los catálogos que llegan aparte con import(): las noticias y los textos de cada
- * socio. Con todo en el JS inicial no cabía en su tope (ARCHITECTURE.md §7).
+ * Cargador común de los catálogos que llegan aparte con import(): el inglés de la interfaz, las
+ * noticias y los textos de cada socio. Con todo en el JS inicial no cabía en su tope
+ * (ARCHITECTURE.md §7).
  *
  * - Cada idioma se pide una vez; un fallo deja reintentar.
  * - Al cambiar de idioma, el catálogo en uso sigue siendo el anterior hasta que llega el nuevo: los
@@ -20,7 +21,7 @@ export interface LazyCatalog<C extends Texts> {
   active(): C | null;
   /** Idioma del catálogo en uso. */
   activeLocale(): Locale | null;
-  /** Pone a mano un catálogo ya cargado (pruebas: happy-dom no resuelve el import() del trozo). */
+  /** Pone a mano un catálogo ya cargado (el español de la interfaz, que va en el JS inicial; pruebas). */
   provide(locale: Locale, catalog: C): void;
   /** Transformación de lo que llegue desde ahora (el pseudoidioma de desarrollo, `?pseudo`). */
   setTransform(transform: ((text: string) => string) | null): void;

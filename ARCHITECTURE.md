@@ -613,10 +613,11 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 | Operación                                       | Presupuesto                   | Medido                                                                                                                                                 | Cómo                                    |
 | ----------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | JavaScript del build                            | < 150 kB comprimido           | 89.5 kB inicial + 18.6 kB del plasmodio (fase 9; 76.4 kB en la fase 8)                                                                                 | `npm run build` (gzip que informa Vite) |
-| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 86.4 kB (v1.5.0: las noticias salen aparte; 94.6 kB en la v1.4.2)                                                                                      | `npm run budget`, también en CI         |
+| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 74.0 kB (fase 10: el inglés de la interfaz llega aparte; 86.4 kB en la v1.5.0, 94.6 kB en la v1.4.2)                                                   | `npm run budget`, también en CI         |
 | JS del plasmodio (modelo, acciones y vista)     | ≤ 20 kB comprimido            | 18.6 kB (estimado ~15 kB en el diseño)                                                                                                                 | `npm run budget`                        |
 | Catálogo de un socio (un idioma)                | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                               | `npm run budget`                        |
 | Catálogo de noticias (un idioma)                | ≤ 7 kB comprimido             | 5.8 kB (es), 5.5 kB (en)                                                                                                                               | `npm run budget`                        |
+| Catálogo de la interfaz en inglés               | ≤ 18 kB comprimido            | 13.1 kB (el español sigue en el JS inicial: es el idioma por defecto)                                                                                  | `npm run budget`                        |
 | .apk de Android                                 | —                             | 5.0 MB                                                                                                                                                 | `.github/workflows/android.yml`         |
 | Vaciar 1.200 s de modelo del plasmodio          | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                              | a mano con `advancePlasmodium` (fase 9) |
 | Rastro del plasmodio                            | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                 | `npm run sim:plasmodio`                 |
@@ -645,7 +646,7 @@ src/systems/   guardado, offline, lluvia, autocompra, logros
 src/ui/        componentes, pestañas, tooltips, modales, avisos
 src/render/    canvas de la red y partículas
 src/audio/     sonidos sintetizados
-src/i18n/      catálogos (es.ts base, en.ts; partners/ los de cada socio) y formato con Intl
+src/i18n/      catálogos (es.ts base; en.ts, news/ y partners/ llegan aparte) y formato con Intl
 src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su modelo y su vista
 scripts/       simuladores de balance (red y plasmodio), presupuesto de JS, procedencia de placas
 tests/         pruebas de Vitest

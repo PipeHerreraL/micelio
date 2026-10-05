@@ -13,8 +13,8 @@ import '@fontsource/source-sans-3/latin-600.css';
 import './ui/styles.css';
 
 import { drain, type GameEvent } from './core/events.ts';
-import { markSeen } from './core/actions.ts';
-import { createState, hasSeen, type GameState } from './core/state.ts';
+import { markSeen, setSetting } from './core/actions.ts';
+import { createState, hasSeen, type GameState, type Locale } from './core/state.ts';
 import { getAchievement } from './data/achievements.ts';
 import { tick, TICK_SECONDS } from './core/tick.ts';
 import { es } from './i18n/es.ts';
@@ -24,6 +24,7 @@ import {
   fmt,
   formatCount,
   getLocale,
+  loadLocale,
   pseudoCatalog,
   setLocale,
   setNotation,
@@ -120,15 +121,43 @@ function newTabId(): string {
 // ---------------------------------------------------------------------------------------
 // Idioma
 
+// Pseudoidioma solo en desarrollo: alarga los textos un 40 % para detectar cortes. Sale del español.
+const pseudoLocale = import.meta.env.DEV && new URLSearchParams(window.location.search).has('pseudo');
+
+/**
+ * Cuánto se espera al catálogo de un idioma que llega aparte (el inglés) antes de seguir en
+ * español con un aviso: con señal débil, una descarga puede tardar decenas de segundos en fallar, y
+ * mientras tanto el arranque mostraría la página en blanco.
+ */
+const LOCALE_TIMEOUT_MS = 8000;
+
+/** El idioma que pide el jugador: el de Ajustes o, si no eligió, el del navegador. */
+function wantedLocale(state: GameState): Locale {
+  return pseudoLocale ? 'es' : detectLocale(state.settings.locale, navigator.languages);
+}
+
+/** loadLocale con plazo: pasado, rechaza aunque el catálogo llegue después (y quede para luego). */
+function loadLocaleInTime(locale: Locale): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`El catálogo «${locale}» no llegó en ${String(LOCALE_TIMEOUT_MS)} ms.`));
+    }, LOCALE_TIMEOUT_MS);
+    loadLocale(locale)
+      .then(resolve, reject)
+      .finally(() => {
+        window.clearTimeout(timer);
+      });
+  });
+}
+
 function applyLocale(state: GameState): void {
-  const params = new URLSearchParams(window.location.search);
-  // Pseudoidioma solo en desarrollo: alarga los textos un 40 % para detectar cortes.
-  if (import.meta.env.DEV && params.has('pseudo')) {
+  if (pseudoLocale) {
     setPartnerPseudo(true);
     setNewsPseudo(true);
     setLocale('es', pseudoCatalog(es));
   } else {
-    setLocale(detectLocale(state.settings.locale, navigator.languages));
+    // Si su catálogo no llegó, setLocale se queda en español.
+    setLocale(wantedLocale(state));
   }
   setNotation(state.settings.notation);
   document.documentElement.lang = getLocale();
@@ -163,10 +192,15 @@ if (loaded.kind === 'loaded') {
 // frame los reparte cuando la interfaz ya existe.
 
 const store: Store = createStore(initialState);
-applyLocale(store.state);
+/**
+ * El catálogo del idioma elegido no llegó: se juega en español con un aviso fijo, y elegirlo otra
+ * vez en Ajustes lo reintenta.
+ */
+let localeFailed = false;
 
 // Los avisos y la región aria-live se crean una vez, fuera de #app: rebuildApp rehace #app
-// entero y con él se irían los avisos fijos de guardado y su único botón para resolverlos.
+// entero y con él se irían los avisos fijos de guardado y su único botón para resolverlos. Su
+// nombre se pone de nuevo al montar, con el idioma ya decidido.
 const liveRegion = createLiveRegion(t('live.region'));
 document.body.append(createToastContainer(), liveRegion);
 
@@ -226,10 +260,42 @@ for (const type of ['pointerup', 'touchend', 'keydown', 'click']) {
   );
 }
 
+/** Cambio de idioma en curso: si se pide otro mientras llega el catálogo, gana el último. */
+let localeRequest = 0;
+
+/**
+ * Pone la interfaz en `locale` cuando llega su catálogo (el inglés llega aparte). Con `choose`, es
+ * la elección del jugador en Ajustes y se guarda. Si no llega, todo sigue en el idioma de ahora y
+ * sale el aviso fijo.
+ */
+async function switchLocale(locale: Locale, choose: boolean, focusId?: string): Promise<void> {
+  localeRequest += 1;
+  const request = localeRequest;
+  try {
+    await loadLocaleInTime(locale);
+  } catch (error) {
+    if (request !== localeRequest) return;
+    console.error('Micelio: no llegó el catálogo del idioma.', error);
+    localeFailed = true;
+    dismissedNotices.delete('locale-failed');
+    showStickyNotices();
+    announce(t('i18n.loadFailed'));
+    return;
+  }
+  if (request !== localeRequest) return;
+  if (localeFailed) {
+    localeFailed = false;
+    removeToast('locale-failed');
+  }
+  if (choose) store.dispatch(setSetting, { key: 'locale', value: locale });
+  rebuildApp(focusId);
+}
+
 const settingsServices: SettingsServices = {
   rebuild: (focusId) => {
     rebuildApp(focusId);
   },
+  changeLocale: (locale, focusId) => switchLocale(locale, true, focusId),
   replaceGame: (next) => {
     store.replace(next);
     // Importar es la decisión explícita de dejar atrás el guardado dañado.
@@ -239,6 +305,10 @@ const settingsServices: SettingsServices = {
     applyMotion();
     applySound();
     confirmReplaced(saved, 'settings.import.done');
+    // La partida importada trae su idioma: si su catálogo aún no llegó, la interfaz se montó en
+    // español y se rehace en cuanto llegue.
+    const wanted = wantedLocale(store.state);
+    if (wanted !== getLocale()) void switchLocale(wanted, false);
   },
   wipeGame: () => {
     // Los ajustes (idioma, sonido, movimiento) se conservan: son del jugador, no de la partida.
@@ -329,8 +399,8 @@ const chapterNav: ChapterNav = {
   },
 };
 
-let app: App = buildApp();
-applyMotion();
+/** La interfaz: existe desde mount(), cuando ya llegó el catálogo del idioma. */
+let app: App;
 
 /** Lámina de una placa releída desde el Atlas del plasmodio. */
 function rereadPlate(plate: number): void {
@@ -457,7 +527,8 @@ type NoticeId =
   | 'save-newer'
   | 'save-unavailable'
   | 'save-invalid'
-  | 'save-partner-reset';
+  | 'save-partner-reset'
+  | 'locale-failed';
 /** Avisos fijos que el jugador cerró: no vuelven al reconstruir la interfaz. */
 const dismissedNotices = new Set<NoticeId>();
 const corruptBackedUp = loaded.kind === 'corrupt' && loaded.backedUp;
@@ -510,6 +581,14 @@ function showStickyNotices(): void {
   if (warnedUnavailable) notice('save-unavailable', t('save.unavailable'));
   if (warnedInvalid) notice('save-invalid', t('save.invalid'));
   if (partnersReset) notice('save-partner-reset', t('save.partnerReset'));
+  if (localeFailed) {
+    notice('locale-failed', t('i18n.loadFailed'), {
+      label: t('save.reload'),
+      onSelect: () => {
+        window.location.reload();
+      },
+    });
+  }
 }
 
 /**
@@ -567,8 +646,6 @@ globalDisposer.listen(window, 'pagehide', () => {
 // ---------------------------------------------------------------------------------------
 // Avisos del arranque
 
-showStickyNotices();
-
 const OFFLINE_FLAVORS: readonly MessageKey[] = [
   'offline.flavor.1',
   'offline.flavor.2',
@@ -602,8 +679,6 @@ function showOfflineReport(report: OfflineReport): void {
     actions: [{ label: t('offline.close'), kind: 'primary' }],
   });
 }
-
-if (offlineReport && offlineReport.elapsed > OFFLINE_REPORT_THRESHOLD) showOfflineReport(offlineReport);
 
 // ---------------------------------------------------------------------------------------
 // Eventos del núcleo
@@ -893,7 +968,8 @@ function frame(now: number): void {
 }
 
 globalDisposer.listen(reducedMotionQuery, 'change', () => {
-  applyMotion();
+  // Antes de montar no hay nada que cambiar: mount() aplica la preferencia.
+  if (mounted) applyMotion();
 });
 
 globalDisposer.listen(document, 'visibilitychange', () => {
@@ -911,13 +987,13 @@ globalDisposer.listen(document, 'visibilitychange', () => {
   }
   lastFrame = performance.now();
   accumulator = 0;
-  app.update(lastFrame);
+  if (mounted) app.update(lastFrame);
 });
 
 // Espacio o Enter absorben cuando el foco no está en otro control (PROMPT.md §8).
 globalDisposer.listen(document, 'keydown', (e) => {
   const event = e as KeyboardEvent;
-  if (event.repeat || (event.key !== ' ' && event.key !== 'Enter')) return;
+  if (!mounted || event.repeat || (event.key !== ' ' && event.key !== 'Enter')) return;
   const target = event.target;
   if (
     target instanceof HTMLElement &&
@@ -934,14 +1010,44 @@ globalDisposer.listen(document, 'keydown', (e) => {
 // el modelo se da de baja (su tiempo vuelve a quedar pendiente) y el panel ofrece recargar. La
 // vista (tab-partners.ts) y los avisos (deliverPartnerNotice) usan el mismo camino.
 setPartnerErrorHandler(reportPartnerFailure);
-// Con el idioma ya decidido: el catálogo del socio se pide junto con su modelo en la precarga.
-for (const id of PARTNER_IDS) {
-  if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);
-}
-// Las noticias también llegan aparte: se piden ya para que estén al primer refresco del teletipo.
-void ensureNewsCatalog(getLocale()).catch(() => undefined);
 
-schedule(frame);
+// ---------------------------------------------------------------------------------------
+// Montaje
+
+/** La interfaz ya existe. Hasta entonces, lo que llega del navegador solo toca el estado. */
+let mounted = false;
+
+/**
+ * Monta la interfaz y arranca el bucle, con el catálogo del idioma ya en uso. Lo que no muestra
+ * textos (el guardado, el tiempo de los socios, el service worker) está en marcha desde el arranque.
+ */
+function mount(): void {
+  applyLocale(store.state);
+  liveRegion.setAttribute('aria-label', t('live.region'));
+  app = buildApp();
+  mounted = true;
+  applyMotion();
+  showStickyNotices();
+  if (offlineReport && offlineReport.elapsed > OFFLINE_REPORT_THRESHOLD) showOfflineReport(offlineReport);
+  // Con el idioma ya decidido: el catálogo del socio se pide junto con su modelo en la precarga.
+  for (const id of PARTNER_IDS) {
+    if (store.state.partners[id] !== null) void ensurePartnerCatalog(id, getLocale()).catch(() => undefined);
+  }
+  // Las noticias también llegan aparte: se piden ya para que estén al primer refresco del teletipo.
+  void ensureNewsCatalog(getLocale()).catch(() => undefined);
+  schedule(frame);
+}
+
+// La interfaz espera al catálogo del idioma para no montarse en español y rehacerse al llegar. El
+// service worker lo guarda con todo lo demás, así que sin conexión también llega. Sin await en el
+// nivel superior: con él, el empaquetador parte el JS inicial en cuatro trozos que comprimen peor
+// (76,3 kB en vez de 74,0, medido con npm run budget).
+void loadLocaleInTime(wantedLocale(store.state))
+  .catch((error: unknown) => {
+    localeFailed = true;
+    console.error('Micelio: no llegó el catálogo del idioma; se juega en español.', error);
+  })
+  .then(mount);
 
 // ---------------------------------------------------------------------------------------
 // Herramientas de desarrollo: ninguna llega al build de producción.

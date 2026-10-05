@@ -8,7 +8,6 @@ import { NEWS } from '../src/data/news.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { en } from '../src/i18n/en.ts';
 import { es } from '../src/i18n/es.ts';
-import { CATALOGS } from '../src/i18n/index.ts';
 import { plasmodiumEn } from '../src/i18n/partners/plasmodium.en.ts';
 import { plasmodiumEs } from '../src/i18n/partners/plasmodium.es.ts';
 import { PLASMODIUM_ACHIEVEMENT_IDS, PLASMODIUM_UPGRADES } from '../src/data/plasmodium.ts';
@@ -18,6 +17,9 @@ import { newsEs } from '../src/i18n/news/es.ts';
 
 const placeholders = (text: string): string[] =>
   [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1] ?? '').sort();
+
+// El inglés llega aparte en el juego (i18n/index.ts); aquí se importan los dos directamente.
+const CATALOGS = { es, en };
 
 describe('catálogos de idioma', () => {
   const locales = Object.entries(CATALOGS);

@@ -716,6 +716,10 @@ export const es = {
   'save.invalid':
     'La partida tiene un valor imposible y no se guardó, para no estropear el último guardado bueno.',
   'save.reload': 'Recargar',
+  // El inglés llega aparte (i18n/index.ts); si no llega, se juega en español. Quien lo eligió quizá
+  // no lee español: el aviso lo dice también en inglés, como los nombres de los idiomas en Ajustes.
+  'i18n.loadFailed':
+    'No se pudo cargar el inglés y el juego sigue en español: recarga con conexión para intentarlo de nuevo. · English could not be loaded: reload while online to try again.',
 
   // Avisos de primera vez
   'hint.generators': 'Compra una Hifa: absorbe por ti, también cuando no miras.',

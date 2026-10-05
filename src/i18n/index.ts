@@ -1,10 +1,9 @@
 /**
  * Traducción: idioma activo, búsqueda de claves, interpolación con marcadores con nombre y
- * plurales con Intl.PluralRules. Sumar un idioma es añadir un catálogo y registrarlo en
- * `CATALOGS`; nada más del código cambia.
+ * plurales con Intl.PluralRules. Sumar un idioma es añadir un catálogo y registrar su import() en
+ * `catalogs`; nada más del código cambia.
  */
 import type { Locale, Notation } from '../core/state.ts';
-import { en } from './en.ts';
 import { es, type Catalog, type MessageKey } from './es.ts';
 import {
   formatExact,
@@ -16,10 +15,10 @@ import {
   SUFFIX_FROM,
   type Suffix,
 } from './format.ts';
+import { createLazyCatalog } from './lazy-catalog.ts';
 
 export type { Catalog, MessageKey } from './es.ts';
 
-export const CATALOGS: Readonly<Record<Locale, Catalog>> = { es, en };
 export const DEFAULT_LOCALE: Locale = 'es';
 
 /** Claves base de los plurales: las que tienen hermanas `.one` y `.other`. */
@@ -34,15 +33,39 @@ let catalog: Catalog = es;
 let notation: Notation = 'names';
 let pluralRules = new Intl.PluralRules(locale);
 
+/**
+ * Catálogos de la interfaz. El español va en el JS inicial: es el idioma por defecto y el del
+ * usuario. El inglés llega aparte: con los dos idiomas, el JS inicial (86,4 kB de 95) no dejaba
+ * sitio a la fase 10 (ARCHITECTURE.md §7). main.ts lo espera antes de montar la interfaz y Ajustes
+ * antes de cambiar de idioma.
+ */
+const catalogs = createLazyCatalog<Catalog>(
+  {
+    es: () => Promise.resolve(es),
+    en: () => import('./en.ts').then((m) => m.en),
+  },
+  () => locale,
+);
+catalogs.provide('es', es);
+
 export function getLocale(): Locale {
   return locale;
 }
 
-/** Cambia el idioma activo. Quien llama actualiza `<html lang>` y repinta. */
+/** Descarga el catálogo de interfaz de `next` (una vez; un fallo deja reintentar). */
+export function loadLocale(next: Locale): Promise<void> {
+  return catalogs.ensure(next);
+}
+
+/**
+ * Cambia el idioma activo. Quien llama actualiza `<html lang>` y repinta. Un idioma cuyo catálogo
+ * aún no llegó (loadLocale) deja el español: nunca se monta una interfaz sin textos.
+ */
 export function setLocale(next: Locale, override?: Catalog): void {
-  locale = next;
-  catalog = override ?? CATALOGS[next];
-  pluralRules = new Intl.PluralRules(next);
+  const chosen = override ?? catalogs.get(next);
+  locale = chosen ? next : DEFAULT_LOCALE;
+  catalog = chosen ?? es;
+  pluralRules = new Intl.PluralRules(locale);
 }
 
 export function setNotation(next: Notation): void {

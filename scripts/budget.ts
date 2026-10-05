@@ -6,9 +6,11 @@
  *
  * - inicial: la entrada y todo lo que importa de forma estática;
  * - plasmodio: lo alcanzable desde las importaciones dinámicas de src/partners/ que no es inicial;
- * - catálogos del plasmodio: cada src/i18n/partners/plasmodium.*.ts por separado.
+ * - catálogos que llegan aparte, cada uno por separado: el inglés de la interfaz (src/i18n/en.ts),
+ *   los textos del plasmodio y las noticias.
  *
- * Falla si un paquete pasa de su tope o si un archivo .js no queda atribuido a ninguno.
+ * Falla si un paquete pasa de su tope, si un archivo .js no queda atribuido a ninguno o si el inglés
+ * de la interfaz vuelve al JS inicial.
  *
  * Uso: npm run budget (después de npm run build)
  */
@@ -39,6 +41,9 @@ const LIMITS = {
   plasmodiumJs: 20,
   plasmodiumCss: 3,
   catalog: 7,
+  // Medido 13,1 kB en la fase 10, al salir el inglés de la interfaz del JS inicial (que bajó de 86,4
+  // a 74,0 kB); con los ~130 textos nuevos de la fase se proyectan unos 15,6.
+  interfaceCatalog: 18,
 };
 
 const dist = new URL('../dist/', import.meta.url);
@@ -59,9 +64,13 @@ if (entries.length !== 1) throw new Error(`Se esperaba una sola entrada y hay ${
 const entryKey = entries[0]?.[0] ?? '';
 const initial = staticClosure(entryKey);
 
-// Catálogos que llegan aparte: los textos del plasmodio y las noticias del sotobosque (v1.5.0).
+// Catálogos que llegan aparte: los textos del plasmodio y las noticias del sotobosque (v1.5.0), el
+// inglés de la interfaz y las noticias de bioma (fase 10).
+const INTERFACE_CATALOG = 'src/i18n/en.ts';
 const isCatalog = (key: string): boolean =>
-  /src\/i18n\/partners\/plasmodium\.\w+\.ts$/.test(key) || /src\/i18n\/news\/\w+\.ts$/.test(key);
+  key === INTERFACE_CATALOG ||
+  /src\/i18n\/partners\/plasmodium\.\w+\.ts$/.test(key) ||
+  /src\/i18n\/news\/(biomes\/)?\w+\.ts$/.test(key);
 const isPartner = (key: string): boolean => key.startsWith('src/partners/');
 
 const dynamicKeys = Object.keys(manifest).filter((key) => manifest[key]?.isDynamicEntry === true);
@@ -96,9 +105,12 @@ const rows: { name: string; kb: number; limit: number }[] = [
   { name: 'JS del plasmodio (modelo, acciones y vista)', kb: sum(plasmodiumJs), limit: LIMITS.plasmodiumJs },
   { name: 'CSS del plasmodio', kb: sum(plasmodiumCss), limit: LIMITS.plasmodiumCss },
   ...catalogs.map((key) => ({
-    name: `Catálogo ${key.replace(/^src\/i18n\/(partners\/)?/, '')}`,
+    name:
+      key === INTERFACE_CATALOG
+        ? 'Catálogo de la interfaz (en.ts)'
+        : `Catálogo ${key.replace(/^src\/i18n\/(partners\/)?/, '')}`,
     kb: sum(filesOf([key], 'js')),
-    limit: LIMITS.catalog,
+    limit: key === INTERFACE_CATALOG ? LIMITS.interfaceCatalog : LIMITS.catalog,
   })),
 ];
 
@@ -120,5 +132,10 @@ for (const r of rows) {
 if (loose.length > 0) {
   failed = true;
   console.log(`Sin atribuir: ${loose.join(', ')}`);
+}
+// Un import estático de en.ts lo devolvería al JS inicial sin pasar de su tope todavía.
+if (!catalogs.includes(INTERFACE_CATALOG)) {
+  failed = true;
+  console.log(`${INTERFACE_CATALOG} no llega aparte: volvió al JS inicial.`);
 }
 if (failed) process.exitCode = 1;

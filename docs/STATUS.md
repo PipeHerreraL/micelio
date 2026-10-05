@@ -126,9 +126,10 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
-- El JS inicial pesa 86,4 kB de 95 (`npm run budget`): las noticias ya llegan aparte. Si hace falta
-  más sitio, las coordenadas de las placas del plasmodio (unos 3 kB comprimidos) pueden salir a su
-  propio trozo.
+- El JS inicial pesa 74,0 kB de 95 (`npm run budget`): las noticias y, desde la fase 10, el inglés
+  de la interfaz llegan aparte (el juego espera al inglés antes de montarse si es el idioma elegido).
+  Si hace falta más sitio, las coordenadas de las placas del plasmodio (unos 3 kB comprimidos) pueden
+  salir a su propio trozo.
 - La app de Android (.apk) se compiló y se comprobó en GitHub Actions (paquete, versión y firma),
   pero no se ha probado en un teléfono de verdad, ni la app instalable del iPhone. Desde 2027
   Google exigirá desarrolladores verificados también para los .apk descargados (antes, solo en

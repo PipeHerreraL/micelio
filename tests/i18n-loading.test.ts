@@ -3,8 +3,8 @@ import type { Locale } from '../src/core/state.ts';
 import { createLazyCatalog } from '../src/i18n/lazy-catalog.ts';
 
 /**
- * Catálogos que llegan aparte (fase 10): las noticias y los textos de los socios comparten el
- * cargador de src/i18n/lazy-catalog.ts.
+ * Catálogos que llegan aparte (fase 10): el inglés de la interfaz, las noticias y los textos de los
+ * socios comparten el cargador de src/i18n/lazy-catalog.ts.
  */
 
 type Texts = Readonly<Record<string, string>>;
@@ -104,6 +104,26 @@ describe('cargador común de catálogos', () => {
   });
 });
 
+describe('inglés de la interfaz (llega aparte)', () => {
+  it('sin su catálogo, pasar a inglés deja la interfaz en español y no sin textos', async () => {
+    vi.resetModules();
+    const i18n = await import('../src/i18n/index.ts');
+    i18n.setLocale('en');
+    expect(i18n.getLocale()).toBe('es');
+    expect(i18n.t('settings.language')).toBe('Idioma');
+  });
+
+  it('cuando llega su catálogo, pasar a inglés pone los textos y los plurales en inglés', async () => {
+    vi.resetModules();
+    const i18n = await import('../src/i18n/index.ts');
+    await i18n.loadLocale('en');
+    i18n.setLocale('en');
+    expect(i18n.getLocale()).toBe('en');
+    expect(i18n.t('settings.language')).toBe('Language');
+    expect(i18n.formatCount(12_345)).toBe('12,345');
+  });
+});
+
 describe('noticias del sotobosque', () => {
   it('volver al español antes de que lleguen las noticias en inglés deja en uso las españolas', async () => {
     const actual = await vi.importActual<typeof import('../src/i18n/news/en.ts')>('../src/i18n/news/en.ts');
@@ -119,6 +139,7 @@ describe('noticias del sotobosque', () => {
     const news = await import('../src/i18n/news/index.ts');
     const { newsEs } = await import('../src/i18n/news/es.ts');
     news.provideNewsCatalog('es', newsEs);
+    await i18n.loadLocale('en');
     i18n.setLocale('en');
     const late = news.ensureNewsCatalog('en');
     i18n.setLocale('es');

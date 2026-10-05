@@ -1,8 +1,9 @@
 /**
  * Textos de las noticias del sotobosque (src/data/news.ts). Llegan aparte con import(), solo los
  * del idioma activo: con más de cien frases en dos idiomas, el JS inicial no cabía en su tope
- * (ARCHITECTURE.md §7). Mismo cargador que los textos de los socios (../lazy-catalog.ts): al
- * cambiar de idioma se siguen usando los del anterior hasta que llegan los nuevos.
+ * (ARCHITECTURE.md §7). Mismo cargador que los textos de los socios y el inglés de la interfaz
+ * (../lazy-catalog.ts): al cambiar de idioma se siguen usando los del anterior hasta que llegan los
+ * nuevos.
  */
 import type { Locale } from '../../core/state.ts';
 import { getLocale, pseudoize } from '../index.ts';

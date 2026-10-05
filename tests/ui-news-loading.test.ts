@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createState } from '../src/core/state.ts';
 import { NEWS_INTERVAL } from '../src/data/news.ts';
-import { setLocale } from '../src/i18n/index.ts';
+import { loadLocale, setLocale } from '../src/i18n/index.ts';
 import { newsEn } from '../src/i18n/news/en.ts';
 import { newsEs } from '../src/i18n/news/es.ts';
 import { provideNewsCatalog } from '../src/i18n/news/index.ts';
@@ -18,6 +18,11 @@ vi.mock('../src/i18n/news/index.ts', async (original) => ({
   ...(await original<typeof import('../src/i18n/news/index.ts')>()),
   ensureNewsCatalog: ensure,
 }));
+
+// El catálogo inglés de la interfaz llega aparte: sin él, setLocale('en') se queda en español.
+beforeAll(async () => {
+  await loadLocale('en');
+});
 
 afterEach(() => {
   setLocale('es');

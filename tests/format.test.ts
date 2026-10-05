@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { en } from '../src/i18n/en.ts';
 import { es } from '../src/i18n/es.ts';
 import {
@@ -20,6 +20,7 @@ import {
   formatCount,
   getLocale,
   interpolate,
+  loadLocale,
   numberTooltip,
   pseudoCatalog,
   pseudoize,
@@ -44,6 +45,12 @@ function plainSpaces(text: string): string {
 function placeholders(text: string): string[] {
   return text.match(/\{\w+\}/g) ?? [];
 }
+
+// El catálogo inglés de la interfaz llega aparte (import()): sin él, setLocale('en') se queda en
+// español.
+beforeAll(async () => {
+  await loadLocale('en');
+});
 
 // index.ts guarda idioma y notación en el módulo: cada prueba deja los valores de partida.
 afterEach(() => {

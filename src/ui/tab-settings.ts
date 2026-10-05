@@ -22,8 +22,13 @@ import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
 
 export interface SettingsServices {
-  /** Reconstruye la interfaz tras cambiar idioma o notación; luego enfoca `focusId`. */
+  /** Reconstruye la interfaz tras cambiar la notación; luego enfoca `focusId`. */
   rebuild(focusId: string): void;
+  /**
+   * Cambia de idioma cuando llega su catálogo (el inglés llega aparte), reconstruye y enfoca
+   * `focusId`. Si no llega, la interfaz sigue igual con un aviso. Nunca rechaza.
+   */
+  changeLocale(locale: Locale, focusId: string): Promise<void>;
   /** Sustituye la partida (importar) y la guarda. */
   replaceGame(next: GameState): void;
   /** Borra la partida y empieza una nueva. */
@@ -116,6 +121,10 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
   disposer.add(onInstallChange(updateInstall));
 
   // Idioma: los nombres de los idiomas van en su propio idioma, así que se entienden siempre.
+  const localeGroup = h('div', {
+    class: 'segmented',
+    attrs: { role: 'group', 'aria-label': t('settings.language') },
+  });
   const localeButtons = LOCALES.map((locale) => {
     const button = h('button', {
       class: 'segmented__option',
@@ -124,12 +133,18 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
       attrs: { type: 'button', lang: locale },
     });
     disposer.listen(button, 'click', () => {
-      if (store.state.settings.locale === locale) return;
-      store.dispatch(setSetting, { key: 'locale', value: locale });
-      services.rebuild(`setting-locale-${locale}`);
+      // Mientras llega un catálogo, el selector espera (aria-busy) y no pide otro.
+      if (localeGroup.getAttribute('aria-busy') === 'true') return;
+      // Con el inglés guardado pero sin llegar al arrancar se juega en español: elegirlo lo reintenta.
+      if (getLocale() === locale && store.state.settings.locale === locale) return;
+      setAttr(localeGroup, 'aria-busy', 'true');
+      void services.changeLocale(locale, `setting-locale-${locale}`).finally(() => {
+        setAttr(localeGroup, 'aria-busy', null);
+      });
     });
     return { locale, button };
   });
+  localeGroup.append(...localeButtons.map((b) => b.button));
 
   const notationButtons = NOTATIONS.map((notation) => {
     const button = h('button', {
@@ -331,13 +346,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
 
   const root = h('div', { class: 'tab tab--settings' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('settings.title') })]),
-    section(t('settings.language'), [
-      h(
-        'div',
-        { class: 'segmented', attrs: { role: 'group', 'aria-label': t('settings.language') } },
-        localeButtons.map((b) => b.button),
-      ),
-    ]),
+    section(t('settings.language'), [localeGroup]),
     section(t('settings.notation'), [
       h(
         'div',

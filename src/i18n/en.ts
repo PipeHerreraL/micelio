@@ -707,6 +707,8 @@ export const en: Catalog = {
     "This game was saved by a newer version of Micelio. To keep it safe, this one won't save anything: connect to the internet and reload.",
   'save.invalid': 'The game has an impossible value and was not saved, so the last good save stays intact.',
   'save.reload': 'Reload',
+  'i18n.loadFailed':
+    'English could not be loaded, so the game is in Spanish: reload while online to try again.',
 
   // Avisos de primera vez
   'hint.generators': "Buy a Hypha: it absorbs for you, even when you're not looking.",
