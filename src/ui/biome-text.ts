@@ -45,6 +45,7 @@ export function biomeRules(id: BiomeId): string[] {
         t('biome.tundra.rule.half', { factor: formatFactor(def.productionFactor, getLocale()) }),
         t('biome.tundra.rule.rain'),
         t('biome.tundra.rule.away', { hours: formatCount(def.offlineHours) }),
+        t('biome.tundra.rule.thaw', { hours: formatCount(def.thawAfterHours ?? 0) }),
       ];
   }
 }

@@ -368,6 +368,8 @@ export const es = {
   'biome.tundra.rule.half': 'Con el frío todo crece a la mitad: la producción es ×{factor}.',
   'biome.tundra.rule.rain': 'Llueve un tercio: entre gota y gota pasa el triple de tiempo.',
   'biome.tundra.rule.away': 'Mientras vives aquí, tu red aguanta {hours} h más sin ti.',
+  'biome.tundra.rule.thaw':
+    'Si te vas más de {hours} h, lo que pase de ahí rinde entero: bajo la nieve, la red sigue trabajando.',
   'biome.progress': 'Colonización: nivel\u00a0{level} de\u00a0{goal}',
   'biome.colonized': 'Bioma colonizado · nivel {level}',
   'biome.actOne': 'Acto I cumplido · nivel {level}',
@@ -783,6 +785,7 @@ export const es = {
   // «Pasaron 1 h» o «las primeras 1 d» sonaban mal.
   'offline.body': 'Tiempo fuera: {time}. Tu red absorbió {value}\u00a0N.',
   'offline.capped': 'Solo cuenta un máximo de {cap}.',
+  'offline.thaw': 'Bajo la nieve, la red rindió entera durante {time}.',
   'offline.efficiency': 'Eficiencia offline: {percent}.',
   'offline.flavor.1': 'La red siguió creciendo en la oscuridad, como siempre.',
   'offline.flavor.2': 'Mientras dormías, las hifas hicieron horas extra.',

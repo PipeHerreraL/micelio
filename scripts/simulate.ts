@@ -22,7 +22,7 @@ import {
   type RunRecord,
 } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
-import { SEEDS, clock, hours, median, row, writeBlock, type Metric } from './sim-report.ts';
+import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
 setLocale('es');
@@ -36,6 +36,17 @@ const ORDERS: readonly (readonly DestinationId[])[] = PREFIXES.flatMap((prefix) 
 const HAS_BRANCHES = BRANCHES.some((branch) => branch.length > 0);
 /** Tramos del primer anillo: los de cada prefijo, comunes a todas sus ramas. */
 const PREFIX_LEGS = PREFIXES[0]?.length ?? 0;
+
+/**
+ * Perfil ausente (fase 10): sesiones de 20 min del perfil activo y luego H horas fuera, con el
+ * tercer destino tras el primer prefijo (taiga→Chocó). Con el deshielo de la tundra, las de 24 y
+ * 48 h son objetivo: para quien vuelve cada día o cada dos, la tundra no va más lenta que la
+ * pradera. Las demás, informativas.
+ */
+const ABSENT_SESSION_MINUTES = 20;
+const ABSENT_HOURS = [12, 24, 36, 48, 72];
+/** Biomas del segundo anillo, los que el perfil ausente compara como tercer destino. */
+const ABSENT_BIOMES: readonly DestinationId[] = BRANCHES[0] ?? [];
 
 // ---------------------------------------------------------------------------------------
 // Corridas
@@ -71,6 +82,23 @@ async function playAll(pool: SimPool) {
     const wind = await pool.run({ kind: 'journey', journey, path: ['taiga'], finish: false });
     return { actOneAt: natal.actOneAt, wind };
   });
+  // Perfil ausente: desde el primer prefijo, cada bioma del segundo anillo con cada ausencia.
+  const firstPrefix = prefixRuns[0] ?? [];
+  const absentRuns = ABSENT_BIOMES.map((to) =>
+    ABSENT_HOURS.map((awayHours) =>
+      Promise.all(
+        firstPrefix.map(async (prefix) =>
+          pool.run({
+            kind: 'absent',
+            journey: await prefix,
+            to,
+            sessionMinutes: ABSENT_SESSION_MINUTES,
+            awayHours,
+          }),
+        ),
+      ),
+    ),
+  );
   const longDoublingRuns = perSeed((seed) =>
     pool.run({ kind: 'campaign', seed, sporulations: LONG_RUNS, policy: 'doubling' }),
   );
@@ -83,11 +111,12 @@ async function playAll(pool: SimPool) {
   const passiveRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'passive' }));
   const activeRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'active' }));
   // Todo en un solo Promise.all: si una tarea falla, la corrida termina con ese error.
-  const [natals, prefixes, winds, rateJourneys, longDoubling, longRate, campaigns, active, passive] =
+  const [natals, prefixes, winds, absents, rateJourneys, longDoubling, longRate, campaigns, active, passive] =
     await Promise.all([
       Promise.all(natalRuns),
       Promise.all(prefixRuns.map((runs) => Promise.all(runs))),
       Promise.all(windRuns),
+      Promise.all(absentRuns.map((byHours) => Promise.all(byHours))),
       rateRuns,
       longDoublingRuns,
       longRateRuns,
@@ -95,13 +124,24 @@ async function playAll(pool: SimPool) {
       activeRuns,
       passiveRuns,
     ]);
-  return { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, rateJourneys };
+  return {
+    active,
+    passive,
+    campaigns,
+    longDoubling,
+    longRate,
+    natals,
+    prefixes,
+    winds,
+    absents,
+    rateJourneys,
+  };
 }
 
 const started = performance.now();
 const workers = poolSize();
 const pool = createPool(workers);
-const { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, rateJourneys } =
+const { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, absents, rateJourneys } =
   await playAll(pool).finally(() => pool.close());
 
 const first = (id: GeneratorId) => active.map((r) => r.firstOwned[id] ?? null);
@@ -323,6 +363,33 @@ ORDERS.forEach((order, o) => {
     if (leg >= PREFIX_LEGS) legMetrics(order, winds[o] ?? [], leg);
   });
 });
+/**
+ * Días del perfil ausente: las ausencias hasta colonizar por sus horas. Los minutos de juego no
+ * cuentan: si no, con las mismas sesiones decidirían unos minutos de la última, no las ausencias.
+ */
+const absentDays = (sessions: number | null, awayHours: number): number | null =>
+  sessions === null ? null : ((sessions - 1) * awayHours) / 24;
+const absentOf = (biome: DestinationId, awayHours: number): (number | null)[] => {
+  const byHours = absents[ABSENT_BIOMES.indexOf(biome)] ?? [];
+  return (byHours[ABSENT_HOURS.indexOf(awayHours)] ?? []).map((r) => absentDays(r.sessions, awayHours));
+};
+const days = (v: number | null): string => (v === null ? '—' : `${v.toFixed(1)} d`);
+const absentLabel = `perfil ausente (sesiones de ${ABSENT_SESSION_MINUTES} min, tercer destino tras ${orderName(PREFIXES[0] ?? [])})`;
+// Sin el deshielo, la tundra tardaba 3,0 días frente a 2,0 de la pradera con 24 h fuera. Con 48 h
+// empatan con él y sin él (4,0 y 4,0); la especificación pedía que la tundra ganara, y no se puede:
+// las dos colonizan en la tercera sesión en casi todas las semillas, y colonizar en la segunda
+// pediría de 5 a 190 veces los nutrientes del bosque que deja la primera ausencia (medido en tres
+// semillas: nivel 36–217 al terminar la segunda sesión, de 500).
+for (const awayHours of [24, 48]) {
+  const prairie = median(present(absentOf('prairie', awayHours)));
+  metrics.push({
+    name: `Viento, ${absentLabel}: días para colonizar la tundra con ${awayHours} h fuera, frente a la pradera`,
+    target: `≤ ${days(prairie)} (la pradera)`,
+    values: absentOf('tundra', awayHours),
+    format: days,
+    pass: (m) => m <= prairie,
+  });
+}
 metrics.push({
   name: 'Viento: esporas sin gastar al colonizar el último bioma, sobre las ganadas en toda la campaña',
   target: '< 50 %',
@@ -374,6 +441,24 @@ const afterTable = [
   '| Orden | Partidas tras el último bioma (mediana de cada una) |',
   '| ----- | --------------------------------------------------- |',
 ];
+const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+/** Perfil ausente con cada ausencia (fase 10): sesiones y días hasta colonizar, mediana y rango. */
+const absentTable = [
+  `| Horas fuera | ${ABSENT_BIOMES.map((b) => `${capital(BIOME_NAMES[b])}: sesiones | ${capital(BIOME_NAMES[b])}: días`).join(' | ')} |`,
+  `| ----------- | ${ABSENT_BIOMES.map(() => '--- | ---').join(' | ')} |`,
+];
+for (const awayHours of ABSENT_HOURS) {
+  const cells = ABSENT_BIOMES.map((biome) => {
+    const sessions = present(
+      (absents[ABSENT_BIOMES.indexOf(biome)]?.[ABSENT_HOURS.indexOf(awayHours)] ?? []).map((r) => r.sessions),
+    );
+    const d = present(absentOf(biome, awayHours));
+    const range = (v: number[], f: (x: number) => string): string =>
+      v.length === 0 ? '—' : `${f(median(v))} (${f(Math.min(...v))}–${f(Math.max(...v))})`;
+    return `${range(sessions, String)} | ${range(d, (x) => days(x))}`;
+  });
+  absentTable.push(`| ${awayHours} h | ${cells.join(' | ')} |`);
+}
 /** Una fila de la tabla del viaje: el tramo `leg` de los viajes `results`. */
 function windRow(name: string, biome: DestinationId, results: readonly Journey[], leg: number): string {
   const perRun = legRunMedians(results, leg).map(clock).join(', ');
@@ -501,6 +586,10 @@ const block = [
   `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay destino por delante.`,
   '',
   ...windTable,
+  '',
+  `Perfil ausente (sesiones de ${ABSENT_SESSION_MINUTES} min del perfil activo y luego H horas fuera, cobradas como al cargar la partida; tercer destino tras ${orderName(PREFIXES[0] ?? [])}): sesiones y días hasta colonizar, mediana de ${SEEDS.length} semillas y rango. Los días son las ausencias por sus horas; las de 24 y 48 h son objetivo.`,
+  '',
+  ...absentTable,
   '',
   `Tras colonizar el último bioma no quedan destinos en esta versión; las ${AFTER_RUNS} partidas siguientes son informativas:`,
   '',

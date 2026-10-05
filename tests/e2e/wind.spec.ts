@@ -249,6 +249,38 @@ test('la colonización que cierra el primer anillo no lleva al viento: lo hace l
   await expect(dialog(page).getByRole('button', { name: 'Ver el viento' })).toHaveCount(1);
 });
 
+test('al volver tras 24 h a la tundra, el informe dice cuánto rindió entera la red bajo la nieve', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  const now = Date.now();
+  const state = wallState([
+    'chapter.arrive.taiga',
+    'chapter.colonize.taiga',
+    'chapter.arrive.choco',
+    'chapter.colonize.choco',
+    'chapter.ring2',
+    'chapter.arrive.tundra',
+  ]);
+  // Del Chocó colonizado a la tundra, tercer destino, hace 25 h.
+  const choco = state.chronicle[2];
+  if (choco) Object.assign(choco, { leftAt: now - 25 * HOUR, levelReached: 640 });
+  state.forest = {
+    biome: 'tundra',
+    leg: 3,
+    earned: 0,
+    arrivedAt: now - 25 * HOUR,
+    arrivalSporulations: 24,
+    arrivalPlayTime: 40_000,
+  };
+  state.spores.level = 0;
+  await seedSave(page, state, now - 24 * HOUR);
+  await page.goto('./');
+  await expect(dialog(page).getByRole('heading', { name: 'Mientras no estabas…' })).toBeVisible();
+  // Tope de 48 h (Sueño invernal y la tundra): cuentan las 24, y lo que pasa de 8 h rinde entero.
+  await expect(dialog(page).getByText('Bajo la nieve, la red rindió entera durante 16 h.')).toBeVisible();
+});
+
 test('una partida de la 1.2 avanzada carga sin perder esporas por ganar ni historial', async ({
   page,
 }, info) => {

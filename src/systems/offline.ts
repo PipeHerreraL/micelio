@@ -4,6 +4,7 @@
  */
 import { TORPOR_OFFLINE_HOURS } from '../data/adaptations.ts';
 import { AWAY_ACHIEVEMENT_SECONDS } from '../data/achievements.ts';
+import { getBiome } from '../data/biomes.ts';
 import {
   OFFLINE_CAP_BASE_SECONDS,
   OFFLINE_CAP_WINTER_SECONDS,
@@ -41,11 +42,25 @@ export function offlineCapSeconds(state: GameState): number {
   return base + torpor + offlineHoursBonus(state) * 3600;
 }
 
+/**
+ * Deshielo (tundra, fase 10): de una ausencia ya recortada al tope, los segundos que pasan de las
+ * horas de deshielo del bioma; esos rinden sin su factor de todos los generadores. Bajo la nieve
+ * el suelo apenas se congela y los hongos siguen trabajando cerca de 0 °C todo el invierno. Se
+ * aplica al cobrar la ausencia, como el tope, y no en los derivados: mirar rinde lo de siempre, y
+ * una ausencia corta (cambiar de app, cerrar y abrir) también.
+ */
+export function thawSeconds(state: GameState, effective: number): number {
+  const after = getBiome(state.forest.biome).thawAfterHours;
+  return after === null ? 0 : Math.max(0, effective - after * 3600);
+}
+
 export interface ElapsedOptions {
   /** Fracción de la producción que se cobra (0.5 offline base, 1 en segundo plano). */
   efficiency: number;
   /** Si el intervalo cuenta como tiempo jugado (sí en segundo plano, no offline). */
   countsAsPlayTime: boolean;
+  /** Segundos del intervalo que rinden sin el factor del bioma (`thawSeconds`); 0 si no se dice. */
+  thawSeconds?: number;
 }
 
 /**
@@ -65,6 +80,14 @@ export function applyElapsed(state: GameState, seconds: number, options: Elapsed
   const boosted = downpour ? Math.min(downpour.remaining, seconds) : 0;
 
   let produced = num.add(num.mul(withEvent, boosted), num.mul(withoutEvent, seconds - boosted));
+  const thaw = options.thawSeconds ?? 0;
+  if (thaw > 0) {
+    // Lo deshelado se cobra otra vez lo que le quitaba el factor del bioma (con ×0,5, una vez más
+    // la producción de esos segundos), sin evento: un Aguacero dura segundos y el deshielo empieza
+    // a las 8 h. El tiempo jugado y los efectos avanzan solo lo que duró la ausencia.
+    const factor = getBiome(state.forest.biome).productionFactor;
+    produced = num.add(produced, num.mul(withoutEvent, thaw * (1 / factor - 1)));
+  }
   produced = num.mul(produced, options.efficiency);
 
   for (const effect of state.effects) effect.remaining -= seconds;
@@ -94,6 +117,8 @@ export interface OfflineReport {
   gained: Num;
   /** Si el intervalo superó el límite y se recortó. */
   capped: boolean;
+  /** Segundos que rindieron sin el factor del bioma (deshielo de la tundra; 0 si ninguno). */
+  thawed: number;
 }
 
 /**
@@ -105,19 +130,25 @@ export function applyOffline(state: GameState, savedAt: number, now: number): Of
   const cap = offlineCapSeconds(state);
   const effective = Math.min(elapsed, cap);
   const efficiency = offlineEfficiency(state);
-  const gained = applyElapsed(state, effective, { efficiency, countsAsPlayTime: false });
+  const thawed = thawSeconds(state, effective);
+  const gained = applyElapsed(state, effective, { efficiency, countsAsPlayTime: false, thawSeconds: thawed });
   if (elapsed >= AWAY_ACHIEVEMENT_SECONDS) grantAchievement(state, 'secret.noRush');
-  return { elapsed, effective, efficiency, gained, capped: elapsed > cap };
+  return { elapsed, effective, efficiency, gained, capped: elapsed > cap, thawed };
 }
 
 /**
  * Vuelta de una pestaña en segundo plano: el juego seguía abierto, así que se aplica al
- * 100 % y cuenta como tiempo jugado, con el mismo límite que offline.
+ * 100 % y cuenta como tiempo jugado, con el mismo límite y el mismo deshielo que offline (en el
+ * móvil, el sistema cierra o congela la app sin preguntar: las dos vías deben rendir igual).
  */
 export function applyBackground(state: GameState, seconds: number): Num {
   const real = Math.max(0, seconds);
   const effective = Math.min(real, offlineCapSeconds(state));
-  const gained = applyElapsed(state, effective, { efficiency: 1, countsAsPlayTime: true });
+  const gained = applyElapsed(state, effective, {
+    efficiency: 1,
+    countsAsPlayTime: true,
+    thawSeconds: thawSeconds(state, effective),
+  });
   // «Sin prisa» también cuenta al volver a una pestaña que pasó la noche en segundo plano.
   if (real >= AWAY_ACHIEVEMENT_SECONDS) grantAchievement(state, 'secret.noRush');
   return gained;

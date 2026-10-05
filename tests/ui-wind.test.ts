@@ -156,6 +156,9 @@ describe('sección Viento de esporas', () => {
     expect(wind.root.textContent).toContain('El Anillo de hadas rinde ×6.');
     expect(wind.root.textContent).toContain('Con el frío todo crece a la mitad: la producción es ×0,5.');
     expect(wind.root.textContent).toContain('Mientras vives aquí, tu red aguanta 24 h más sin ti.');
+    expect(wind.root.textContent).toContain(
+      'Si te vas más de 8 h, lo que pase de ahí rinde entero: bajo la nieve, la red sigue trabajando.',
+    );
   });
 
   it('en el cuarto bioma sin colonizar dice que es el último, y al colonizarlo ya no queda adónde ir', () => {

@@ -24,105 +24,108 @@ Cada ajuste se anota aquí con qué se cambió, por qué y qué corrida lo valid
 | 2026-10-01 | El Plasmodio (fase 9): cinco placas fijas con umbral 0,9 × la peor de 9 semillas; Rastro/s = 10^placa · copos unidos · calidad · 1,5^Agar; metas 4,3e6 a 6e17; pulso de 3 pasos y 3 s de Rastro cada 3 s; costes y topes del prototipo; la Fusión con sal en toda la placa y aprendizaje solo por contagio; la Memoria externa sin secar tubos con sustancia; el caudal solo en placas cartografiadas                             | Valores del prototipo del modelo; el simulador, con el código del juego, da 17 de 17: las cinco placas en 4,65 h activo, el pasivo a 1,88 veces y el ingenuo a 1,12. Sin las tres correcciones de diseño, la Fusión no se cumplía con la Memoria, el caudal Alto dejaba cuatro placas sin poder cumplir y el contagio de la Fusión no influía.                                                                                                                                                                                              |
 | 2026-10-05 | Viento de esporas II (fase 10), primeros valores (C7): pradera con R 9e10, Anillo de hadas ×6 y lluvia a la mitad; tundra con R 3,5e9, producción ×0,5, lluvia a un tercio y +24 h de tope sin conexión; las dos forman un segundo anillo que se abre con la taiga y el Chocó colonizados; R de los tramos 3 y 4 ×12,25 y ×61,25                                                                                                  | Los 39 objetivos de antes salen idénticos y los tres que cambian de sentido (esperas, esporas sin gastar al colonizar el cuarto bioma, techo) siguen cumpliendo: 42 de 42. Sin las adaptaciones de la pradera y la tundra, que llegan después, los tramos 3 y 4 se informan: colonizar en 2,59–3,44 h, partidas de 23:53–35:03 de mediana, pasivo a 1,81–2,32 veces; la pradera tercera tiene la partida más larga en 1:01:25–1:03:51.                                                                                                      |
 | 2026-10-05 | Adaptaciones de la pradera (Frente del anillo: Anillo de hadas ×1,5; Glomalina: Red micorrícica ×1,25; Pilobolus: +1 clic automático por segundo) y de la tundra (Abedul enano: Red micorrícica y Bosque milenario ×1,25; Moho de nieve: +2 Árboles madre al empezar cada partida; Liquen: +12 h de tope sin conexión en todos los biomas), con los costes y niveles de las de los bosques (C7); R de la pradera de 9e10 a 8,1e10 | Con sus adaptaciones, los tramos 3 y 4 salen como en C7 y pasan a objetivo (40). Con 9e10, la pradera tercera tenía la partida más larga en 1:00:17–1:03:02, por encima del objetivo nuevo de 60 min; con 8,1e10 (la palanca de la especificación), 58:13–58:49. 82 de 82: partidas de 21:29–31:07 de mediana, la más corta en 11:41 o más, la más larga en 32:44–58:49, colonizar en 2,18–3,13 h y el pasivo a 1,94–2,34 veces. Los 39 de antes, idénticos; esporas sin gastar al colonizar el cuarto bioma, 1 %, y techo, 1,42 trillones. |
+| 2026-10-05 | Tundra: deshielo tras 8 h (de una ausencia, cerrado o en segundo plano, lo que pasa de 8 h rinde sin el ×0,5); el perfil ausente pasa a objetivo (pregunta 1 de la fase 10)                                                                                                                                                                                                                                                       | Sin él la tundra rendía la mitad también fuera: con sesiones de 20 min cada 24 h, la tundra tercera tardaba 3,0 días frente a 2,0 de la pradera; con él, 2,0 y 2,0. Con 48 h empatan con él y sin él (4,0 y 4,0); la especificación pedía que ahí la tundra ganara y no se puede (las dos colonizan en la tercera sesión), así que el objetivo es que no vaya más lenta. 84 de 84; los 82 de antes, idénticos.                                                                                                                              |
 
 ## Resultados de la última corrida
 
 <!-- sim:start -->
 
-_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 83.0 s de cómputo en 11 hilos). No editar a mano entre estas marcas._
+_Generado por `npm run sim` (9 semillas por escenario, pasos de 1 s, 88.4 s de cómputo en 11 hilos). No editar a mano entre estas marcas._
 
 ### Objetivos de ritmo (PROMPT.md §17)
 
 Perfil activo salvo que se indique otro. Tiempos de juego en min:s; mediana de las semillas y rango.
 
-| Métrica                                                                                              | Objetivo                   | Mediana        | Rango                         | Estado |
-| ---------------------------------------------------------------------------------------------------- | -------------------------- | -------------- | ----------------------------- | ------ |
-| Primer Rizomorfo                                                                                     | < 1 min                    | 0:30           | 0:30–0:30                     | cumple |
-| Primer Primordio                                                                                     | 3–5 min                    | 3:47           | 3:35–4:10                     | cumple |
-| Primera Seta                                                                                         | 7–10 min                   | 8:08           | 3:39–9:53                     | cumple |
-| Primer Anillo de hadas                                                                               | 14–20 min                  | 17:00          | 11:27–19:09                   | cumple |
-| Primera Red micorrícica                                                                              | 24–32 min                  | 27:24          | 24:21–32:28                   | cumple |
-| Esporular disponible en la partida 1                                                                 | 30–45 min                  | 40:56          | 36:34–45:25                   | cumple |
-| Esporas de la primera esporulación                                                                   | 12–18                      | 15             | 15–15                         | cumple |
-| Partida 2 hasta Esporular disponible (15 esporas y 4 mutaciones)                                     | ≥ 40 % más rápida que la 1 | 42 %           | 35 %–66 %                     | cumple |
-| Perfil pasivo hasta Esporular disponible                                                             | ≤ 2.5 × el activo          | 1.85 ×         | 1.66 ×–2.07 ×                 | cumple |
-| Primer Gigante de Malheur (tiempo acumulado)                                                         | 2–3.5 h                    | 2.77 h         | 2.55 h–3.03 h                 | cumple |
-| Duración de la partida 1 de la campaña                                                               | ≥ 10 min                   | 40:56          | 36:34–45:25                   | cumple |
-| Duración de la partida 2 de la campaña                                                               | ≥ 10 min                   | 27:29          | 14:44–32:53                   | cumple |
-| Duración de la partida 3 de la campaña                                                               | ≥ 10 min                   | 29:52          | 18:57–42:35                   | cumple |
-| Duración de la partida 4 de la campaña                                                               | ≥ 10 min                   | 29:46          | 17:05–37:19                   | cumple |
-| Duración de la partida 5 de la campaña                                                               | ≥ 10 min                   | 27:54          | 11:17–34:47                   | cumple |
-| Duración de la partida 6 de la campaña                                                               | ≥ 10 min                   | 16:30          | 8:56–20:38                    | cumple |
-| Duración de la partida 7 de la campaña                                                               | ≥ 10 min                   | 13:51          | 7:23–20:01                    | cumple |
-| Duración de la partida 8 de la campaña                                                               | ≥ 10 min                   | 10:26          | 4:59–14:21                    | cumple |
-| Campaña larga, regla §17: partida más corta de la 1 a la 16 (mediana por partida)                    | ≥ 6 min                    | 6:25           | 6:25–6:25                     | cumple |
-| Campaña larga, regla del mejor ritmo: partida más corta de la 1 a la 20                              | ≥ 8 min                    | 8:49           | 8:49–8:49                     | cumple |
-| Campaña larga, regla §17: esporas sin gastar al final, sobre las ganadas                             | < 50 %                     | 44 %           | 39 %–49 %                     | cumple |
-| Viento: cierre del Acto I (tiempo acumulado)                                                         | 2,5–3,5 h                  | 3.31 h         | 3.11 h–3.48 h                 | cumple |
-| Viento: partidas de espera para pagar un viaje (tras el Acto I o tras colonizar)                     | ≤ 1                        | 0              | 0–1                           | cumple |
-| Viento taiga→Chocó, taiga (primer destino): partidas hasta colonizar (todas)                         | 20–33 min                  | 28:48          | 5:32–1:15:14                  | cumple |
-| Viento taiga→Chocó, taiga (primer destino): partida más corta (mediana por partida)                  | ≥ 10 min                   | 20:58          | 20:58–20:58                   | cumple |
-| Viento taiga→Chocó, taiga (primer destino): tiempo para colonizar                                    | 2–3,5 h                    | 3.24 h         | 2.67 h–3.51 h                 | cumple |
-| Viento taiga→Chocó, taiga (primer destino): pasivo hasta colonizar                                   | ≤ 2,5 × el activo          | 2.25 ×         | 2.07 ×–2.73 ×                 | cumple |
-| Viento taiga→Chocó, Chocó (segundo destino): partidas hasta colonizar (todas)                        | 20–33 min                  | 21:30          | 2:37–39:19                    | cumple |
-| Viento taiga→Chocó, Chocó (segundo destino): partida más corta (mediana por partida)                 | ≥ 10 min                   | 13:52          | 13:52–13:52                   | cumple |
-| Viento taiga→Chocó, Chocó (segundo destino): tiempo para colonizar                                   | 2–3,5 h                    | 2.06 h         | 1.71 h–2.55 h                 | cumple |
-| Viento taiga→Chocó, Chocó (segundo destino): pasivo hasta colonizar                                  | ≤ 2,5 × el activo          | 1.79 ×         | 1.34 ×–1.92 ×                 | cumple |
-| Viento Chocó→taiga, Chocó (primer destino): partidas hasta colonizar (todas)                         | 20–33 min                  | 29:01          | 13:24–48:04                   | cumple |
-| Viento Chocó→taiga, Chocó (primer destino): partida más corta (mediana por partida)                  | ≥ 10 min                   | 21:49          | 21:49–21:49                   | cumple |
-| Viento Chocó→taiga, Chocó (primer destino): tiempo para colonizar                                    | 2–3,5 h                    | 2.85 h         | 2.22 h–3.43 h                 | cumple |
-| Viento Chocó→taiga, Chocó (primer destino): pasivo hasta colonizar                                   | ≤ 2,5 × el activo          | 1.55 ×         | 1.43 ×–1.99 ×                 | cumple |
-| Viento Chocó→taiga, taiga (segundo destino): partidas hasta colonizar (todas)                        | 20–33 min                  | 22:59          | 2:29–1:03:28                  | cumple |
-| Viento Chocó→taiga, taiga (segundo destino): partida más corta (mediana por partida)                 | ≥ 10 min                   | 15:24          | 15:24–15:24                   | cumple |
-| Viento Chocó→taiga, taiga (segundo destino): tiempo para colonizar                                   | 2–3,5 h                    | 2.48 h         | 2.40 h–3.40 h                 | cumple |
-| Viento Chocó→taiga, taiga (segundo destino): pasivo hasta colonizar                                  | ≤ 2,5 × el activo          | 2.48 ×         | 1.84 ×–2.68 ×                 | cumple |
-| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partidas hasta colonizar (todas)        | 20–33 min                  | 26:05          | 7:02–1:11:45                  | cumple |
-| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partida más corta (mediana por partida) | ≥ 10 min                   | 11:41          | 11:41–11:41                   | cumple |
-| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partida más larga (mediana por partida) | ≤ 60 min                   | 58:49          | 58:49–58:49                   | cumple |
-| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): tiempo para colonizar                   | 2–3,5 h                    | 3.13 h         | 2.36 h–3.78 h                 | cumple |
-| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): pasivo hasta colonizar                  | ≤ 2,5 × el activo          | 2.17 ×         | 2.01 ×–3.02 ×                 | cumple |
-| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partidas hasta colonizar (todas)         | 20–33 min                  | 21:56          | 6:52–48:53                    | cumple |
-| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partida más corta (mediana por partida)  | ≥ 10 min                   | 11:48          | 11:48–11:48                   | cumple |
-| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partida más larga (mediana por partida)  | ≤ 60 min                   | 37:49          | 37:49–37:49                   | cumple |
-| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): tiempo para colonizar                    | 2–3,5 h                    | 2.41 h         | 1.99 h–2.72 h                 | cumple |
-| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): pasivo hasta colonizar                   | ≤ 2,5 × el activo          | 1.94 ×         | 1.70 ×–2.27 ×                 | cumple |
-| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partidas hasta colonizar (todas)         | 20–33 min                  | 28:58          | 8:38–55:54                    | cumple |
-| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partida más corta (mediana por partida)  | ≥ 10 min                   | 19:10          | 19:10–19:10                   | cumple |
-| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partida más larga (mediana por partida)  | ≤ 60 min                   | 43:14          | 43:14–43:14                   | cumple |
-| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): tiempo para colonizar                    | 2–3,5 h                    | 2.81 h         | 2.37 h–3.65 h                 | cumple |
-| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): pasivo hasta colonizar                   | ≤ 2,5 × el activo          | 2.01 ×         | 1.61 ×–2.35 ×                 | cumple |
-| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partidas hasta colonizar (todas)        | 20–33 min                  | 26:38          | 5:55–1:07:36                  | cumple |
-| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partida más corta (mediana por partida) | ≥ 10 min                   | 12:26          | 12:26–12:26                   | cumple |
-| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partida más larga (mediana por partida) | ≤ 60 min                   | 52:43          | 52:43–52:43                   | cumple |
-| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): tiempo para colonizar                   | 2–3,5 h                    | 2.96 h         | 2.54 h–3.08 h                 | cumple |
-| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): pasivo hasta colonizar                  | ≤ 2,5 × el activo          | 2.34 ×         | 2.24 ×–2.68 ×                 | cumple |
-| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partidas hasta colonizar (todas)        | 20–33 min                  | 30:17          | 1:25–1:07:52                  | cumple |
-| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partida más corta (mediana por partida) | ≥ 10 min                   | 13:08          | 13:08–13:08                   | cumple |
-| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partida más larga (mediana por partida) | ≤ 60 min                   | 58:13          | 58:13–58:13                   | cumple |
-| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): tiempo para colonizar                   | 2–3,5 h                    | 3.11 h         | 2.51 h–3.61 h                 | cumple |
-| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): pasivo hasta colonizar                  | ≤ 2,5 × el activo          | 2.20 ×         | 1.97 ×–2.73 ×                 | cumple |
-| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partidas hasta colonizar (todas)         | 20–33 min                  | 21:29          | 2:17–45:28                    | cumple |
-| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partida más corta (mediana por partida)  | ≥ 10 min                   | 14:01          | 14:01–14:01                   | cumple |
-| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partida más larga (mediana por partida)  | ≤ 60 min                   | 32:44          | 32:44–32:44                   | cumple |
-| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): tiempo para colonizar                    | 2–3,5 h                    | 2.18 h         | 1.90 h–2.70 h                 | cumple |
-| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): pasivo hasta colonizar                   | ≤ 2,5 × el activo          | 2.01 ×         | 1.73 ×–2.26 ×                 | cumple |
-| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partidas hasta colonizar (todas)         | 20–33 min                  | 31:07          | 7:57–51:36                    | cumple |
-| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partida más corta (mediana por partida)  | ≥ 10 min                   | 22:42          | 22:42–22:42                   | cumple |
-| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partida más larga (mediana por partida)  | ≤ 60 min                   | 42:38          | 42:38–42:38                   | cumple |
-| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): tiempo para colonizar                    | 2–3,5 h                    | 2.95 h         | 2.66 h–3.66 h                 | cumple |
-| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): pasivo hasta colonizar                   | ≤ 2,5 × el activo          | 1.97 ×         | 1.71 ×–2.26 ×                 | cumple |
-| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partidas hasta colonizar (todas)        | 20–33 min                  | 23:02          | 3:01–1:05:17                  | cumple |
-| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partida más corta (mediana por partida) | ≥ 10 min                   | 13:31          | 13:31–13:31                   | cumple |
-| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partida más larga (mediana por partida) | ≤ 60 min                   | 52:24          | 52:24–52:24                   | cumple |
-| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): tiempo para colonizar                   | 2–3,5 h                    | 2.91 h         | 2.45 h–3.32 h                 | cumple |
-| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): pasivo hasta colonizar                  | ≤ 2,5 × el activo          | 2.23 ×         | 2.08 ×–2.77 ×                 | cumple |
-| Viento: esporas sin gastar al colonizar el último bioma, sobre las ganadas en toda la campaña        | < 50 %                     | 1 %            | 0 %–3 %                       | cumple |
-| Viento: techo numérico (campaña y 4 partidas tras el último bioma)                                   | < 1e63                     | 1,42 trillones | 1,42 trillones–1,42 trillones | cumple |
-| Viento: guardados inválidos tras esporular, dispersar o colonizar                                    | 0                          | 0              | 0–0                           | cumple |
+| Métrica                                                                                                                                         | Objetivo                   | Mediana        | Rango                         | Estado |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------- | ----------------------------- | ------ |
+| Primer Rizomorfo                                                                                                                                | < 1 min                    | 0:30           | 0:30–0:30                     | cumple |
+| Primer Primordio                                                                                                                                | 3–5 min                    | 3:47           | 3:35–4:10                     | cumple |
+| Primera Seta                                                                                                                                    | 7–10 min                   | 8:08           | 3:39–9:53                     | cumple |
+| Primer Anillo de hadas                                                                                                                          | 14–20 min                  | 17:00          | 11:27–19:09                   | cumple |
+| Primera Red micorrícica                                                                                                                         | 24–32 min                  | 27:24          | 24:21–32:28                   | cumple |
+| Esporular disponible en la partida 1                                                                                                            | 30–45 min                  | 40:56          | 36:34–45:25                   | cumple |
+| Esporas de la primera esporulación                                                                                                              | 12–18                      | 15             | 15–15                         | cumple |
+| Partida 2 hasta Esporular disponible (15 esporas y 4 mutaciones)                                                                                | ≥ 40 % más rápida que la 1 | 42 %           | 35 %–66 %                     | cumple |
+| Perfil pasivo hasta Esporular disponible                                                                                                        | ≤ 2.5 × el activo          | 1.85 ×         | 1.66 ×–2.07 ×                 | cumple |
+| Primer Gigante de Malheur (tiempo acumulado)                                                                                                    | 2–3.5 h                    | 2.77 h         | 2.55 h–3.03 h                 | cumple |
+| Duración de la partida 1 de la campaña                                                                                                          | ≥ 10 min                   | 40:56          | 36:34–45:25                   | cumple |
+| Duración de la partida 2 de la campaña                                                                                                          | ≥ 10 min                   | 27:29          | 14:44–32:53                   | cumple |
+| Duración de la partida 3 de la campaña                                                                                                          | ≥ 10 min                   | 29:52          | 18:57–42:35                   | cumple |
+| Duración de la partida 4 de la campaña                                                                                                          | ≥ 10 min                   | 29:46          | 17:05–37:19                   | cumple |
+| Duración de la partida 5 de la campaña                                                                                                          | ≥ 10 min                   | 27:54          | 11:17–34:47                   | cumple |
+| Duración de la partida 6 de la campaña                                                                                                          | ≥ 10 min                   | 16:30          | 8:56–20:38                    | cumple |
+| Duración de la partida 7 de la campaña                                                                                                          | ≥ 10 min                   | 13:51          | 7:23–20:01                    | cumple |
+| Duración de la partida 8 de la campaña                                                                                                          | ≥ 10 min                   | 10:26          | 4:59–14:21                    | cumple |
+| Campaña larga, regla §17: partida más corta de la 1 a la 16 (mediana por partida)                                                               | ≥ 6 min                    | 6:25           | 6:25–6:25                     | cumple |
+| Campaña larga, regla del mejor ritmo: partida más corta de la 1 a la 20                                                                         | ≥ 8 min                    | 8:49           | 8:49–8:49                     | cumple |
+| Campaña larga, regla §17: esporas sin gastar al final, sobre las ganadas                                                                        | < 50 %                     | 44 %           | 39 %–49 %                     | cumple |
+| Viento: cierre del Acto I (tiempo acumulado)                                                                                                    | 2,5–3,5 h                  | 3.31 h         | 3.11 h–3.48 h                 | cumple |
+| Viento: partidas de espera para pagar un viaje (tras el Acto I o tras colonizar)                                                                | ≤ 1                        | 0              | 0–1                           | cumple |
+| Viento taiga→Chocó, taiga (primer destino): partidas hasta colonizar (todas)                                                                    | 20–33 min                  | 28:48          | 5:32–1:15:14                  | cumple |
+| Viento taiga→Chocó, taiga (primer destino): partida más corta (mediana por partida)                                                             | ≥ 10 min                   | 20:58          | 20:58–20:58                   | cumple |
+| Viento taiga→Chocó, taiga (primer destino): tiempo para colonizar                                                                               | 2–3,5 h                    | 3.24 h         | 2.67 h–3.51 h                 | cumple |
+| Viento taiga→Chocó, taiga (primer destino): pasivo hasta colonizar                                                                              | ≤ 2,5 × el activo          | 2.25 ×         | 2.07 ×–2.73 ×                 | cumple |
+| Viento taiga→Chocó, Chocó (segundo destino): partidas hasta colonizar (todas)                                                                   | 20–33 min                  | 21:30          | 2:37–39:19                    | cumple |
+| Viento taiga→Chocó, Chocó (segundo destino): partida más corta (mediana por partida)                                                            | ≥ 10 min                   | 13:52          | 13:52–13:52                   | cumple |
+| Viento taiga→Chocó, Chocó (segundo destino): tiempo para colonizar                                                                              | 2–3,5 h                    | 2.06 h         | 1.71 h–2.55 h                 | cumple |
+| Viento taiga→Chocó, Chocó (segundo destino): pasivo hasta colonizar                                                                             | ≤ 2,5 × el activo          | 1.79 ×         | 1.34 ×–1.92 ×                 | cumple |
+| Viento Chocó→taiga, Chocó (primer destino): partidas hasta colonizar (todas)                                                                    | 20–33 min                  | 29:01          | 13:24–48:04                   | cumple |
+| Viento Chocó→taiga, Chocó (primer destino): partida más corta (mediana por partida)                                                             | ≥ 10 min                   | 21:49          | 21:49–21:49                   | cumple |
+| Viento Chocó→taiga, Chocó (primer destino): tiempo para colonizar                                                                               | 2–3,5 h                    | 2.85 h         | 2.22 h–3.43 h                 | cumple |
+| Viento Chocó→taiga, Chocó (primer destino): pasivo hasta colonizar                                                                              | ≤ 2,5 × el activo          | 1.55 ×         | 1.43 ×–1.99 ×                 | cumple |
+| Viento Chocó→taiga, taiga (segundo destino): partidas hasta colonizar (todas)                                                                   | 20–33 min                  | 22:59          | 2:29–1:03:28                  | cumple |
+| Viento Chocó→taiga, taiga (segundo destino): partida más corta (mediana por partida)                                                            | ≥ 10 min                   | 15:24          | 15:24–15:24                   | cumple |
+| Viento Chocó→taiga, taiga (segundo destino): tiempo para colonizar                                                                              | 2–3,5 h                    | 2.48 h         | 2.40 h–3.40 h                 | cumple |
+| Viento Chocó→taiga, taiga (segundo destino): pasivo hasta colonizar                                                                             | ≤ 2,5 × el activo          | 2.48 ×         | 1.84 ×–2.68 ×                 | cumple |
+| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partidas hasta colonizar (todas)                                                   | 20–33 min                  | 26:05          | 7:02–1:11:45                  | cumple |
+| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partida más corta (mediana por partida)                                            | ≥ 10 min                   | 11:41          | 11:41–11:41                   | cumple |
+| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): partida más larga (mediana por partida)                                            | ≤ 60 min                   | 58:49          | 58:49–58:49                   | cumple |
+| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): tiempo para colonizar                                                              | 2–3,5 h                    | 3.13 h         | 2.36 h–3.78 h                 | cumple |
+| Viento taiga→Chocó→pradera→tundra, pradera (tercer destino): pasivo hasta colonizar                                                             | ≤ 2,5 × el activo          | 2.17 ×         | 2.01 ×–3.02 ×                 | cumple |
+| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partidas hasta colonizar (todas)                                                    | 20–33 min                  | 21:56          | 6:52–48:53                    | cumple |
+| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partida más corta (mediana por partida)                                             | ≥ 10 min                   | 11:48          | 11:48–11:48                   | cumple |
+| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): partida más larga (mediana por partida)                                             | ≤ 60 min                   | 37:49          | 37:49–37:49                   | cumple |
+| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): tiempo para colonizar                                                               | 2–3,5 h                    | 2.41 h         | 1.99 h–2.72 h                 | cumple |
+| Viento taiga→Chocó→pradera→tundra, tundra (cuarto destino): pasivo hasta colonizar                                                              | ≤ 2,5 × el activo          | 1.94 ×         | 1.70 ×–2.27 ×                 | cumple |
+| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partidas hasta colonizar (todas)                                                    | 20–33 min                  | 28:58          | 8:38–55:54                    | cumple |
+| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partida más corta (mediana por partida)                                             | ≥ 10 min                   | 19:10          | 19:10–19:10                   | cumple |
+| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): partida más larga (mediana por partida)                                             | ≤ 60 min                   | 43:14          | 43:14–43:14                   | cumple |
+| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): tiempo para colonizar                                                               | 2–3,5 h                    | 2.81 h         | 2.37 h–3.65 h                 | cumple |
+| Viento taiga→Chocó→tundra→pradera, tundra (tercer destino): pasivo hasta colonizar                                                              | ≤ 2,5 × el activo          | 2.01 ×         | 1.61 ×–2.35 ×                 | cumple |
+| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partidas hasta colonizar (todas)                                                   | 20–33 min                  | 26:38          | 5:55–1:07:36                  | cumple |
+| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partida más corta (mediana por partida)                                            | ≥ 10 min                   | 12:26          | 12:26–12:26                   | cumple |
+| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): partida más larga (mediana por partida)                                            | ≤ 60 min                   | 52:43          | 52:43–52:43                   | cumple |
+| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): tiempo para colonizar                                                              | 2–3,5 h                    | 2.96 h         | 2.54 h–3.08 h                 | cumple |
+| Viento taiga→Chocó→tundra→pradera, pradera (cuarto destino): pasivo hasta colonizar                                                             | ≤ 2,5 × el activo          | 2.34 ×         | 2.24 ×–2.68 ×                 | cumple |
+| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partidas hasta colonizar (todas)                                                   | 20–33 min                  | 30:17          | 1:25–1:07:52                  | cumple |
+| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partida más corta (mediana por partida)                                            | ≥ 10 min                   | 13:08          | 13:08–13:08                   | cumple |
+| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): partida más larga (mediana por partida)                                            | ≤ 60 min                   | 58:13          | 58:13–58:13                   | cumple |
+| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): tiempo para colonizar                                                              | 2–3,5 h                    | 3.11 h         | 2.51 h–3.61 h                 | cumple |
+| Viento Chocó→taiga→pradera→tundra, pradera (tercer destino): pasivo hasta colonizar                                                             | ≤ 2,5 × el activo          | 2.20 ×         | 1.97 ×–2.73 ×                 | cumple |
+| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partidas hasta colonizar (todas)                                                    | 20–33 min                  | 21:29          | 2:17–45:28                    | cumple |
+| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partida más corta (mediana por partida)                                             | ≥ 10 min                   | 14:01          | 14:01–14:01                   | cumple |
+| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): partida más larga (mediana por partida)                                             | ≤ 60 min                   | 32:44          | 32:44–32:44                   | cumple |
+| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): tiempo para colonizar                                                               | 2–3,5 h                    | 2.18 h         | 1.90 h–2.70 h                 | cumple |
+| Viento Chocó→taiga→pradera→tundra, tundra (cuarto destino): pasivo hasta colonizar                                                              | ≤ 2,5 × el activo          | 2.01 ×         | 1.73 ×–2.26 ×                 | cumple |
+| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partidas hasta colonizar (todas)                                                    | 20–33 min                  | 31:07          | 7:57–51:36                    | cumple |
+| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partida más corta (mediana por partida)                                             | ≥ 10 min                   | 22:42          | 22:42–22:42                   | cumple |
+| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): partida más larga (mediana por partida)                                             | ≤ 60 min                   | 42:38          | 42:38–42:38                   | cumple |
+| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): tiempo para colonizar                                                               | 2–3,5 h                    | 2.95 h         | 2.66 h–3.66 h                 | cumple |
+| Viento Chocó→taiga→tundra→pradera, tundra (tercer destino): pasivo hasta colonizar                                                              | ≤ 2,5 × el activo          | 1.97 ×         | 1.71 ×–2.26 ×                 | cumple |
+| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partidas hasta colonizar (todas)                                                   | 20–33 min                  | 23:02          | 3:01–1:05:17                  | cumple |
+| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partida más corta (mediana por partida)                                            | ≥ 10 min                   | 13:31          | 13:31–13:31                   | cumple |
+| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): partida más larga (mediana por partida)                                            | ≤ 60 min                   | 52:24          | 52:24–52:24                   | cumple |
+| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): tiempo para colonizar                                                              | 2–3,5 h                    | 2.91 h         | 2.45 h–3.32 h                 | cumple |
+| Viento Chocó→taiga→tundra→pradera, pradera (cuarto destino): pasivo hasta colonizar                                                             | ≤ 2,5 × el activo          | 2.23 ×         | 2.08 ×–2.77 ×                 | cumple |
+| Viento, perfil ausente (sesiones de 20 min, tercer destino tras taiga→Chocó): días para colonizar la tundra con 24 h fuera, frente a la pradera | ≤ 2.0 d (la pradera)       | 2.0 d          | 2.0 d–3.0 d                   | cumple |
+| Viento, perfil ausente (sesiones de 20 min, tercer destino tras taiga→Chocó): días para colonizar la tundra con 48 h fuera, frente a la pradera | ≤ 4.0 d (la pradera)       | 4.0 d          | 4.0 d–6.0 d                   | cumple |
+| Viento: esporas sin gastar al colonizar el último bioma, sobre las ganadas en toda la campaña                                                   | < 50 %                     | 1 %            | 0 %–3 %                       | cumple |
+| Viento: techo numérico (campaña y 4 partidas tras el último bioma)                                                                              | < 1e63                     | 1,42 trillones | 1,42 trillones–1,42 trillones | cumple |
+| Viento: guardados inválidos tras esporular, dispersar o colonizar                                                                               | 0                          | 0              | 0–0                           | cumple |
 
 **Techo numérico:** el mayor valor visto en 10 esporulaciones fue 23,4 billones N (muy por debajo del límite de 1e300 de `number`).
 
-**Resultado:** 82 de 82 objetivos cumplidos.
+**Resultado:** 84 de 84 objetivos cumplidos.
 
 ### Campaña (perfil activo, 10 esporulaciones)
 
@@ -187,6 +190,16 @@ Natal hasta el Acto I y después los cuatro destinos, en los cuatro órdenes que
 | Chocó→taiga→tundra→pradera | tundra  | 22:42, 23:16, 32:50, 37:20, 37:44, 42:38       | 31:07           | 2.95 h    | 576                | 11.75 h   |
 | Chocó→taiga→tundra→pradera | pradera | 13:31, 15:32, 22:43, 26:03, 46:17, 52:24       | 23:02           | 2.91 h    | 576                | 14.57 h   |
 
+Perfil ausente (sesiones de 20 min del perfil activo y luego H horas fuera, cobradas como al cargar la partida; tercer destino tras taiga→Chocó): sesiones y días hasta colonizar, mediana de 9 semillas y rango. Los días son las ausencias por sus horas; las de 24 y 48 h son objetivo.
+
+| Horas fuera | Pradera: sesiones | Pradera: días       | Tundra: sesiones | Tundra: días        |
+| ----------- | ----------------- | ------------------- | ---------------- | ------------------- |
+| 12 h        | 3 (3–4)           | 1.0 d (1.0 d–1.5 d) | 4 (3–4)          | 1.5 d (1.0 d–1.5 d) |
+| 24 h        | 3 (3–4)           | 2.0 d (2.0 d–3.0 d) | 3 (3–4)          | 2.0 d (2.0 d–3.0 d) |
+| 36 h        | 3 (3–4)           | 3.0 d (3.0 d–4.5 d) | 3 (3–5)          | 3.0 d (3.0 d–6.0 d) |
+| 48 h        | 3 (3–4)           | 4.0 d (4.0 d–6.0 d) | 3 (3–4)          | 4.0 d (4.0 d–6.0 d) |
+| 72 h        | 3 (3–4)           | 6.0 d (6.0 d–9.0 d) | 3 (3–4)          | 6.0 d (6.0 d–9.0 d) |
+
 Tras colonizar el último bioma no quedan destinos en esta versión; las 4 partidas siguientes son informativas:
 
 | Orden                      | Partidas tras el último bioma (mediana de cada una) |
@@ -221,7 +234,7 @@ Mejoras: 50 (40 de generador y 10 de clic, globales y sinergias), ver `src/data/
 
 <!-- sim:plasmodio:start -->
 
-_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 65.3 s de cómputo). No editar a mano entre estas marcas._
+_Generado por `npm run sim:plasmodio` (9 semillas por perfil, pasos de 1 s, 65.0 s de cómputo). No editar a mano entre estas marcas._
 
 ### El plasmodio (docs/ROADMAP.md, fase 9)
 

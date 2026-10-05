@@ -39,7 +39,7 @@ import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { RAIN_EFFECTS } from '../src/data/rain.ts';
 import { checkAchievements } from '../src/systems/achievements.ts';
 import { checkActOne, checkColonization } from '../src/systems/journey.ts';
-import { applyOffline, offlineCapSeconds } from '../src/systems/offline.ts';
+import { applyBackground, applyOffline, offlineCapSeconds } from '../src/systems/offline.ts';
 import { dewAmount, effectDuration, rollRainInterval, updateRain } from '../src/systems/rain.ts';
 
 /**
@@ -945,5 +945,59 @@ describe('adaptaciones de la pradera y la tundra (fase 10)', () => {
     const prairie = arrivedInRingTwo('prairie');
     prairie.biomeAdaptations.lichen = 2;
     expect(offlineCapSeconds(prairie)).toBe(48 * 3600);
+  });
+});
+
+describe('el deshielo de la tundra (fase 10)', () => {
+  /** En la tundra con 10 Redes micorrícicas: 36 000 N/s, sin clics ni lluvia. */
+  function tundraWithNetworks(): GameState {
+    const s = arrivedInRingTwo('tundra');
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    expect(derived(s).production).toBe(36_000);
+    return s;
+  }
+
+  it('24 h fuera de la tundra cobran 40 h de su producción: lo que pasa de 8 h rinde sin el ×0,5', () => {
+    const s = tundraWithNetworks();
+    const nutrients = s.nutrients;
+    const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 24 * 3_600_000);
+    expect(report.effective).toBe(86_400);
+    expect(report.thawed).toBe(16 * 3600);
+    // 36 000 N/s · 40 h · 3600 s.
+    expect(report.gained).toBe(5.184e9);
+    expect(s.nutrients - nutrients).toBe(5.184e9);
+  });
+
+  it('4 h fuera de la tundra cobran 4 h, lo mismo que mirar', () => {
+    const s = tundraWithNetworks();
+    const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 4 * 3_600_000);
+    expect(report.thawed).toBe(0);
+    expect(report.gained).toBe(36_000 * 14_400);
+  });
+
+  it('60 h fuera se recortan al tope de 48 h antes de deshelar: 48 + 40 = 88 h de producción', () => {
+    const s = tundraWithNetworks();
+    const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 60 * 3_600_000);
+    expect(report.capped).toBe(true);
+    expect(report.thawed).toBe(40 * 3600);
+    expect(report.gained).toBe(36_000 * 88 * 3600);
+  });
+
+  it('en segundo plano, igual que cerrado: 24 h dan 40 h de producción y cuentan 24 h de juego', () => {
+    const s = tundraWithNetworks();
+    const runTime = s.stats.runTime;
+    expect(applyBackground(s, 24 * 3600)).toBe(5.184e9);
+    expect(s.stats.runTime - runTime).toBe(86_400);
+  });
+
+  it('fuera de la tundra no hay deshielo: 24 h en la pradera cobran 24 h', () => {
+    const s = arrivedInRingTwo('prairie');
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    // 1800 · 10 · 4 (linaje) = 72 000 N/s.
+    const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 24 * 3_600_000);
+    expect(report.thawed).toBe(0);
+    expect(report.gained).toBe(72_000 * 86_400);
   });
 });

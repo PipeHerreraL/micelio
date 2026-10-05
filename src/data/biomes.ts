@@ -53,6 +53,11 @@ export interface BiomeDef {
   productionFactor: number;
   /** Horas que suma al tope sin conexión mientras se vive aquí (tundra 24). */
   offlineHours: number;
+  /**
+   * Deshielo (tundra 8): de una ausencia más larga que estas horas, lo que pasa de ellas rinde sin
+   * `productionFactor`. null = nunca. Ver systems/offline.ts.
+   */
+  thawAfterHours: number | null;
 }
 
 /**
@@ -78,6 +83,7 @@ export const BIOMES: readonly BiomeDef[] = [
     ring: 0,
     productionFactor: 1,
     offlineHours: 0,
+    thawAfterHours: null,
   },
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
@@ -93,6 +99,7 @@ export const BIOMES: readonly BiomeDef[] = [
     ring: 1,
     productionFactor: 1,
     offlineHours: 0,
+    thawAfterHours: null,
   },
   {
     // Escala mayor que la de la taiga: la bonificación de la taiga cae en generadores medios y la
@@ -110,6 +117,7 @@ export const BIOMES: readonly BiomeDef[] = [
     ring: 1,
     productionFactor: 1,
     offlineHours: 0,
+    thawAfterHours: null,
   },
   {
     // Chernozem. El motor es un generador barato, el quinto: Anillo de hadas ×6, medido también
@@ -129,12 +137,20 @@ export const BIOMES: readonly BiomeDef[] = [
     ring: 2,
     productionFactor: 1,
     offlineHours: 0,
+    thawAfterHours: null,
   },
   {
     // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
     // invernal (24 h) y el bioma suma 24; sumar y no fijar en 48 deja algo también a quien tiene
     // Letargo profundo. Llueve un tercio (desierto polar): el pasivo queda en 1,90–2,01 veces el
     // activo. Escala: la tundra tercera colonizaba en 2,81–2,95 h y la cuarta, en 2,18–2,46 h.
+    //
+    // Deshielo tras 8 h: sin él, la tundra fuera del juego rinde 0,5 · min(H, tope), nunca más que
+    // otro bioma, y quien vuelve cada día tardaba 3 días en colonizarla frente a 2 de la pradera;
+    // con él, 2 y 2 (simulador, perfil ausente). Una ausencia corta (cambiar de app, cerrar y abrir)
+    // sigue rindiendo lo mismo que mirar: lo que se premia es irse una noche o más. Que fuera del
+    // juego no rigiera el ×0,5 se descartó: en el móvil el sistema cierra la app al cambiar de
+    // tarea, y cerrar y abrir rendiría el doble que mirar.
     id: 'tundra',
     scale: 3.5e9,
     production: {},
@@ -145,6 +161,7 @@ export const BIOMES: readonly BiomeDef[] = [
     ring: 2,
     productionFactor: 0.5,
     offlineHours: 24,
+    thawAfterHours: 8,
   },
 ];
 

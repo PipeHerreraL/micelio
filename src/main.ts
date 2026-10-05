@@ -668,6 +668,8 @@ function showOfflineReport(report: OfflineReport): void {
     t('offline.efficiency', { percent: formatPercent(report.efficiency, locale, 0) }),
   ];
   if (report.capped) body.push(t('offline.capped', { cap: formatDuration(report.effective, locale) }));
+  // El deshielo de la tundra: cuántas horas rindieron enteras (systems/offline.ts).
+  if (report.thawed > 0) body.push(t('offline.thaw', { time: formatDuration(report.thawed, locale) }));
   for (const note of partnerNotes) {
     if (note.seconds > 0) {
       body.push(

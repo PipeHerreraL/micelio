@@ -364,6 +364,8 @@ export const en: Catalog = {
   'biome.tundra.rule.half': 'In the cold everything grows at half speed: production is ×{factor}.',
   'biome.tundra.rule.rain': 'A third of the rain: three times as long between drops.',
   'biome.tundra.rule.away': 'While you live here, your network holds out {hours} h longer without you.',
+  'biome.tundra.rule.thaw':
+    'If you are away for more than {hours} h, everything past that yields in full: under the snow, the network keeps working.',
   'biome.progress': 'Colonization: level\u00a0{level} of\u00a0{goal}',
   'biome.colonized': 'Biome colonized · level {level}',
   'biome.actOne': 'Act I complete · level {level}',
@@ -773,6 +775,7 @@ export const en: Catalog = {
   'offline.body': '{time} went by. Your network absorbed {value}\u00a0N.',
   // «Only the first 1 day count» no concordaba: la frase no depende del número de {cap}.
   'offline.capped': 'Offline time is capped at {cap}.',
+  'offline.thaw': 'Under the snow, the network yielded in full for {time}.',
   'offline.efficiency': 'Offline efficiency: {percent}.',
   'offline.flavor.1': 'The network kept growing in the dark, as always.',
   'offline.flavor.2': 'While you slept, the hyphae worked overtime.',

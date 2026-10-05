@@ -45,6 +45,7 @@ import {
   type DestinationId,
 } from '../src/data/biomes.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
+import { applyOffline } from '../src/systems/offline.ts';
 import { catchDrop } from '../src/systems/rain.ts';
 import { parseSave, serializeSave } from '../src/systems/save.ts';
 
@@ -619,6 +620,57 @@ export function finishJourney(journey: Journey): void {
   }
 }
 
+/**
+ * Perfil ausente (fase 10): quien juega sesiones cortas y se va horas. Cuenta las sesiones hasta
+ * colonizar `to`, incluida la que coloniza, o null si no llega en `ABSENT_SESSION_CAP`.
+ */
+export interface AbsentResult {
+  sessions: number | null;
+}
+
+/** Tope de sesiones del perfil ausente: con sesiones de 20 min, 60 son más de 14 h de juego. */
+const ABSENT_SESSION_CAP = 60;
+
+/**
+ * Dispersa a `to` y juega sesiones de `sessionMinutes` del perfil activo; entre una y otra,
+ * `awayHours` fuera del juego, cobradas como al cargar (`applyOffline`: tope, eficiencia y el
+ * deshielo de la tundra). Una partida que la sesión corta sigue en la siguiente, como al volver.
+ */
+function absentLeg(
+  journey: Journey,
+  to: DestinationId,
+  sessionMinutes: number,
+  awayHours: number,
+): AbsentResult {
+  const state = journey.state;
+  let clockMs = START_TIME + journey.elapsed * 1000;
+  disperse(state, { to, now: clockMs });
+  drain();
+  if (state.forest.biome !== to) return { sessions: null };
+  buyBiomeAdaptations(state, 0);
+  for (let session = 1; session <= ABSENT_SESSION_CAP; session += 1) {
+    let left = sessionMinutes * 60;
+    while (left > 0 && !isForestColonized(state)) {
+      const run = playRun(state, {
+        profile: PROFILES.active,
+        stopWhen: 'campaign',
+        policy: 'doubling',
+        maxSeconds: left,
+        elapsedBefore: (clockMs - START_TIME) / 1000,
+      });
+      left -= run.duration;
+      clockMs += run.duration * 1000;
+      if (run.sporesGained > 0) shopBetweenRuns(state);
+    }
+    if (isForestColonized(state)) return { sessions: session };
+    const savedAt = clockMs;
+    clockMs += awayHours * 3_600_000;
+    applyOffline(state, savedAt, clockMs);
+    drain();
+  }
+  return { sessions: null };
+}
+
 // ---------------------------------------------------------------------------------------
 // Tareas (lo que se reparte entre hilos)
 
@@ -627,13 +679,16 @@ export type SimTask =
   | { kind: 'campaign'; seed: number; sporulations: number; policy: SporulatePolicy }
   | { kind: 'natal'; seed: number; policy: SporulatePolicy }
   /** Sigue un viaje por `path` y, con `finish`, juega las partidas de después del último bioma. */
-  | { kind: 'journey'; journey: Journey; path: readonly DestinationId[]; finish: boolean };
+  | { kind: 'journey'; journey: Journey; path: readonly DestinationId[]; finish: boolean }
+  /** Desde un viaje, el perfil ausente hasta colonizar `to` (fase 10). */
+  | { kind: 'absent'; journey: Journey; to: DestinationId; sessionMinutes: number; awayHours: number };
 
 export interface SimTaskResults {
   firstRun: RunRecord;
   campaign: CampaignResult;
   natal: NatalJourney;
   journey: Journey;
+  absent: AbsentResult;
 }
 
 export type SimTaskResult<T extends SimTask> = SimTaskResults[T['kind']];
@@ -652,5 +707,7 @@ export function runTask(task: SimTask): SimTaskResults[SimTask['kind']] {
       if (task.finish) finishJourney(task.journey);
       return task.journey;
     }
+    case 'absent':
+      return absentLeg(task.journey, task.to, task.sessionMinutes, task.awayHours);
   }
 }
