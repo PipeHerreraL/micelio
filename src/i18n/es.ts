@@ -258,6 +258,7 @@ export const es = {
   'sporulate.done.one': 'Esporulaste: +{count} espora',
   'sporulate.done.other': 'Esporulaste: +{count} esporas',
   'sporulate.completesReturn': 'Esta esporulación cierra El regreso.',
+  'sporulate.completesGoal': 'Esta esporulación cumple el ciclo.',
 
   // Mutaciones
   'mutations.title': 'Mutaciones',
@@ -333,10 +334,12 @@ export const es = {
   'biome.natal.name': 'Bosque natal',
   'biome.natal.soil': 'suelo pardo',
   'biome.natal.here': 'Tu linaje vive en el bosque natal.',
+  'biome.natal.sow': 'Sembrar en el bosque natal',
   'biome.taiga.name': 'Taiga',
   'biome.taiga.soil': 'podzol',
   'biome.taiga.here': 'Tu linaje vive en la taiga.',
   'biome.taiga.go': 'Dispersar hacia la taiga',
+  'biome.taiga.sow': 'Sembrar en la taiga',
   'biome.taiga.style': 'Para quien deja crecer: los árboles trabajan solos.',
   'biome.taiga.tag': '×{factor} en la taiga',
   'biome.taiga.rule.trees': 'La Red micorrícica y el Árbol madre rinden ×{factor}.',
@@ -345,6 +348,7 @@ export const es = {
   'biome.choco.soil': 'ultisol',
   'biome.choco.here': 'Tu linaje vive en la selva del Chocó.',
   'biome.choco.go': 'Dispersar hacia la selva del Chocó',
+  'biome.choco.sow': 'Sembrar en la selva del Chocó',
   'biome.choco.style': 'Para quien está atento: la lluvia premia a quien la atrapa.',
   'biome.choco.rule.rain': 'Llueve el doble: entre gota y gota pasa la mitad de tiempo.',
   'biome.choco.rule.fall':
@@ -357,6 +361,7 @@ export const es = {
   'biome.prairie.soil': 'chernozem',
   'biome.prairie.here': 'Tu linaje vive en la pradera.',
   'biome.prairie.go': 'Dispersar hacia la pradera',
+  'biome.prairie.sow': 'Sembrar en la pradera',
   'biome.prairie.style': 'Para quien planea: aquí el motor es el Anillo de hadas, y cada hito cuenta.',
   'biome.prairie.tag': '×{factor} en la pradera',
   'biome.prairie.rule.ring': 'El Anillo de hadas rinde ×{factor}.',
@@ -365,6 +370,7 @@ export const es = {
   'biome.tundra.soil': 'criosol',
   'biome.tundra.here': 'Tu linaje vive en la tundra.',
   'biome.tundra.go': 'Dispersar hacia la tundra',
+  'biome.tundra.sow': 'Sembrar en la tundra',
   'biome.tundra.style': 'Para quien vuelve de vez en cuando: aquí la red aguanta más tiempo sola.',
   'biome.tundra.rule.half': 'Con el frío todo crece a la mitad: la producción es ×{factor}.',
   'biome.tundra.rule.rain': 'Llueve un tercio: entre gota y gota pasa el triple de tiempo.',
@@ -424,6 +430,20 @@ export const es = {
   'wind.return.confirmTitle': '¿Volver al bosque natal?',
   'wind.return.yes': 'Volver',
   'wind.returned': 'El regreso, cumplido: tu red cierra el viaje en el bosque natal.',
+  // Ciclo libre (fase 10): sembrar tras El regreso.
+  'wind.cycle.intro':
+    'El viaje está cerrado: ahora el viento lleva tu linaje a cualquier bioma, también al que habitas. Cada siembra es un ciclo con el nivel de esporas en 0 y la meta en el nivel {goal}; cumplirlo deja tu mejor tiempo como récord.',
+  'wind.cycle.best.one': 'Récord: {time}, en {count} partida',
+  'wind.cycle.best.other': 'Récord: {time}, en {count} partidas',
+  'wind.cycle.noRecord': 'Aún sin récord',
+  'wind.cycle.leave': 'Puedes sembrar cuando quieras; un ciclo sin cumplir no deja récord.',
+  'wind.cycle.noRecordWarning': 'Este ciclo no dejará récord: aún no llega al nivel {goal}.',
+  'wind.cycle.willComplete': 'Esta esporulación cumple el ciclo: su récord queda.',
+  'wind.sow.title': '¿Sembrar un ciclo nuevo?',
+  'wind.sow.yes': 'Sembrar',
+  'wind.rules.summary': 'Reglas del bioma: {name}',
+  'cycle.done': '{name}: ciclo cumplido en {time}.',
+  'cycle.record': '{name}: nuevo récord, {time}.',
   'actOne.announce': 'Fin del Acto I. El viento de esporas ya puede llevarte a otros biomas.',
   'hint.wind':
     'Dispersar no tiene prisa: puedes quedarte aquí lo que quieras. En un bioma nuevo, las partidas vuelven a durar lo que al principio, con reglas nuevas.',
@@ -531,6 +551,12 @@ export const es = {
   'chronicle.returnIn.other': 'Cumplido el {date}, en {count} partidas y {time} de juego',
   'chronicle.reread.return.arrive': 'Releer «El regreso»',
   'chronicle.reread.return.close': 'Releer «La red planetaria»',
+  'chronicle.cycle.title': 'Ciclo libre',
+  'chronicle.cycle.done.one': '{count} ciclo cumplido',
+  'chronicle.cycle.done.other': '{count} ciclos cumplidos',
+  'chronicle.cycle.record.one': '{time} · {count} partida · {date}',
+  'chronicle.cycle.record.other': '{time} · {count} partidas · {date}',
+  'chronicle.cycle.empty': 'Aún no hay récords: cumple un ciclo para dejar el primero.',
   'hint.chronicle': 'Las láminas que cierres se pueden releer aquí.',
   // Adaptaciones de bioma
   'adapt.group.network': 'De la red',
@@ -598,6 +624,7 @@ export const es = {
   // Estadísticas del viaje
   'stats.biome': 'Bioma actual',
   'stats.dispersals': 'Dispersiones',
+  'stats.cycles': 'Ciclos cumplidos',
   'stats.history.rowIn.one': 'Partida {n} ({biome}): {time}, +{count} espora',
   'stats.history.rowIn.other': 'Partida {n} ({biome}): {time}, +{count} esporas',
   // Textos que cambian en el Chocó: en la selva baja no hay abetos ni otoño

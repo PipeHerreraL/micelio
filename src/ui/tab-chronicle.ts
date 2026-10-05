@@ -1,14 +1,16 @@
 /**
  * Pestaña Crónica (docs/ROADMAP.md, fases 8 y 10): una entrada por bosque del viaje, del natal al
- * actual y El regreso, con lo que costó cerrarlo y botones para releer sus láminas. Aparece con el
- * Acto I. La lista se rehace solo al cerrar un bosque o al viajar; lo que cambia dentro de una
- * partida (nivel, progreso) se actualiza con setText. El Acto I se reconoce por el tramo 0 y El
- * regreso por el 5, no por el bioma: los dos son el natal.
+ * actual y El regreso, con lo que costó cerrarlo y botones para releer sus láminas; tras El regreso,
+ * el ciclo libre con sus récords. Aparece con el Acto I. La lista se rehace solo al cerrar un
+ * bosque, al viajar o al sembrar o cumplir un ciclo; lo que cambia dentro de una partida (nivel,
+ * progreso) se actualiza con setText. El Acto I se reconoce por el tramo 0 y El regreso por el 5,
+ * no por el bioma: los dos son el natal.
  */
-import { colonizedCount, forestGoal, isActOneClosed, lineageFactor } from '../core/forest.ts';
-import type { ChronicleEntry, GameState } from '../core/state.ts';
+import { colonizedCount, forestGoal, isActOneClosed, isReturnClosed, lineageFactor } from '../core/forest.ts';
+import type { ChronicleEntry, CycleRecord, GameState } from '../core/state.ts';
 import {
   BIOME_ADAPTATIONS,
+  BIOME_IDS,
   HOME_BIOME,
   RETURN_LEG,
   type BiomeId,
@@ -49,12 +51,28 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
   const hint = createHint(store, 'hint.chronicle', t('hint.chronicle'));
   const lineage = h('p', { class: 'chronicle__lineage', attrs: { hidden: true } });
   const list = h('ol', { class: 'chronicle' });
+  // El ciclo libre (fase 10): ciclos cumplidos y un récord por elemento de lista, en dos líneas. Nada
+  // de esto va en un `dl.stats`: a 375 px los valores largos aplastan la columna de las etiquetas.
+  const cycleDone = h('p', { class: 'tabular' });
+  const records = h('ul', { class: 'chronicle__records' });
+  const recordsEmpty = h('p', { class: 'chronicle__records-empty', text: t('chronicle.cycle.empty') });
+  const cycleSection = h(
+    'section',
+    { class: 'chronicle__cycle', attrs: { hidden: true, 'aria-labelledby': 'chronicle-cycle-title' } },
+    [
+      h('h3', { class: 'settings__title', id: 'chronicle-cycle-title', text: t('chronicle.cycle.title') }),
+      cycleDone,
+      records,
+      recordsEmpty,
+    ],
+  );
   const root = h('div', { class: 'tab tab--chronicle' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('chronicle.title') })]),
     hint.root,
     h('p', { class: 'tab__intro', text: t('chronicle.intro') }),
     lineage,
     list,
+    cycleSection,
   ]);
   let builtFor = '';
   let live: LiveParts = { level: null, progress: null, bar: null, here: null };
@@ -248,6 +266,35 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     return entryRoot(HOME_BIOME, 'chronicle.return.current', true, lines, returnButtons(false));
   }
 
+  /** Un récord: el bioma; y el tiempo de reloj, las partidas y la fecha. */
+  function recordItem(record: CycleRecord): HTMLElement {
+    return h('li', { class: 'chronicle__record' }, [
+      h('p', { class: 'chronicle__record-place' }, [
+        soilSwatch(record.biome),
+        h('span', { text: biomeName(record.biome) }),
+      ]),
+      h('p', {
+        class: 'tabular',
+        text: tp('chronicle.cycle.record', record.runs, {
+          time: duration(record.time / 1000),
+          date: day(record.at),
+        }),
+      }),
+    ]);
+  }
+
+  /** El ciclo libre, desde El regreso: los récords en el orden de los biomas. */
+  function buildCycle(state: GameState): void {
+    const open = isReturnClosed(state);
+    setHidden(cycleSection, !open);
+    if (!open) return;
+    setText(cycleDone, tp('chronicle.cycle.done', state.cycle.done));
+    const sorted = [...state.records].sort((a, b) => BIOME_IDS.indexOf(a.biome) - BIOME_IDS.indexOf(b.biome));
+    records.replaceChildren(...sorted.map(recordItem));
+    setHidden(records, sorted.length === 0);
+    setHidden(recordsEmpty, sorted.length > 0);
+  }
+
   function build(state: GameState): void {
     // Si el foco estaba en un botón de la lista, se va con ella: pasa al panel de la pestaña,
     // que es enfocable (familia de BUG-JOURNAL #5 y #8).
@@ -269,6 +316,7 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     if (goal === 'colonize' && biome !== HOME_BIOME) items.push(currentEntry(state, biome));
     else if (goal === 'return') items.push(returnCurrentEntry(state));
     list.replaceChildren(...items);
+    buildCycle(state);
     if (hadFocus) root.closest<HTMLElement>('[role="tabpanel"]')?.focus();
   }
 
@@ -279,7 +327,10 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
       const state = store.state;
       const open = isActOneClosed(state);
       hint.update(open);
-      const key = `${state.chronicle.length}/${state.forest.leg}`;
+      // Sembrar cambia de bosque sin cambiar de tramo, y un récord mejorado no alarga la lista: los
+      // ciclos empezados y cumplidos también rehacen la Crónica.
+      const { stays, done } = state.cycle;
+      const key = `${state.chronicle.length}/${state.forest.leg}/${stays}/${done}/${state.records.length}`;
       if (key !== builtFor) {
         builtFor = key;
         build(state);

@@ -8,7 +8,7 @@ import { fmt, formatCount, getLocale, numberTooltip, t, tp, type MessageKey } fr
 import type { GameState } from '../core/state.ts';
 import { Disposer, h, setHidden, setText } from './dom.ts';
 import { focusableWhileTooltip } from './hud.ts';
-import { dispersalCount, isActOneClosed } from '../core/forest.ts';
+import { dispersalCount, isActOneClosed, isReturnClosed } from '../core/forest.ts';
 import { PLATES } from '../data/plasmodium-plates.ts';
 import { mappedCount, type PlasmodiumState } from '../partners/plasmodium/state.ts';
 import { biomeName } from './biome-text.ts';
@@ -48,6 +48,13 @@ const ROWS: readonly StatRow[] = [
   { label: 'stats.sporeLevel', value: (s) => formatCount(s.spores.level), raw: (s) => s.spores.level },
   { label: 'stats.biome', value: (s) => biomeName(s.forest.biome), when: isActOneClosed },
   { label: 'stats.dispersals', value: (s) => formatCount(dispersalCount(s)), when: isActOneClosed },
+  // El ciclo libre (fase 10), desde El regreso. Un número: la lista de récords vive en la Crónica.
+  {
+    label: 'stats.cycles',
+    value: (s) => formatCount(s.cycle.done),
+    raw: (s) => s.cycle.done,
+    when: isReturnClosed,
+  },
   {
     label: 'stats.achievements',
     value: (s) => `${formatCount(s.achievements.length)} / ${formatCount(visibleAchievements(s).length)}`,

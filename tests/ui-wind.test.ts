@@ -222,7 +222,7 @@ describe('sección Viento de esporas', () => {
     );
   });
 
-  it('durante El regreso no hay filas: la línea del pie dice su meta; cumplido, ni filas ni meta', () => {
+  it('durante El regreso no hay filas: la línea del pie dice su meta; cumplido, sin meta y con las filas del ciclo libre', () => {
     const state = inReturn();
     const wind = windOf(createStore(state));
     expect(visibleButtons(wind.root)).toEqual([]);
@@ -233,7 +233,7 @@ describe('sección Viento de esporas', () => {
     expect(wind.root.querySelector('.wind__here')?.textContent).toBe('Tu linaje vive en el bosque natal.');
     closeReturn(state);
     wind.update();
-    expect(visibleButtons(wind.root)).toEqual([]);
+    expect(visibleButtons(wind.root)).toHaveLength(5);
     expect(end?.hidden).toBe(true);
   });
 });

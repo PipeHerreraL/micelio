@@ -707,8 +707,10 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   achievement: 'chord',
   actOneClosed: 'chord',
   colonized: 'chord',
-  // Cumplir El regreso suena como colonizar: es el mismo momento, el último del viaje.
+  // Cumplir El regreso suena como colonizar: es el mismo momento, el último del viaje. Cumplir un
+  // ciclo también: sin síntesis nueva.
   returned: 'chord',
+  cycleDone: 'chord',
   disperse: 'wind',
   rainSpawn: 'drip',
   sporulate: 'spore',
@@ -823,6 +825,14 @@ function handleEvent(event: GameEvent): void {
     case 'returned': {
       // Como al colonizar: la lámina «La red planetaria» sale después, cuando no hay otro modal.
       const message = t('wind.returned');
+      toast(message, { kind: 'spore' });
+      announce(message);
+      break;
+    }
+    case 'cycleDone': {
+      // El ciclo libre usa avisos y no láminas: las claves de `seen` no crecen con los ciclos.
+      const params = { name: biomeName(event.biome), time: formatDuration(event.time / 1000, locale) };
+      const message = event.record ? t('cycle.record', params) : t('cycle.done', params);
       toast(message, { kind: 'spore' });
       announce(message);
       break;

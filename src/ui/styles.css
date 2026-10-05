@@ -2630,6 +2630,21 @@ body::before {
   gap: 0.5rem;
 }
 
+/* Ciclo libre (fase 10): el récord del bioma y sus reglas plegadas, con un objetivo de toque entero. */
+.wind__record {
+  font-size: 0.9rem;
+}
+
+/* Sin `display: flex`, que quita el triángulo de un <summary> en Chromium y Safari. */
+.wind__details > summary {
+  box-sizing: border-box;
+  min-height: var(--tap);
+  padding-block: 0.65rem;
+  color: var(--micelio-tenue);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 .wind__end,
 .wind__ring2 {
   margin-top: 0.75rem;
@@ -2743,6 +2758,37 @@ body::before {
 
 .chronicle__reread {
   min-height: var(--tap);
+}
+
+/* El ciclo libre (fase 10): un récord por elemento, en dos líneas, nunca en una tabla de dos columnas. */
+.chronicle__cycle {
+  margin-top: 1.25rem;
+}
+
+.chronicle__records {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chronicle__record {
+  display: grid;
+  gap: 0.15rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--filete);
+}
+
+.chronicle__record-place {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-title);
+}
+
+.chronicle__records-empty {
+  color: var(--micelio-tenue);
 }
 
 .reduce-motion *,

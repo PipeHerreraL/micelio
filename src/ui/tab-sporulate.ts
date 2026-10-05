@@ -11,7 +11,7 @@
 import { canSporulate, completesGoal, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
 import * as num from '../core/num.ts';
 import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
-import { sporulateRequirement } from '../core/forest.ts';
+import { forestGoal, sporulateRequirement } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
@@ -72,6 +72,11 @@ export function formatRate(value: number, beforeNoun = false): string {
   return f.format(value);
 }
 
+/** El aviso de la esporulación que cumple la meta: la de El regreso o la del ciclo libre. */
+function completesText(state: GameState): string {
+  return forestGoal(state).kind === 'cycle' ? t('sporulate.completesGoal') : t('sporulate.completesReturn');
+}
+
 export function createSporulateTab(store: Store): TabView {
   const disposer = new Disposer();
   const level = h('p', { class: 'spore__level tabular' });
@@ -93,14 +98,9 @@ export function createSporulateTab(store: Store): TabView {
     uiIcon('sporulate'),
     h('span', { text: t('sporulate.button') }),
   ]);
-  // Cuando esta esporulación cumple la meta de El regreso (fase 10), el botón lo dice: quien
-  // esperara a duplicar el nivel cargaría la última partida con casi todo el tramo.
-  const goalNote = h('p', {
-    class: 'spore__goal',
-    id: 'spore-goal',
-    text: t('sporulate.completesReturn'),
-    attrs: { hidden: true },
-  });
+  // Cuando esta esporulación cumple la meta de El regreso o de un ciclo (fase 10), el botón lo dice:
+  // quien esperara a duplicar el nivel cargaría la última partida con casi todo el tramo.
+  const goalNote = h('p', { class: 'spore__goal', id: 'spore-goal', attrs: { hidden: true } });
   const hint = createHint(store, 'hint.sporulate', t('hint.sporulate'));
   const wind = createWindSection(store);
 
@@ -130,7 +130,7 @@ export function createSporulateTab(store: Store): TabView {
       variant: 'modal--spore',
       body: [
         h('p', { class: 'modal__lead', text: tp('sporulate.confirm.gain', gained) }),
-        ...(completesGoal(state) ? [t('sporulate.completesReturn')] : []),
+        ...(completesGoal(state) ? [completesText(state)] : []),
         t('sporulate.confirm.bonus', {
           current: bonusPercent(state.spores.level, derived(state).sporeThreshold),
           next: bonusPercent(state.spores.level + gained, derived(state).sporeThreshold),
@@ -212,6 +212,7 @@ export function createSporulateTab(store: Store): TabView {
     toggleClass(button, 'is-unaffordable', !ready);
     const completes = completesGoal(state);
     setHidden(goalNote, !completes);
+    if (completes) setText(goalNote, completesText(state));
     // Un aviso oculto citado por id se lee igual: sin aviso, no se cita (tab-mutations.ts).
     setAttr(button, 'aria-describedby', completes ? goalNote.id : null);
     hint.update(true);
