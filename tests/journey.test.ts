@@ -14,6 +14,7 @@ import {
   colonizedCount,
   destinations,
   dispersalCount,
+  forestGoal,
   isActOneClosed,
   lineageFactor,
   nextBiomeAdaptationCost,
@@ -132,6 +133,16 @@ describe('consultas del viaje', () => {
     colonize(s);
     disperse(s, { to: 'choco', now: NOW + 9000 });
     expect(dispersalCount(s)).toBe(2);
+  });
+
+  it('el bosque persigue el Acto I en el natal, colonizar hasta el nivel 500 en un destino y nada más al colonizarlo', () => {
+    expect(forestGoal(actOneState())).toEqual({ kind: 'actOne', level: 1941 });
+    const s = arrivedIn('taiga');
+    s.spores.level = 312;
+    expect(forestGoal(s)).toEqual({ kind: 'colonize', level: 312, goal: 500 });
+    s.spores.level = 520;
+    checkColonization(s, NOW + 5000);
+    expect(forestGoal(s)).toEqual({ kind: 'colonized', level: 520 });
   });
 
   it('desde el natal quedan la taiga y el Chocó; desde la taiga, el Chocó; en el tramo 2, ninguno', () => {

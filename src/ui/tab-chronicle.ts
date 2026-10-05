@@ -4,9 +4,9 @@
  * La lista se rehace solo al cerrar un bosque o al viajar; lo que cambia dentro de una partida
  * (nivel, progreso) se actualiza con setText.
  */
-import { isActOneClosed, isColonized, lineageFactor, colonizedCount } from '../core/forest.ts';
+import { colonizedCount, forestGoal, isActOneClosed, lineageFactor } from '../core/forest.ts';
 import type { ChronicleEntry, GameState } from '../core/state.ts';
-import { BIOME_ADAPTATIONS, COLONIZE_LEVEL, type BiomeId, type DestinationId } from '../data/biomes.ts';
+import { BIOME_ADAPTATIONS, HOME_BIOME, type BiomeId, type DestinationId } from '../data/biomes.ts';
 import { formatDay, formatDuration, formatFactor } from '../i18n/format.ts';
 import { formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { biomeName, biomeRules } from './biome-text.ts';
@@ -15,7 +15,7 @@ import { Disposer, h, setHidden, setProgress, setText } from './dom.ts';
 import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
-import { forestProgressText, soilSwatch } from './wind.ts';
+import { forestGoalFill, forestProgressText, soilSwatch } from './wind.ts';
 
 /** Partes vivas de la entrada del bosque actual. */
 interface LiveParts {
@@ -198,8 +198,9 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
       if (entry.biome === 'natal') items.push(natalEntry(state, entry));
       else items.push(colonizedEntry(state, entry, entry.biome));
     }
+    // El destino que aún se coloniza no tiene entrada: se muestra en curso, con su progreso.
     const biome = state.forest.biome;
-    if (biome !== 'natal' && !isColonized(state, biome)) items.push(currentEntry(state, biome));
+    if (forestGoal(state).kind === 'colonize' && biome !== HOME_BIOME) items.push(currentEntry(state, biome));
     list.replaceChildren(...items);
     if (hadFocus) root.closest<HTMLElement>('[role="tabpanel"]')?.focus();
   }
@@ -231,8 +232,12 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
           t('chronicle.adaptations', { count: learnedHere(state, biome), total: adaptationsOf(biome) }),
         );
       }
-      if (live.progress) setText(live.progress, forestProgressText(store));
-      if (live.bar) setProgress(live.bar, Math.min(1, state.spores.level / COLONIZE_LEVEL));
+      if (live.progress && live.bar) {
+        const goal = forestGoal(state);
+        setText(live.progress, forestProgressText(goal));
+        const fill = forestGoalFill(goal);
+        if (fill !== null) setProgress(live.bar, fill);
+      }
       if (live.here) {
         const runs = state.stats.sporulations - state.forest.arrivalSporulations;
         setText(

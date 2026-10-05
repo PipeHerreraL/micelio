@@ -8,9 +8,10 @@ import { canSporulate, disperse, disperseBlock, disperseFunds, sporeGain } from 
 import {
   colonizedCount,
   destinations,
+  forestGoal,
   isActOneClosed,
-  isForestColonized,
   lineageFactor,
+  type ForestGoal,
 } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
@@ -40,13 +41,22 @@ export function soilSwatch(biome: string, extra = ''): HTMLElement {
   );
 }
 
-/** Texto del progreso del bosque actual: colonización, colonizado o Acto I. */
-export function forestProgressText(store: Store): string {
-  const state = store.state;
-  const level = formatCount(state.spores.level);
-  if (state.forest.leg === 0) return t('biome.actOne', { level });
-  if (isForestColonized(state)) return t('biome.colonized', { level });
-  return t('biome.progress', { level, goal: formatCount(COLONIZE_LEVEL) });
+/** Texto del progreso del bosque actual (`forestGoal`): Acto I, colonización o colonizado. */
+export function forestProgressText(goal: ForestGoal): string {
+  const level = formatCount(goal.level);
+  switch (goal.kind) {
+    case 'actOne':
+      return t('biome.actOne', { level });
+    case 'colonize':
+      return t('biome.progress', { level, goal: formatCount(goal.goal) });
+    case 'colonized':
+      return t('biome.colonized', { level });
+  }
+}
+
+/** Lo que llena la barra de progreso: solo las metas con un nivel que alcanzar llevan barra. */
+export function forestGoalFill(goal: ForestGoal): number | null {
+  return 'goal' in goal ? goal.level / goal.goal : null;
 }
 
 interface DestinationRow {
@@ -188,10 +198,11 @@ export function createWindSection(store: Store): WindSection {
       hint.update(open);
       if (!open) return;
       setText(here, t(`biome.${state.forest.biome}.here` as MessageKey));
-      setText(progressText, forestProgressText(store));
-      const colonized = isForestColonized(state);
-      setHidden(progressBar, colonized || state.forest.leg === 0);
-      setProgress(progressFill, Math.min(1, state.spores.level / COLONIZE_LEVEL));
+      const goal = forestGoal(state);
+      setText(progressText, forestProgressText(goal));
+      const fill = forestGoalFill(goal);
+      setHidden(progressBar, fill === null);
+      if (fill !== null) setProgress(progressFill, fill);
       const count = colonizedCount(state);
       setHidden(lineage, count === 0);
       if (count > 0) {
@@ -206,7 +217,7 @@ export function createWindSection(store: Store): WindSection {
       for (const el of [intro, cost, heading, list]) setHidden(el, none);
       // Sin destinos: o queda colonizar el último bioma, o ya no hay adónde ir en esta versión.
       setHidden(end, !none);
-      if (none) setText(end, colonized ? t('wind.none') : t('wind.last'));
+      if (none) setText(end, goal.kind === 'colonized' ? t('wind.none') : t('wind.last'));
 
       const block = disperseBlock(state);
       const missing = DISPERSE_COST - disperseFunds(state);

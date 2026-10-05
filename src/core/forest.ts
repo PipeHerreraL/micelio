@@ -7,6 +7,7 @@
  */
 import {
   BIOME_ADAPTATIONS,
+  COLONIZE_LEVEL,
   DESTINATION_IDS,
   LEG_SCALE,
   LINEAGE_FACTOR,
@@ -57,6 +58,25 @@ export function isActOneClosed(state: Readonly<GameState>): boolean {
 /** El bosque actual está cerrado en la Crónica: Acto I en el natal, colonizado en los demás. */
 export function isForestColonized(state: GameState): boolean {
   return state.chronicle.some((e) => e.leg === state.forest.leg);
+}
+
+/**
+ * Qué persigue el bosque actual y cuánto lleva: el Acto I en el natal, colonizar (nivel 500) en
+ * un destino abierto, o nada más en uno colonizado. Es la única lectura del progreso de la
+ * cartela, la sección Viento y la Crónica. Con El regreso y el ciclo libre de la fase 10, «la
+ * Crónica tiene la entrada de este tramo» deja de significar «no queda meta»: los casos nuevos se
+ * suman aquí y no en cada pantalla.
+ */
+export type ForestGoal =
+  | { kind: 'actOne'; level: number }
+  | { kind: 'colonize'; level: number; goal: number }
+  | { kind: 'colonized'; level: number };
+
+export function forestGoal(state: GameState): ForestGoal {
+  const level = state.spores.level;
+  if (state.forest.leg === 0) return { kind: 'actOne', level };
+  if (isForestColonized(state)) return { kind: 'colonized', level };
+  return { kind: 'colonize', level, goal: COLONIZE_LEVEL };
 }
 
 export function isColonized(state: GameState, biome: DestinationId): boolean {
