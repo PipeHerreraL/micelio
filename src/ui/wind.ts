@@ -52,6 +52,10 @@ export function forestProgressText(goal: ForestGoal): string {
       return t('biome.progress', { level, goal: formatCount(goal.goal) });
     case 'colonized':
       return t('biome.colonized', { level });
+    case 'return':
+      return t('biome.returnProgress', { level, goal: formatCount(goal.goal) });
+    case 'free':
+      return t('biome.free', { level });
   }
 }
 

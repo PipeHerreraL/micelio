@@ -17,6 +17,7 @@ import {
   buyUpgrade,
   click,
   canSporulate,
+  completesGoal,
   disperse,
   disperseBlock,
   nextAdaptationCost,
@@ -33,6 +34,7 @@ import {
   isForestColonized,
   nextBiomeAdaptationCost,
   sporulateRequirement,
+  windTargets,
 } from '../src/core/forest.ts';
 import { createState, ownsMutation, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
@@ -41,6 +43,8 @@ import {
   BIOME_ADAPTATIONS,
   DESTINATION_IDS,
   DISPERSE_COST,
+  HOME_BIOME,
+  RETURN_LEG,
   type BiomeAdaptationId,
   type DestinationId,
 } from '../src/data/biomes.ts';
@@ -244,8 +248,12 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
         }
         go = gain >= 1 && rate < bestRate * 0.995 && t + 1 - bestAt >= 30;
       } else {
-        // La campaña esporula cuando la ganancia es al menos max(10, nivel actual).
-        go = gain >= Math.max(10, state.spores.level);
+        // La campaña esporula cuando la ganancia es al menos max(10, nivel actual) (§17) y, en El
+        // regreso, también cuando la esporulación cumple la meta (fase 10): es lo que haría una
+        // persona que lee «esta esporulación cierra El regreso». Sin esa regla el nivel pasaba de
+        // 256 a 512 en la última partida, que duraba 1:30 h. En los tramos 0–4 nunca cumple nada,
+        // así que sus métricas no cambian.
+        go = gain >= Math.max(10, state.spores.level) || completesGoal(state);
       }
       if (go) {
         record.duration = t + 1;
@@ -354,8 +362,8 @@ export interface Journey {
   legs: BiomeLeg[];
   /** Partidas jugadas tras colonizar un bioma solo para juntar las 300 esporas del viaje. */
   waits: number[];
-  /** Partidas tras colonizar el último bioma (informativas: es el final de esta versión). */
-  after: number[];
+  /** El regreso (fase 10), si el viaje llegó a jugarlo. */
+  homecoming: ReturnLeg | null;
   /** Esporas sin gastar al colonizar el último bioma colonizado. */
   unspent: number;
   /** Esporas ganadas en toda la campaña al colonizar el último bioma colonizado. */
@@ -366,28 +374,37 @@ export interface Journey {
   going: boolean;
 }
 
+/** El regreso (fase 10): de vuelta al natal tras el cuarto bioma, hasta el nivel 500. */
+export interface ReturnLeg {
+  /** Duración de cada partida desde la llegada hasta la que cumple El regreso, incluida. */
+  runs: number[];
+  /** Tiempo de juego entre partir y el final de la partida que lo cumple (null si no llegó). */
+  closeTime: number | null;
+  levelAtClose: number;
+  /** Tiempo acumulado al cumplirlo. */
+  cumulative: number;
+}
+
 /**
  * Tope de partidas por bioma con la regla de §17: si se alcanza, el bioma cuenta como no
  * colonizado. La regla del mejor ritmo hace partidas de pocos minutos y lleva su propio tope.
  */
 const BIOME_RUN_CAP = 30;
 const RATE_RUN_CAP = 200;
-/**
- * Partidas que se juegan tras el último bioma (para el techo y la tabla informativa). Cuatro y
- * no ocho: sin destinos, la regla de §17 pide duplicar el nivel en cada partida y desde la
- * quinta cada una dura horas (en el orden Chocó→taiga, 2 h 15 min la quinta y 11 h 50 min la
- * octava, prototipo): el informe ya muestra que ahí empieza el muro.
- */
-export const AFTER_RUNS = 4;
 
 /** El guardado sigue siendo válido tras cada paso del viaje (ARCHITECTURE.md §4.26). */
 function saveIsValid(state: GameState, now: number): boolean {
   return parseSave(serializeSave(state, now)).ok;
 }
 
-/** Reserva para el próximo viaje: solo con el bosque cerrado y un destino por delante. */
+/**
+ * Reserva para el próximo viaje: con el bosque cerrado y algo por delante (otro destino o, tras el
+ * cuarto, El regreso). En el tramo 5, igual: nada mientras no se cumple la meta, como en el
+ * prototipo que midió El regreso y el ciclo. Con la reserva durante todo El regreso el bot compraba
+ * menos adaptaciones y lo cumplía en 2,96–3,20 h en vez de 2,94–3,12 h (simulador, con R 6,3e13).
+ */
 function journeyReserve(state: GameState): number {
-  return isForestColonized(state) && destinations(state).length > 0 ? DISPERSE_COST : 0;
+  return isForestColonized(state) && windTargets(state).length > 0 ? DISPERSE_COST : 0;
 }
 
 /** Compras entre partidas del viaje: mutaciones, adaptaciones de bioma y de la red. */
@@ -446,7 +463,10 @@ function natalToActOne(seed: number, policy: SporulatePolicy): NatalJourney {
   return { state, elapsed, actOneAt, waitRuns, maxValue, earnedSpores, invalidSaves, partnerAt };
 }
 
-/** Juega en el bioma actual hasta colonizarlo (o hasta el tope). Devuelve las duraciones. */
+/**
+ * Juega en el bioma actual hasta cerrarlo (o hasta el tope): colonizarlo o, en el natal del tramo 5,
+ * cumplir El regreso. Devuelve las duraciones.
+ */
 function playBiome(
   state: GameState,
   profile: Profile,
@@ -519,7 +539,7 @@ export function startJourney(natal: NatalJourney, policy: SporulatePolicy, withP
     invalidSaves: natal.invalidSaves,
     legs: [],
     waits: [],
-    after: [],
+    homecoming: null,
     unspent: 0,
     earnedAtColonize: 0,
     partnerAt: natal.partnerAt,
@@ -601,23 +621,52 @@ export function travel(journey: Journey, to: DestinationId): void {
   }
   journey.unspent = state.spores.available;
   journey.earnedAtColonize = journey.earnedSpores;
-  // Si no alcanza para el viaje, partidas de espera (las cuenta la métrica de espera).
+  // Si no alcanza para el viaje (a otro destino o, tras el cuarto, a casa), partidas de espera:
+  // las cuenta la métrica de espera.
   let wait = 0;
-  for (; destinations(state).length > 0 && disperseBlock(state) === 'spores' && wait < 10; wait += 1) {
+  for (; windTargets(state).length > 0 && disperseBlock(state) === 'spores' && wait < 10; wait += 1) {
     playJourneyRun(journey);
     shopBetweenRuns(state);
   }
-  if (destinations(state).length > 0) journey.waits.push(wait);
+  if (windTargets(state).length > 0) journey.waits.push(wait);
 }
 
-/** Tras el último bioma, si el viaje llegó entero, las partidas informativas de AFTER_RUNS. */
+/**
+ * Tras el cuarto bioma, si el viaje llegó entero: El regreso (fase 10). Vuelve al natal al empezar
+ * partida y juega hasta cumplirlo, con la regla de la meta. Sin perfil pasivo: no tiene objetivo.
+ */
 export function finishJourney(journey: Journey): void {
-  for (let i = 0; i < AFTER_RUNS && journey.going; i += 1) {
-    const run = playJourneyRun(journey);
-    journey.after.push(run.duration);
-    if (run.sporesGained === 0) break;
-    shopBetweenRuns(journey.state);
+  const state = journey.state;
+  if (!journey.going || !windTargets(state).some((target) => target.kind === 'return')) return;
+  disperse(state, { to: HOME_BIOME, now: START_TIME + journey.elapsed * 1000 });
+  drain();
+  if (state.forest.leg !== RETURN_LEG) {
+    journey.going = false;
+    return;
   }
+  if (!saveIsValid(state, START_TIME + journey.elapsed * 1000)) journey.invalidSaves += 1;
+  buyBiomeAdaptations(state, journeyReserve(state));
+  const departure = journey.elapsed;
+  const a = playBiome(
+    state,
+    PROFILES.active,
+    journey.policy,
+    departure,
+    (run, at) => {
+      trackRun(journey, run, at);
+    },
+    (at) => {
+      journey.partnerAt ??= at;
+    },
+  );
+  journey.elapsed = a.elapsed;
+  journey.homecoming = {
+    runs: a.runs,
+    closeTime: a.colonized ? journey.elapsed - departure : null,
+    levelAtClose: state.spores.level,
+    cumulative: journey.elapsed,
+  };
+  if (!a.colonized) journey.going = false;
 }
 
 /**
@@ -678,7 +727,7 @@ export type SimTask =
   | { kind: 'firstRun'; seed: number; profile: ProfileName }
   | { kind: 'campaign'; seed: number; sporulations: number; policy: SporulatePolicy }
   | { kind: 'natal'; seed: number; policy: SporulatePolicy }
-  /** Sigue un viaje por `path` y, con `finish`, juega las partidas de después del último bioma. */
+  /** Sigue un viaje por `path` y, con `finish`, juega El regreso si el cuarto bioma quedó colonizado. */
   | { kind: 'journey'; journey: Journey; path: readonly DestinationId[]; finish: boolean }
   /** Desde un viaje, el perfil ausente hasta colonizar `to` (fase 10). */
   | { kind: 'absent'; journey: Journey; to: DestinationId; sessionMinutes: number; awayHours: number };

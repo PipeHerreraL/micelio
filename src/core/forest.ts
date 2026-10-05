@@ -9,8 +9,11 @@ import {
   BIOME_ADAPTATIONS,
   COLONIZE_LEVEL,
   DESTINATION_IDS,
+  HOME_BIOME,
+  JOURNEY_LEGS,
   LEG_SCALE,
   LINEAGE_FACTOR,
+  RETURN_LEG,
   getBiome,
   getBiomeAdaptation,
   isDestinationId,
@@ -18,6 +21,7 @@ import {
   type BiomeId,
   type DestinationId,
 } from '../data/biomes.ts';
+import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import { SPORE_SCALE, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { RAIN_EFFECTS, type RainEffectDef } from '../data/rain.ts';
@@ -36,14 +40,31 @@ function legScale(state: GameState): number {
   return getBiome(biome).scale * factor;
 }
 
-/** Nutrientes ganados en la partida que pide Esporular en este bosque. */
+/**
+ * Nutrientes ganados en la partida que pide Esporular en este bosque. En el tramo 5 (El regreso y
+ * el ciclo libre), unas 6 R del bioma: con 1 R el nivel se duplicaba hasta pasar de largo la meta
+ * (256 → 512) y la última partida duraba 1:30 h.
+ */
 export function sporulateRequirement(state: GameState): Num {
-  return state.forest.leg === 0 ? SPORULATE_REQUIREMENT : legScale(state);
+  const leg = state.forest.leg;
+  if (leg === 0) return SPORULATE_REQUIREMENT;
+  if (leg === RETURN_LEG) {
+    const biome = getBiome(state.forest.biome);
+    return biome.cycleRequirement * biome.cycleScale;
+  }
+  return legScale(state);
 }
 
-/** Escala R de la fórmula de esporas E = ⌊k √(L / R)⌋ en este bosque. */
+/**
+ * Escala R de la fórmula de esporas E = ⌊k √(L / R)⌋ en este bosque. En el tramo 5 es fija por
+ * bioma (`cycleScale`): ni crece con los viajes ni encoge, y el suelo lineal de la 1.x, que solo
+ * rige en el tramo 0, tampoco la toca.
+ */
 export function sporeScale(state: GameState): Num {
-  return state.forest.leg === 0 ? SPORE_SCALE : legScale(state);
+  const leg = state.forest.leg;
+  if (leg === 0) return SPORE_SCALE;
+  if (leg === RETURN_LEG) return getBiome(state.forest.biome).cycleScale;
+  return legScale(state);
 }
 
 /** El Acto I es la entrada del tramo 0 de la Crónica (systems/journey.ts la escribe). */
@@ -55,26 +76,47 @@ export function isActOneClosed(state: Readonly<GameState>): boolean {
   return actOneEntry(state) !== null;
 }
 
-/** El bosque actual está cerrado en la Crónica: Acto I en el natal, colonizado en los demás. */
+/**
+ * El bosque actual está cerrado en la Crónica: Acto I en el natal, colonizado en los tramos 1–4 y,
+ * en el tramo 5, El regreso cumplido. La interfaz no lo lee: lee `forestGoal`.
+ */
 export function isForestColonized(state: GameState): boolean {
   return state.chronicle.some((e) => e.leg === state.forest.leg);
 }
 
+/** El regreso está cumplido: la Crónica tiene la entrada del tramo 5 (systems/journey.ts). */
+export function isReturnClosed(state: Readonly<GameState>): boolean {
+  return state.chronicle.some((e) => e.leg === RETURN_LEG);
+}
+
+/** El linaje vive en el ciclo libre: el tramo 5 con El regreso ya cumplido. */
+export function isFreeStay(state: Readonly<GameState>): boolean {
+  return state.forest.leg === RETURN_LEG && isReturnClosed(state);
+}
+
 /**
  * Qué persigue el bosque actual y cuánto lleva: el Acto I en el natal, colonizar (nivel 500) en
- * un destino abierto, o nada más en uno colonizado. Es la única lectura del progreso de la
- * cartela, la sección Viento y la Crónica. Con El regreso y el ciclo libre de la fase 10, «la
- * Crónica tiene la entrada de este tramo» deja de significar «no queda meta»: los casos nuevos se
- * suman aquí y no en cada pantalla.
+ * un destino abierto, nada más en uno colonizado, El regreso (nivel 500 en el natal) o, cumplido,
+ * nada más. Es la única lectura del progreso de la cartela, la sección Viento y la Crónica: en el
+ * tramo 5, «la Crónica tiene la entrada de este tramo» no significa «colonizado», y los casos se
+ * deciden aquí y no en cada pantalla.
  */
 export type ForestGoal =
   | { kind: 'actOne'; level: number }
   | { kind: 'colonize'; level: number; goal: number }
-  | { kind: 'colonized'; level: number };
+  | { kind: 'colonized'; level: number }
+  | { kind: 'return'; level: number; goal: number }
+  | { kind: 'free'; level: number };
 
 export function forestGoal(state: GameState): ForestGoal {
   const level = state.spores.level;
-  if (state.forest.leg === 0) return { kind: 'actOne', level };
+  const leg = state.forest.leg;
+  if (leg === 0) return { kind: 'actOne', level };
+  if (leg === RETURN_LEG) {
+    return isReturnClosed(state)
+      ? { kind: 'free', level }
+      : { kind: 'return', level, goal: CYCLE_GOAL_LEVEL };
+  }
   if (isForestColonized(state)) return { kind: 'colonized', level };
   return { kind: 'colonize', level, goal: COLONIZE_LEVEL };
 }
@@ -138,6 +180,26 @@ export function destinations(state: GameState): DestinationId[] {
   const visited = visitedBiomes(state);
   const open = openRing(state);
   return DESTINATION_IDS.filter((id) => !visited.includes(id) && getBiome(id).ring <= open);
+}
+
+/** Adónde puede llevar el viento: un destino del viaje o, tras el cuarto, de vuelta al natal. */
+export type WindTargetKind = 'journey' | 'return';
+
+export interface WindTarget {
+  biome: BiomeId;
+  kind: WindTargetKind;
+}
+
+/**
+ * Lo que ofrece la sección Viento, en orden: los destinos que quedan y, con el cuarto colonizado,
+ * El regreso. Lo leen la interfaz, las láminas y `disperse`, así que la regla vive en un solo
+ * sitio. Durante El regreso y después no hay ninguno.
+ */
+export function windTargets(state: GameState): WindTarget[] {
+  const leg = state.forest.leg;
+  if (leg < JOURNEY_LEGS) return destinations(state).map((biome) => ({ biome, kind: 'journey' }));
+  if (leg === JOURNEY_LEGS && isForestColonized(state)) return [{ biome: HOME_BIOME, kind: 'return' }];
+  return [];
 }
 
 // ---------------------------------------------------------------------------------------

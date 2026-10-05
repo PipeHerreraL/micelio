@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { disperseBlock, markSeen, sporeGain } from '../src/core/actions.ts';
-import { destinations, isActOneClosed, sporeScale, sporulateRequirement } from '../src/core/forest.ts';
+import {
+  destinations,
+  isActOneClosed,
+  sporeScale,
+  sporulateRequirement,
+  windTargets,
+} from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import type { GameState } from '../src/core/state.ts';
 import { DISPERSE_COST } from '../src/data/biomes.ts';
@@ -157,6 +163,10 @@ describe('cada guardado de la 1.5 es la partida que dice su nombre', () => {
       expect(of15.disperseBlock).toBe('noDestination');
       const state = load(name);
       expect(destinations(state)).toEqual(['prairie', 'tundra']);
+      expect(windTargets(state)).toEqual([
+        { biome: 'prairie', kind: 'journey' },
+        { biome: 'tundra', kind: 'journey' },
+      ]);
       expect(disperseBlock(state)).toBeNull();
     }
   });

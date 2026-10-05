@@ -9,18 +9,11 @@
  *
  * Uso: npm run sim (con SIM_WORKERS=n, n hilos; con 0, todo en el hilo principal)
  */
-import { DESTINATION_IDS, type DestinationId } from '../src/data/biomes.ts';
+import { DESTINATION_IDS, getBiome, type DestinationId } from '../src/data/biomes.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
-import {
-  AFTER_RUNS,
-  journeyPlan,
-  startJourney,
-  type CampaignResult,
-  type Journey,
-  type RunRecord,
-} from './sim-play.ts';
+import { journeyPlan, startJourney, type CampaignResult, type Journey, type RunRecord } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
 import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
 
@@ -288,17 +281,20 @@ metrics.push({
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m <= 1,
 });
-/** Mediana entre semillas de la partida i de un tramo (solo las semillas que la jugaron). */
-const legRunMedians = (results: readonly Journey[], leg: number): number[] => {
-  const longest = Math.max(0, ...results.map((w) => w.legs[leg]?.runs.length ?? 0));
+/** Mediana entre semillas de la partida i (solo las semillas que la jugaron). */
+const runMedians = (perSeed: readonly (readonly number[] | undefined)[]): number[] => {
+  const longest = Math.max(0, ...perSeed.map((runs) => runs?.length ?? 0));
   const out: number[] = [];
   for (let i = 0; i < longest; i += 1) {
-    const values = results.map((w) => w.legs[leg]?.runs[i]).filter((v): v is number => v !== undefined);
+    const values = perSeed.map((runs) => runs?.[i]).filter((v): v is number => v !== undefined);
     // Una partida que solo jugaron una o dos semillas no dice nada de la mediana.
-    if (values.length * 2 >= results.length) out.push(median(values));
+    if (values.length * 2 >= perSeed.length) out.push(median(values));
   }
   return out;
 };
+/** Lo mismo para la partida i de un tramo. */
+const legRunMedians = (results: readonly Journey[], leg: number): number[] =>
+  runMedians(results.map((w) => w.legs[leg]?.runs));
 /**
  * Objetivos de un tramo del viaje. Los del segundo anillo (fase 10) suman la partida más larga:
  * en la pradera tercera, sin calibrar, la última partida pasaba de una hora (1:01–1:04), y una
@@ -364,6 +360,60 @@ ORDERS.forEach((order, o) => {
   });
 });
 /**
+ * El regreso (fase 10): tras el cuarto bioma, en cada orden. Cada objetivo vale para el peor de los
+ * cuatro órdenes (`every`): la fila da la mediana y el rango de los cuatro. La partida más larga
+ * entra como en los tramos del segundo anillo: sin la regla de la meta, la última partida de un
+ * ciclo duraba 1:30 h (prototipo).
+ */
+const homecomings = (o: number): (number[] | undefined)[] => (winds[o] ?? []).map((w) => w.homecoming?.runs);
+const returnPerOrder = (value: (o: number) => number | null): (number | null)[] =>
+  ORDERS.map((_, o) => value(o));
+metrics.push({
+  name: 'Viento, El regreso (el peor de los órdenes): partidas hasta cumplirlo (todas, mediana)',
+  target: '20–35 min',
+  values: returnPerOrder((o) => {
+    const all = homecomings(o).flatMap((runs) => runs ?? []);
+    return all.length > 0 ? median(all) : null;
+  }),
+  format: clock,
+  pass: (m) => m >= 20 * 60 && m <= 35 * 60,
+  every: true,
+});
+metrics.push({
+  name: 'Viento, El regreso (el peor de los órdenes): partida más corta (mediana por partida)',
+  target: '≥ 10 min',
+  values: returnPerOrder((o) => {
+    const medians = runMedians(homecomings(o));
+    return medians.length > 0 ? Math.min(...medians) : null;
+  }),
+  format: clock,
+  pass: (m) => m >= 600,
+  every: true,
+});
+metrics.push({
+  name: 'Viento, El regreso (el peor de los órdenes): partida más larga (mediana por partida)',
+  target: '≤ 60 min',
+  values: returnPerOrder((o) => {
+    const medians = runMedians(homecomings(o));
+    return medians.length > 0 ? Math.max(...medians) : null;
+  }),
+  format: clock,
+  pass: (m) => m <= 3600,
+  every: true,
+});
+metrics.push({
+  name: 'Viento, El regreso (el peor de los órdenes): tiempo para cumplirlo',
+  target: '2–4 h',
+  values: returnPerOrder((o) => {
+    // Una semilla que no lo cumple deja la mediana de su orden sin valor: no cumple.
+    const times = (winds[o] ?? []).map((w) => w.homecoming?.closeTime ?? null);
+    return times.every((v) => v !== null) ? median(present(times)) : null;
+  }),
+  format: hours,
+  pass: (m) => m >= 2 * 3600 && m <= 4 * 3600,
+  every: true,
+});
+/**
  * Días del perfil ausente: las ausencias hasta colonizar por sus horas. Los minutos de juego no
  * cuentan: si no, con las mismas sesiones decidirían unos minutos de la última, no las ausencias.
  */
@@ -399,7 +449,7 @@ metrics.push({
 });
 const windCeiling = Math.max(...winds.flat().map((w) => w.maxValue));
 metrics.push({
-  name: `Viento: techo numérico (campaña y ${AFTER_RUNS} partidas tras el último bioma)`,
+  name: 'Viento: techo numérico (campaña, los cuatro destinos y El regreso)',
   target: '< 1e63',
   values: [windCeiling],
   format: (v) => (v === null ? '—' : fmt(v)),
@@ -437,9 +487,10 @@ const windTable = [
   '| Orden | Bioma | Partidas hasta colonizar (mediana de cada una) | Todas (mediana) | Colonizar | Nivel al colonizar | Acumulado |',
   '| ----- | ----- | ---------------------------------------------- | --------------- | --------- | ------------------ | --------- |',
 ];
-const afterTable = [
-  '| Orden | Partidas tras el último bioma (mediana de cada una) |',
-  '| ----- | --------------------------------------------------- |',
+/** El regreso en cada orden (fase 10). */
+const returnTable = [
+  '| Orden | Partidas hasta cumplirlo (mediana de cada una) | Todas (mediana) | Cumplirlo | Nivel al cumplirlo | Acumulado |',
+  '| ----- | ---------------------------------------------- | --------------- | --------- | ------------------ | --------- |',
 ];
 const capital = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 /** Perfil ausente con cada ausencia (fase 10): sesiones y días hasta colonizar, mediana y rango. */
@@ -479,12 +530,15 @@ ORDERS.forEach((order, o) => {
     if (leg < PREFIX_LEGS) return;
     windTable.push(windRow(orderName(order), biome, results, leg));
   });
-  const after: string[] = [];
-  for (let i = 0; i < AFTER_RUNS; i += 1) {
-    const values = results.map((w) => w.after[i]).filter((v): v is number => v !== undefined);
-    if (values.length > 0) after.push(clock(median(values)));
-  }
-  afterTable.push(`| ${orderName(order)} | ${after.join(', ') || '—'} |`);
+  const home = results.map((w) => w.homecoming).filter((h) => h !== null);
+  const closed = present(home.map((h) => h.closeTime));
+  returnTable.push(
+    `| ${orderName(order)} | ${
+      runMedians(home.map((h) => h.runs))
+        .map(clock)
+        .join(', ') || '—'
+    } | ${clock(median(home.flatMap((h) => h.runs)))} | ${hours(median(closed))} | ${Math.round(median(home.map((h) => h.levelAtClose)))} | ${hours(median(home.map((h) => h.cumulative)))} |`,
+  );
 });
 const partnerTimes = winds.flat().map((w) => w.partnerAt);
 const partnerPresent = partnerTimes.filter((v): v is number => v !== null);
@@ -503,7 +557,7 @@ const rateLine =
 const COUNT_WORDS = ['ningún', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho'];
 const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n);
 const journeyShape =
-  `los ${countWord(DESTINATION_IDS.length)} destinos, en los ${countWord(ORDERS.length)} órdenes` +
+  `los ${countWord(DESTINATION_IDS.length)} destinos y El regreso, en los ${countWord(ORDERS.length)} órdenes` +
   (HAS_BRANCHES
     ? ' que permiten los anillos (el primero entero y en cualquier orden antes del segundo; cada orden del primero se juega una vez por semilla y se ramifica, sobre copias, en los del segundo)'
     : '');
@@ -583,7 +637,7 @@ const block = [
   '',
   '### Viento de esporas (perfil activo, regla de §17)',
   '',
-  `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay destino por delante.`,
+  `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay algo por delante (otro destino o El regreso) y en todo el tramo 5.`,
   '',
   ...windTable,
   '',
@@ -591,9 +645,9 @@ const block = [
   '',
   ...absentTable,
   '',
-  `Tras colonizar el último bioma no quedan destinos en esta versión; las ${AFTER_RUNS} partidas siguientes son informativas:`,
+  `El regreso (fase 10): tras el cuarto bioma, el bot vuelve al natal al empezar partida y juega hasta el nivel 500 con R ${fmt(getBiome('natal').cycleScale)} y un requisito de ${getBiome('natal').cycleRequirement} R. En el tramo 5 esporula también cuando la ganancia lleva el nivel a 500 (la regla de la meta). Mediana de ${SEEDS.length} semillas:`,
   '',
-  ...afterTable,
+  ...returnTable,
   '',
   rateLine,
   '',

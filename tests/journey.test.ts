@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   buyBiomeAdaptation,
   canSporulate,
+  completesGoal,
   disperse,
   disperseBlock,
   nutrientsToNextSpore,
@@ -17,10 +18,13 @@ import {
   dispersalCount,
   forestGoal,
   isActOneClosed,
+  isFreeStay,
+  isReturnClosed,
   lineageFactor,
   nextBiomeAdaptationCost,
   sporeScale,
   sporulateRequirement,
+  windTargets,
 } from '../src/core/forest.ts';
 import { DISPERSE_RESET, SPORULATE_RESET } from '../src/core/resets.ts';
 import { computeDerived, derived, invalidate } from '../src/core/selectors.ts';
@@ -38,7 +42,7 @@ import {
 import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { RAIN_EFFECTS } from '../src/data/rain.ts';
 import { checkAchievements } from '../src/systems/achievements.ts';
-import { checkActOne, checkColonization } from '../src/systems/journey.ts';
+import { checkActOne, checkColonization, checkReturn } from '../src/systems/journey.ts';
 import { applyBackground, applyOffline, offlineCapSeconds } from '../src/systems/offline.ts';
 import { dewAmount, effectDuration, rollRainInterval, updateRain } from '../src/systems/rain.ts';
 
@@ -137,8 +141,8 @@ describe('consultas del viaje', () => {
     colonize(s);
     expect(colonizedCount(s)).toBe(1);
     expect(lineageFactor(s)).toBe(2);
-    // La entrada que escribirá El regreso (fase 10): el natal, cerrado en un tramo posterior al 0.
-    // Hoy el validador la rechaza; la consulta debe ignorarla igual.
+    // Una entrada del natal fuera del tramo 0, como la de El regreso (fase 10): la consulta cuenta
+    // destinos y la ignora. El camino del juego está en «El regreso», más abajo.
     s.chronicle.push({
       biome: 'natal',
       leg: 2,
@@ -609,7 +613,7 @@ describe('colonizar', () => {
 });
 
 describe('dispersar', () => {
-  it('no se puede antes del Acto I, sin 300 esporas, sin colonizar o sin destinos', () => {
+  it('no se puede antes del Acto I, sin 300 esporas o sin colonizar; tras el cuarto bioma, el viento lleva de vuelta', () => {
     const early = createState(41, NOW);
     early.spores.available = 5000;
     expect(disperseBlock(early)).toBe('actOne');
@@ -621,7 +625,8 @@ describe('dispersar', () => {
     const taiga = arrivedIn('taiga');
     expect(disperseBlock(taiga)).toBe('colonize');
 
-    // Hasta el cuarto bioma siempre queda adónde ir.
+    // Hasta el cuarto bioma siempre queda adónde ir; en él, falta colonizarlo, y luego el viento
+    // sopla hacia casa (El regreso, fase 10).
     colonize(taiga);
     disperse(taiga, { to: 'choco', now: NOW + 9000 });
     colonize(taiga, NOW + 10_000);
@@ -629,9 +634,9 @@ describe('dispersar', () => {
     colonize(taiga, NOW + 12_000);
     disperse(taiga, { to: 'tundra', now: NOW + 13_000 });
     expect(taiga.forest).toMatchObject({ biome: 'tundra', leg: 4 });
-    expect(disperseBlock(taiga)).toBe('noDestination');
+    expect(disperseBlock(taiga)).toBe('colonize');
     colonize(taiga, NOW + 14_000);
-    expect(disperseBlock(taiga)).toBe('noDestination');
+    expect(disperseBlock(taiga)).toBeNull();
   });
 
   it('no viaja al natal, al bosque actual, a uno visitado, a un id desconocido ni con una fecha imposible', () => {
@@ -999,5 +1004,231 @@ describe('el deshielo de la tundra (fase 10)', () => {
     const report = applyOffline(s, NOW + 30_000, NOW + 30_000 + 24 * 3_600_000);
     expect(report.thawed).toBe(0);
     expect(report.gained).toBe(72_000 * 86_400);
+  });
+});
+
+describe('El regreso (fase 10)', () => {
+  /** En la tundra, cuarto destino, recién colonizada por el camino del juego (linaje ×16). */
+  function fourthColonized(): GameState {
+    const s = arrivedInRingTwo('prairie');
+    colonize(s, NOW + 30_000);
+    disperse(s, { to: 'tundra', now: NOW + 40_000 });
+    colonize(s, NOW + 50_000);
+    drain();
+    return s;
+  }
+
+  /** De vuelta en el natal, El regreso en curso, por el camino del juego. */
+  function inReturn(now = NOW + 60_000): GameState {
+    const s = fourthColonized();
+    disperse(s, { to: 'natal', now });
+    drain();
+    return s;
+  }
+
+  /**
+   * Partida lista para que esporular lleve el nivel local de 0 a 525 en El regreso:
+   * E = ⌊18,75 · √(3,7632e16 / 4,8e13)⌋ = ⌊18,75 · 28⌋ = 525 (Esporas aladas: k = 18,75), con el
+   * requisito de 6 · 4,8e13 = 2,88e14 N ganados en la partida.
+   */
+  function readyToClose(s: GameState): void {
+    s.forest.earned = 3.7632e16;
+    s.lifetimeEarned = 1e17;
+    s.runEarned = 2.88e14;
+  }
+
+  it('el viento solo ofrece El regreso con el cuarto bioma colonizado, y antes pide colonizarlo', () => {
+    const s = arrivedInRingTwo('prairie');
+    colonize(s, NOW + 30_000);
+    expect(windTargets(s)).toEqual([{ biome: 'tundra', kind: 'journey' }]);
+    disperse(s, { to: 'tundra', now: NOW + 40_000 });
+    expect(windTargets(s)).toEqual([]);
+    expect(disperseBlock(s)).toBe('colonize');
+    const before = structuredClone(s);
+    disperse(s, { to: 'natal', now: NOW + 45_000 });
+    expect(s).toEqual(before);
+    colonize(s, NOW + 50_000);
+    expect(windTargets(s)).toEqual([{ biome: 'natal', kind: 'return' }]);
+    expect(disperseBlock(s)).toBeNull();
+  });
+
+  it('volver cuesta 300 esporas, deja el natal en el tramo 5 y cierra la entrada del cuarto bioma', () => {
+    const s = fourthColonized();
+    const available = s.spores.available;
+    s.spores.level = 640;
+    disperse(s, { to: 'natal', now: NOW + 60_000 });
+    expect(s.forest).toMatchObject({ biome: 'natal', leg: 5, earned: 0, arrivedAt: NOW + 60_000 });
+    expect(s.spores).toEqual({ level: 0, available: available - 300 });
+    expect(s.chronicle).toHaveLength(5);
+    expect(s.chronicle[4]).toMatchObject({
+      biome: 'tundra',
+      leg: 4,
+      leftAt: NOW + 60_000,
+      levelReached: 640,
+    });
+    const events = drain();
+    expect(events.find((e) => e.type === 'disperse')).toMatchObject({ from: 'tundra', to: 'natal', leg: 5 });
+  });
+
+  it('no se jura ningún voto en el viaje ni en El regreso: con votos, dispersar no hace nada', () => {
+    const s = fourthColonized();
+    const before = structuredClone(s);
+    disperse(s, { to: 'natal', now: NOW + 60_000, vows: ['noRain'] });
+    expect(s).toEqual(before);
+  });
+
+  it('en El regreso el requisito es 6 · 4,8e13 y la escala 4,8e13, también con el suelo lineal de la 1.x', () => {
+    const s = inReturn();
+    s.sporeFloor = 4037;
+    invalidate(s);
+    expect(sporulateRequirement(s)).toBe(2.88e14);
+    expect(sporeScale(s)).toBe(4.8e13);
+    // El suelo lineal solo rige en el tramo 0: el umbral de madurez es el de siempre.
+    expect(derived(s).sporeThreshold).toBe(1000);
+  });
+
+  it('el natal de El regreso rinde sin factores de bioma y con el linaje ×16, que cumplirlo no cambia', () => {
+    const s = inReturn();
+    s.achievements = [];
+    s.owned = emptyOwned();
+    s.owned.mycorrhiza = 10;
+    invalidate(s);
+    // 1800 · 10 · 16.
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(288_000);
+    readyToClose(s);
+    sporulate(s, { now: NOW + 90_000 });
+    expect(isReturnClosed(s)).toBe(true);
+    expect(colonizedCount(s)).toBe(4);
+    expect(lineageFactor(s)).toBe(16);
+    expect(derived(s).lineage).toBe(16);
+  });
+
+  it('el bosque persigue El regreso hasta el nivel 500 y después nada más', () => {
+    const s = inReturn();
+    s.spores.level = 312;
+    expect(forestGoal(s)).toEqual({ kind: 'return', level: 312, goal: 500 });
+    expect(isFreeStay(s)).toBe(false);
+    s.spores.level = 0;
+    readyToClose(s);
+    sporulate(s, { now: NOW + 90_000 });
+    expect(forestGoal(s)).toEqual({ kind: 'free', level: 525 });
+    expect(isFreeStay(s)).toBe(true);
+  });
+
+  it('la esporulación que llega al nivel 500 escribe la sexta entrada, una sola vez, y avisa', () => {
+    const s = inReturn();
+    s.stats.sporulations += 7;
+    s.stats.totalTime += 9000;
+    readyToClose(s);
+    sporulate(s, { now: NOW + 90_000 });
+    expect(s.spores.level).toBe(525);
+    expect(s.chronicle).toHaveLength(6);
+    expect(s.chronicle[5]).toEqual({
+      biome: 'natal',
+      leg: 5,
+      arrivedAt: NOW + 60_000,
+      colonizedAt: NOW + 90_000,
+      sporulations: 8,
+      playTime: 9000,
+      leftAt: null,
+      levelReached: null,
+    });
+    const types = drain().map((e) => e.type);
+    expect(types.filter((t) => t === 'returned')).toHaveLength(1);
+    expect(types).not.toContain('colonized');
+    expect(s.achievements).toContain('return.1');
+    // Ni otra comprobación ni otra esporulación la repiten.
+    expect(checkReturn(s, NOW + 95_000)).toBe(false);
+    s.forest.earned = 1e17;
+    s.lifetimeEarned = 2e17;
+    s.runEarned = 2.88e14;
+    sporulate(s, { now: NOW + 100_000 });
+    expect(s.spores.level).toBeGreaterThan(525);
+    expect(s.chronicle).toHaveLength(6);
+  });
+
+  it('por debajo del nivel 500, en un destino, en el natal del Acto I o sin fecha no se cumple El regreso', () => {
+    const s = inReturn();
+    s.spores.level = 499;
+    expect(checkReturn(s, NOW + 90_000)).toBe(false);
+    const fourth = fourthColonized();
+    fourth.spores.level = 900;
+    expect(checkReturn(fourth, NOW + 90_000)).toBe(false);
+    const natal = actOneState();
+    natal.spores.level = 2000;
+    expect(checkReturn(natal, NOW + 90_000)).toBe(false);
+    s.spores.level = 500;
+    expect(checkReturn(s, Number.NaN)).toBe(false);
+    expect(s.chronicle).toHaveLength(5);
+    expect(fourth.chronicle).toHaveLength(5);
+    expect(natal.chronicle).toHaveLength(1);
+  });
+
+  it('durante El regreso no se puede partir; cumplido, no queda adónde ir hasta el ciclo libre', () => {
+    const s = inReturn();
+    s.spores.available = 5000;
+    expect(disperseBlock(s)).toBe('colonize');
+    const before = structuredClone(s);
+    for (const to of ['taiga', 'natal', 'tundra'] as const) disperse(s, { to, now: NOW + 70_000 });
+    expect(s).toEqual(before);
+    readyToClose(s);
+    sporulate(s, { now: NOW + 90_000 });
+    expect(windTargets(s)).toEqual([]);
+    expect(disperseBlock(s)).toBe('noDestination');
+  });
+
+  it('esporular cumple la meta cuando la ganancia lleva el nivel de menos de 500 a 500 o más en El regreso', () => {
+    const s = inReturn();
+    // Con L = 4,8e13 · (508 / 18,75)², E = 508: desde el nivel 368 se ganan 140.
+    s.spores.level = 368;
+    s.forest.earned = 4.8e13 * (508 / 18.75) ** 2 + 1e10;
+    s.lifetimeEarned = 1e17;
+    s.runEarned = 2.88e14;
+    expect(sporeGain(s)).toBe(140);
+    expect(completesGoal(s)).toBe(true);
+    // Sin el requisito de la partida no se puede esporular, y entonces no cumple nada.
+    s.runEarned = 2.8e14;
+    expect(completesGoal(s)).toBe(false);
+    s.runEarned = 2.88e14;
+    // Desde el nivel 377 se ganan 131 y se llega a 508: también cumple.
+    s.spores.level = 377;
+    expect(completesGoal(s)).toBe(true);
+    // Una ganancia que deja el nivel en 499 no cumple.
+    s.spores.level = 0;
+    s.forest.earned = 4.8e13 * (499 / 18.75) ** 2 + 1e10;
+    expect(sporeGain(s)).toBe(499);
+    expect(completesGoal(s)).toBe(false);
+    // Con el nivel ya en 500 no hay meta que cumplir.
+    readyToClose(s);
+    sporulate(s, { now: NOW + 90_000 });
+    s.forest.earned = 1e17;
+    s.runEarned = 2.88e14;
+    expect(canSporulate(s)).toBe(true);
+    expect(completesGoal(s)).toBe(false);
+  });
+
+  it('en un destino, llegar a 500 no es la meta del bot: completesGoal solo mira El regreso', () => {
+    const s = arrivedIn('taiga');
+    s.spores.level = 368;
+    s.forest.earned = 1e11 * (508 / 18.75) ** 2 + 1e3;
+    s.lifetimeEarned = 1e15;
+    s.runEarned = 1e11;
+    expect(sporeGain(s)).toBe(140);
+    expect(completesGoal(s)).toBe(false);
+  });
+
+  it('«Echar raíces» no se otorga en el natal de El regreso, aunque el nivel pase de 1000', () => {
+    const s = inReturn();
+    s.spores.level = 1200;
+    checkAchievements(s);
+    expect(s.achievements).not.toContain('biomeLevel.1');
+    const fourth = fourthColonized();
+    fourth.spores.level = 1200;
+    checkAchievements(fourth);
+    expect(fourth.achievements).toContain('biomeLevel.1');
+  });
+
+  it('los viajes cuentan también El regreso: cinco dispersiones', () => {
+    expect(dispersalCount(inReturn())).toBe(5);
   });
 });

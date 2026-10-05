@@ -369,6 +369,8 @@ export const en: Catalog = {
   'biome.progress': 'Colonization: level\u00a0{level} of\u00a0{goal}',
   'biome.colonized': 'Biome colonized · level {level}',
   'biome.actOne': 'Act I complete · level {level}',
+  'biome.returnProgress': 'The return: level {level} of {goal}',
+  'biome.free': 'Return complete · level {level}',
   'caption.place': '{name} · {soil}',
   'caption.compact': '{name} · {level}/{goal}',
   'caption.compactDone': '{name} · level {level}',
@@ -676,6 +678,8 @@ export const en: Catalog = {
   'ach.adapt.biomeFull.desc': 'Max out all three adaptations of one biome.',
   'ach.biomeLevel.1.name': 'Putting down roots',
   'ach.biomeLevel.1.desc': 'Reach spore level {level} in a biome away from home.',
+  'ach.return.1.name': 'Homecoming',
+  'ach.return.1.desc': 'Complete the return: your network grows again in your home forest.',
 
   // Lluvia
   'rain.drop.label': 'Catch the raindrop',

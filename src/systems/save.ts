@@ -16,6 +16,7 @@ import {
   BIOME_ADAPTATIONS,
   HOME_BIOME,
   MAX_LEG,
+  RETURN_LEG,
   getBiome,
   isBiomeId,
   ringOfLeg,
@@ -349,7 +350,7 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   const biomeAdaptations = validateBiomeAdaptations(raw.biomeAdaptations, visited);
   if (!biomeAdaptations) return null;
   const cycle = validateCycle(raw.cycle);
-  if (!cycle) return null;
+  if (!cycle || !isStayValid(forest, chronicle, cycle)) return null;
   const records = validateRecords(raw.records);
   if (!records) return null;
 
@@ -389,10 +390,14 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
 /**
  * El bioma de un tramo es del anillo que le toca (fase 10): los anillos se recorren enteros y en
  * orden, así que un bosque en el tramo 3 o la pradera en el tramo 1 solo salen de un guardado
- * manipulado, y cambiarían la R del bosque (LEG_SCALE es por tramo).
+ * manipulado, y cambiarían la R del bosque (LEG_SCALE es por tramo). El natal es el tramo 0 o el
+ * 5; el tramo 5 (El regreso y el ciclo libre) admite cualquier bioma, y lo acotan la Crónica y
+ * `cycle` (`isStayValid`).
  */
 function inLegRing(biome: BiomeId, leg: number): boolean {
-  return leg === 0 ? biome === HOME_BIOME : getBiome(biome).ring === ringOfLeg(leg);
+  if (leg === 0) return biome === HOME_BIOME;
+  if (leg === RETURN_LEG) return true;
+  return getBiome(biome).ring === ringOfLeg(leg);
 }
 
 /**
@@ -423,9 +428,10 @@ function validateForest(
 }
 
 /**
- * La Crónica: una entrada por tramo cerrado, en orden y sin huecos. Las dos funciones que la
+ * La Crónica: una entrada por tramo cerrado, en orden y sin huecos. Las tres funciones que la
  * construyen (systems/journey.ts) añaden como mucho una entrada por tramo, así que el tope es
- * el número de tramos y se comprueba antes de recorrerla.
+ * el número de tramos (seis) y se comprueba antes de recorrerla. Las entradas 1–4 son destinos
+ * distintos de su anillo; el natal solo vuelve a aparecer en la sexta, la de El regreso.
  */
 function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] | null {
   if (!Array.isArray(raw) || raw.length > MAX_LEG + 1) return null;
@@ -435,7 +441,7 @@ function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] 
   for (let i = 0; i < raw.length; i += 1) {
     const e: unknown = raw[i];
     if (!isObject(e) || !isBiomeId(e.biome) || e.leg !== i) return null;
-    if (!inLegRing(e.biome, i) || seen.has(e.biome)) return null;
+    if (i === RETURN_LEG ? e.biome !== HOME_BIOME : !inLegRing(e.biome, i) || seen.has(e.biome)) return null;
     seen.add(e.biome);
     if (!isTimestamp(e.arrivedAt) || !isCount(e.sporulations) || !isNonNegative(e.playTime)) return null;
     // El Acto I se cierra sin reloj (null); los demás bosques, con la fecha de la esporulación.
@@ -467,11 +473,25 @@ function validateChronicle(raw: unknown, forest: ForestState): ChronicleEntry[] 
       levelReached,
     });
   }
-  // Si el tramo actual ya está cerrado, su entrada es la del bioma actual; si no, no aparece.
+  // Hasta el tramo 4: si el tramo actual ya está cerrado, su entrada es la del bioma actual; si
+  // no, no aparece. En el tramo 5 el natal ya está en la entrada 0 y el ciclo libre puede volver a
+  // cualquier bioma: lo comprueba `isStayValid`, que ya conoce `cycle`.
+  if (forest.leg === RETURN_LEG) return out;
   const last = out[out.length - 1];
   if (out.length === forest.leg + 1 && last?.biome !== forest.biome) return null;
   if (out.length === forest.leg && seen.has(forest.biome)) return null;
   return out;
+}
+
+/**
+ * El tramo 5 frente al ciclo libre: durante El regreso (cinco entradas) el linaje vive en el natal
+ * y no hay ciclos; cumplido (seis), sin ciclos sigue en el natal y solo un ciclo empezado lo lleva
+ * a otro bioma. Fuera del tramo 5 no hay ciclos.
+ */
+function isStayValid(forest: ForestState, chronicle: readonly ChronicleEntry[], cycle: CycleState): boolean {
+  if (forest.leg !== RETURN_LEG) return cycle.stays === 0;
+  if (chronicle.length === RETURN_LEG) return cycle.stays === 0 && forest.biome === HOME_BIOME;
+  return cycle.stays > 0 || forest.biome === HOME_BIOME;
 }
 
 /** Rangos de bioma: dentro del tope y solo de biomas por los que el linaje ya pasó. */

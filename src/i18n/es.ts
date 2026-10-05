@@ -373,6 +373,8 @@ export const es = {
   'biome.progress': 'Colonización: nivel\u00a0{level} de\u00a0{goal}',
   'biome.colonized': 'Bioma colonizado · nivel {level}',
   'biome.actOne': 'Acto I cumplido · nivel {level}',
+  'biome.returnProgress': 'El regreso: nivel {level} de {goal}',
+  'biome.free': 'El regreso cumplido · nivel {level}',
   'caption.place': '{name} · {soil}',
   'caption.compact': '{name} · {level}/{goal}',
   'caption.compactDone': '{name} · nivel {level}',
@@ -683,6 +685,8 @@ export const es = {
   'ach.adapt.biomeFull.desc': 'Lleva al máximo las tres adaptaciones de un bioma.',
   'ach.biomeLevel.1.name': 'Echar raíces',
   'ach.biomeLevel.1.desc': 'Llega al nivel de esporas {level} en un bioma lejos del natal.',
+  'ach.return.1.name': 'De vuelta a casa',
+  'ach.return.1.desc': 'Cumple El regreso: tu red vuelve a crecer en el bosque natal.',
 
   // Lluvia
   'rain.drop.label': 'Atrapar la gota de lluvia',

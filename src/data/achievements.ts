@@ -23,8 +23,10 @@ export type AchievementCondition =
   | { kind: 'colonized'; biome: DestinationId }
   /** Algún bioma con todas sus adaptaciones al máximo (uno sin adaptaciones no cuenta). */
   | { kind: 'biomeAdaptationsMaxed' }
-  /** Nivel de esporas local en un bioma lejos del natal. */
-  | { kind: 'biomeLevel'; level: number };
+  /** Nivel de esporas local en un destino (nunca en el natal, tampoco en El regreso). */
+  | { kind: 'biomeLevel'; level: number }
+  /** El regreso cumplido (fase 10): la Crónica tiene la entrada del tramo 5. */
+  | { kind: 'returned' };
 
 export interface AchievementDef {
   id: string;
@@ -96,6 +98,7 @@ function build(): AchievementDef[] {
     condition: { kind: 'biomeLevel', level: BIOME_LEVEL_ACHIEVEMENT },
     reveal: 'actOne',
   });
+  list.push({ id: 'return.1', condition: { kind: 'returned' }, reveal: 'actOne' });
   return list;
 }
 

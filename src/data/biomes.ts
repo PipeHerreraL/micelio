@@ -58,6 +58,10 @@ export interface BiomeDef {
    * `productionFactor`. null = nunca. Ver systems/offline.ts.
    */
   thawAfterHours: number | null;
+  /** R fija del tramo 5 (El regreso y el ciclo libre): requisito y escala de esporas allí. */
+  cycleScale: number;
+  /** Requisito para esporular en el tramo 5, en múltiplos de `cycleScale`. */
+  cycleRequirement: number;
 }
 
 /**
@@ -84,6 +88,14 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
+    // El regreso (y el natal en el ciclo libre), con la regla de la meta en el bot. Requisito 6: con
+    // 3, el nivel pasaba 256 → 512 en la última partida, que cargaba con el 74 % de los nutrientes
+    // y duraba 1:30 h (prototipo R). Escala: con la del prototipo, 6,3e13, El regreso se cumplía en
+    // 2,94–3,12 h y las partidas de un orden pasaban de 35 min de mediana (35:50); con 5,2e13, aún
+    // 35:05; con 4,8e13, 2,36–2,66 h, partidas de 26:47–30:53 y la más larga en 37:28–51:31
+    // (simulador, los cuatro órdenes).
+    cycleScale: 4.8e13,
+    cycleRequirement: 6,
   },
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
@@ -100,6 +112,10 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
+    // Ciclo libre (fase 10), valores de partida del prototipo R: con R ×1 la partida más larga de
+    // la primera vuelta duraba 1:12–1:15; con 4,6e13 (×0,6) y requisito 5, 45:02–48:59.
+    cycleScale: 4.6e13,
+    cycleRequirement: 5,
   },
   {
     // Escala mayor que la de la taiga: la bonificación de la taiga cae en generadores medios y la
@@ -118,6 +134,9 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
+    // Ciclo libre, valores de partida (R): queda al límite, con la más larga en 1:00:10–1:02:34.
+    cycleScale: 5e14,
+    cycleRequirement: 6,
   },
   {
     // Chernozem. El motor es un generador barato, el quinto: Anillo de hadas ×6, medido también
@@ -138,6 +157,9 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
+    // Ciclo libre, valores de partida (R).
+    cycleScale: 4e13,
+    cycleRequirement: 6,
   },
   {
     // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
@@ -162,6 +184,9 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 0.5,
     offlineHours: 24,
     thawAfterHours: 8,
+    // Ciclo libre, valores de partida (R).
+    cycleScale: 5e12,
+    cycleRequirement: 6,
   },
 ];
 
@@ -193,8 +218,17 @@ export const DISPERSE_COST = 300;
  * el segundo bioma tardaba 4,0–5,5 h en colonizarse.
  */
 export const LINEAGE_FACTOR = 2;
-/** Tramos posibles: 0 = natal y uno por destino de esta versión. */
-export const MAX_LEG = DESTINATION_IDS.length;
+/** Tramos del viaje: uno por destino. */
+export const JOURNEY_LEGS = DESTINATION_IDS.length;
+/**
+ * El regreso (fase 10): tras el cuarto destino, el linaje vuelve al natal en el tramo 5, y el
+ * ciclo libre vive en ese mismo tramo. Así nada que lea `leg === 0` (el requisito de 1e8, el suelo
+ * lineal de la 1.x, el Acto I) ni los tramos 1–4 cambia, y la Crónica se queda en seis entradas.
+ * Se descartó un tramo que creciera con cada ciclo: la Crónica no tendría tope.
+ */
+export const RETURN_LEG = JOURNEY_LEGS + 1;
+/** Tramos posibles: 0 = natal, uno por destino y El regreso. */
+export const MAX_LEG = RETURN_LEG;
 /**
  * Mitad del Acto I: haber tenido alguna vez una Red planetaria. Es el logro y no `owned`
  * porque `owned` se reinicia al esporular y el logro no: una partida 1.x que ya tuvo una Red

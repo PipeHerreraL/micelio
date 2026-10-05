@@ -1,12 +1,20 @@
 /**
- * El viaje en el núcleo (docs/ROADMAP.md, fase 8): cerrar el Acto I y colonizar un bioma. Lo
- * hace el núcleo y no la interfaz para que el simulador y las partidas 1.x lo vean igual, sin
- * pantalla (ARCHITECTURE.md §4.28). Son las dos únicas funciones que escriben en la Crónica, y
- * cada una añade como mucho una entrada por tramo: así se acota donde se construye.
+ * El viaje en el núcleo (docs/ROADMAP.md, fases 8 y 10): cerrar el Acto I, colonizar un bioma y
+ * cumplir El regreso. Lo hace el núcleo y no la interfaz para que el simulador y las partidas 1.x
+ * lo vean igual, sin pantalla (ARCHITECTURE.md §4.28). Son las tres únicas funciones que escriben
+ * en la Crónica, cada una en sus tramos (0, 1–4 y 5) y como mucho una entrada por tramo: así se
+ * acota donde se construye (seis entradas como mucho).
  */
-import { ACT_ONE_ACHIEVEMENT, COLONIZE_LEVEL, HOME_BIOME, isDestinationId } from '../data/biomes.ts';
+import {
+  ACT_ONE_ACHIEVEMENT,
+  COLONIZE_LEVEL,
+  HOME_BIOME,
+  RETURN_LEG,
+  isDestinationId,
+} from '../data/biomes.ts';
+import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
 import { emit } from '../core/events.ts';
-import { isActOneClosed, isForestColonized, lineageFactor } from '../core/forest.ts';
+import { isActOneClosed, isForestColonized, isReturnClosed, lineageFactor } from '../core/forest.ts';
 import { invalidate } from '../core/selectors.ts';
 import { isTreeComplete, type ChronicleEntry, type GameState } from '../core/state.ts';
 
@@ -52,5 +60,23 @@ export function checkColonization(state: GameState, now: number): boolean {
   state.chronicle.push(entryNow(state, now));
   invalidate(state);
   emit({ type: 'colonized', biome, leg: state.forest.leg, factor: lineageFactor(state) });
+  return true;
+}
+
+/**
+ * Cumple El regreso (fase 10) si el nivel local del natal, en el tramo 5, llega a 500: escribe la
+ * sexta y última entrada de la Crónica, una sola vez. Como al colonizar, lo llama `sporulate` justo
+ * después de subir el nivel; la entrada se escribe al cumplir y no al llegar, para que el epílogo se
+ * «cumpla». El linaje no cambia (solo cuentan los destinos), así que no invalida. Devuelve si lo
+ * cumplió ahora.
+ */
+export function checkReturn(state: GameState, now: number): boolean {
+  const forest = state.forest;
+  if (forest.leg !== RETURN_LEG || forest.biome !== HOME_BIOME || isReturnClosed(state)) return false;
+  // Solo con las cinco entradas de antes: la de El regreso es la sexta.
+  if (state.chronicle.length !== RETURN_LEG) return false;
+  if (state.spores.level < CYCLE_GOAL_LEVEL || !Number.isFinite(now) || now < 0) return false;
+  state.chronicle.push(entryNow(state, now));
+  emit({ type: 'returned' });
   return true;
 }

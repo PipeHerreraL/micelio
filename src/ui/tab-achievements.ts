@@ -44,6 +44,7 @@ export function achievementDescription(def: AchievementDef): string {
     case 'dispersals':
     case 'colonized':
     case 'biomeAdaptationsMaxed':
+    case 'returned':
       return t(`ach.${def.id}.desc` as MessageKey);
     case 'biomeLevel':
       return t(`ach.${def.id}.desc` as MessageKey, { level: formatCount(c.level) });

@@ -31,7 +31,9 @@ export type GameEvent =
   /** Se colonizó un bioma; `factor` es el linaje tras colonizarlo. */
   | { type: 'colonized'; biome: DestinationId; leg: number; factor: number }
   /** El linaje viajó; `gained` son las esporas de la partida que terminó (0 si no esporuló). */
-  | { type: 'disperse'; from: BiomeId; to: DestinationId; leg: number; gained: number }
+  | { type: 'disperse'; from: BiomeId; to: BiomeId; leg: number; gained: number }
+  /** Se cumplió El regreso (fase 10): nivel 500 en el natal del tramo 5. */
+  | { type: 'returned' }
   | { type: 'buyBiomeAdaptation'; id: BiomeAdaptationId; rank: number }
   | { type: 'reveal'; key: string }
   /** Llegó un socio (systems/partners.ts). */

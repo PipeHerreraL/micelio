@@ -12,10 +12,11 @@ import {
 import {
   DISPERSE_COST,
   isBiomeAdaptationId,
-  isDestinationId,
+  isBiomeId,
   type BiomeAdaptationId,
-  type DestinationId,
+  type BiomeId,
 } from '../data/biomes.ts';
+import type { VowId } from '../data/cycle.ts';
 import { GENERATORS, getGenerator, isGeneratorId, type GeneratorId } from '../data/generators.ts';
 import {
   INHERITANCE_GENERATORS,
@@ -30,20 +31,20 @@ import {
 import { HISTORY_LIMIT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
-import { checkColonization } from '../systems/journey.ts';
+import { checkColonization, checkReturn } from '../systems/journey.ts';
 import { evaporateDrop, rollRainInterval } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
 import { emit } from './events.ts';
 import {
   biomeAdaptationGate,
-  closedRingAhead,
-  destinations,
+  forestGoal,
   isActOneClosed,
   isForestColonized,
   nextBiomeAdaptationCost,
   sporeScale,
   sporulateRequirement,
   startUnits,
+  windTargets,
 } from './forest.ts';
 import { adaptationCost, nutrientsForSpores, sporesFor } from './formulas.ts';
 import * as num from './num.ts';
@@ -134,6 +135,18 @@ export function canSporulate(state: GameState): boolean {
   return num.gte(state.runEarned, sporulateRequirement(state)) && sporeGain(state) > 0;
 }
 
+/**
+ * Esporular ahora cumple la meta del bosque: lleva el nivel de por debajo de 500 a 500 o más en El
+ * regreso. La interfaz lo dice en el botón y en la confirmación, y el bot del simulador esporula
+ * entonces (fase 10): sin esa regla, el nivel se pasaba de largo de la meta y la última partida
+ * cargaba con casi todo el ciclo. En los tramos 0–4 siempre es falso, así que no mueve nada allí.
+ */
+export function completesGoal(state: GameState): boolean {
+  const goal = forestGoal(state);
+  if (goal.kind !== 'return' || goal.level >= goal.goal || !canSporulate(state)) return false;
+  return goal.level + sporeGain(state) >= goal.goal;
+}
+
 function isValidTime(now: number): boolean {
   return Number.isFinite(now) && now >= 0;
 }
@@ -187,6 +200,7 @@ export function sporulate(state: GameState, payload: { now: number }): void {
   const gained = sporeGain(state);
   recordSporulation(state, gained, payload.now);
   checkColonization(state, payload.now);
+  checkReturn(state, payload.now);
   startRun(state, payload.now, SPORULATE_RESET, false);
 
   invalidate(state);
@@ -202,25 +216,34 @@ export function disperseFunds(state: GameState): number {
   return state.spores.available + (canSporulate(state) ? sporeGain(state) : 0);
 }
 
+/**
+ * Lo primero es cerrar el bosque actual: colonizarlo en los tramos 1–4 o cumplir El regreso en el
+ * 5. Siempre queda algo por delante de un bosque abierto (otro destino, el anillo que se abre al
+ * colonizarlo o El regreso), así que entonces falta colonizar, no un destino.
+ */
 export function disperseBlock(state: GameState): DisperseBlock | null {
   if (!isActOneClosed(state)) return 'actOne';
-  // Con un anillo por abrir, lo que falta es colonizar el bosque actual, no un destino.
-  if (destinations(state).length === 0 && !closedRingAhead(state)) return 'noDestination';
   if (!isForestColonized(state)) return 'colonize';
+  if (windTargets(state).length === 0) return 'noDestination';
   if (disperseFunds(state) < DISPERSE_COST) return 'spores';
   return null;
 }
 
 /**
- * Dispersar: el linaje viaja a otro bioma. Si la partida puede esporular, termina esporulando
- * (mismas cuentas que `sporulate`) y esas esporas ayudan a pagar el viaje. El nivel vuelve a 0
- * (el territorio no viaja); las esporas que quedan, las mutaciones y las adaptaciones viajan en
- * las esporas. Todo se valida antes de mutar.
+ * Dispersar: el linaje viaja a otro bioma o, tras el cuarto, vuelve al natal (El regreso, fase
+ * 10). Si la partida puede esporular, termina esporulando (mismas cuentas que `sporulate`) y esas
+ * esporas ayudan a pagar el viaje. El nivel vuelve a 0 (el territorio no viaja); las esporas que
+ * quedan, las mutaciones y las adaptaciones viajan en las esporas. Todo se valida antes de mutar.
+ * Los votos solo se juran al sembrar en el ciclo libre: el viaje y El regreso no llevan ninguno.
  */
-export function disperse(state: GameState, payload: { to: DestinationId; now: number }): void {
+export function disperse(
+  state: GameState,
+  payload: { to: BiomeId; now: number; vows?: readonly VowId[] },
+): void {
   const to = payload.to;
-  if (!isDestinationId(to) || !isValidTime(payload.now)) return;
-  if (disperseBlock(state) !== null || !destinations(state).includes(to)) return;
+  if (!isBiomeId(to) || !isValidTime(payload.now)) return;
+  if (payload.vows !== undefined && payload.vows.length > 0) return;
+  if (disperseBlock(state) !== null || !windTargets(state).some((target) => target.biome === to)) return;
   const now = payload.now;
   const from = state.forest.biome;
   const gained = canSporulate(state) ? sporeGain(state) : 0;

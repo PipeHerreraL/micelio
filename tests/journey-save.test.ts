@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { buyBiomeAdaptation, canSporulate, disperse, sporeGain } from '../src/core/actions.ts';
+import { buyBiomeAdaptation, canSporulate, disperse, sporeGain, sporulate } from '../src/core/actions.ts';
 import { drain } from '../src/core/events.ts';
-import { sporulateRequirement } from '../src/core/forest.ts';
+import { sporeScale, sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
-import { createState, type GameState } from '../src/core/state.ts';
+import { createState, type ChronicleEntry, type GameState } from '../src/core/state.ts';
 import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { checkActOne, checkColonization } from '../src/systems/journey.ts';
-import { parseSave, serializeSave, SAVE_VERSION } from '../src/systems/save.ts';
+import { parseSave, saveGame, serializeSave, SAVE_VERSION, type StorageLike } from '../src/systems/save.ts';
 
 /**
  * Guardado del viaje (docs/ROADMAP.md, fase 8): la migración 4 → 5 y la validación del bosque,
@@ -311,5 +311,182 @@ describe('validación de los anillos del viaje (fase 10)', () => {
   it('acepta el otro bioma del anillo 2 de tercer destino y rechaza un bosque', () => {
     expect(loadsTundra((s) => (s.forest.biome = 'prairie'))).toBe(true);
     expect(loadsTundra((s) => (s.forest.biome = 'choco'))).toBe(false);
+  });
+});
+
+describe('validación del tramo 5: El regreso (fase 10)', () => {
+  /**
+   * En la tundra, cuarto destino y colonizada, construido solo con acciones: el Acto I, los cuatro
+   * viajes y cada colonización por la esporulación que llega al nivel 500 (inyectando los
+   * nutrientes del bosque antes de esporular, como el simulador).
+   */
+  function fourthColonized(): GameState {
+    const s = createState(9, NOW);
+    s.mutations = [...MUTATION_IDS];
+    s.achievements = ['own.planetary.1'];
+    s.stats.sporulations = 9;
+    s.stats.totalTime = 11_000;
+    s.spores = { level: 1941, available: 2025 };
+    checkActOne(s);
+    const legs = [
+      ['taiga', NOW + 1000],
+      ['choco', NOW + 9000],
+      ['prairie', NOW + 17_000],
+      ['tundra', NOW + 25_000],
+    ] as const;
+    for (const [to, at] of legs) {
+      disperse(s, { to, now: at });
+      reachLevel(s, 520, at + 4000);
+    }
+    drain();
+    return s;
+  }
+
+  /**
+   * Esporula hasta el nivel local `level` (que debe ser mayor que el actual) con los nutrientes
+   * justos del bosque: E = ⌊18,75 · √(L / R)⌋ con k = 18,75 (Esporas aladas).
+   */
+  function reachLevel(s: GameState, level: number, now: number): void {
+    const scale = sporeScale(s);
+    const earned = scale * (level / 18.75) ** 2 * 1.000001;
+    s.lifetimeEarned = s.lifetimeEarned + earned - s.forest.earned;
+    s.forest.earned = earned;
+    s.runEarned = sporulateRequirement(s);
+    s.stats.totalTime += 1800;
+    sporulate(s, { now });
+    expect(s.spores.level).toBe(level);
+  }
+
+  /** De vuelta en el natal: El regreso en curso, cinco entradas. */
+  function inReturn(): GameState {
+    const s = fourthColonized();
+    disperse(s, { to: 'natal', now: NOW + 40_000 });
+    drain();
+    return s;
+  }
+
+  /** El regreso cumplido: seis entradas, todavía en el natal y sin ciclos. */
+  function returnClosed(): GameState {
+    const s = inReturn();
+    reachLevel(s, 520, NOW + 50_000);
+    drain();
+    return s;
+  }
+
+  function memoryStorage(): StorageLike {
+    const data = new Map<string, string>();
+    return {
+      getItem: (k) => data.get(k) ?? null,
+      setItem: (k, v) => {
+        data.set(k, v);
+      },
+      removeItem: (k) => {
+        data.delete(k);
+      },
+    };
+  }
+
+  function loadsAfter(build: () => GameState, mutate: (s: GameState) => void): boolean {
+    const s = build();
+    mutate(s);
+    return parseSave(textOf(s)).ok;
+  }
+
+  it('El regreso en curso (cinco entradas, en el natal) se guarda y vuelve idéntico', () => {
+    const state = inReturn();
+    expect(state.forest).toMatchObject({ biome: 'natal', leg: 5 });
+    expect(state.chronicle.map((e) => [e.biome, e.leg])).toEqual([
+      ['natal', 0],
+      ['taiga', 1],
+      ['choco', 2],
+      ['prairie', 3],
+      ['tundra', 4],
+    ]);
+    expect(saveGame(memoryStorage(), state, SAVED_AT)).toBe('saved');
+    expect(parseSave(serializeSave(state, SAVED_AT))).toEqual({
+      ok: true,
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state },
+      partnersReset: [],
+    });
+  });
+
+  it('El regreso cumplido (seis entradas) se guarda y vuelve idéntico', () => {
+    const state = returnClosed();
+    expect(state.chronicle).toHaveLength(6);
+    expect(state.chronicle[5]).toMatchObject({ biome: 'natal', leg: 5, leftAt: null, levelReached: null });
+    expect(saveGame(memoryStorage(), state, SAVED_AT)).toBe('saved');
+    expect(parseSave(serializeSave(state, SAVED_AT))).toEqual({
+      ok: true,
+      save: { version: SAVE_VERSION, savedAt: SAVED_AT, state },
+      partnersReset: [],
+    });
+  });
+
+  it('rechaza El regreso fuera del natal, con cinco o con seis entradas, mientras no haya ciclos', () => {
+    expect(loadsAfter(inReturn, (s) => (s.forest.biome = 'taiga'))).toBe(false);
+    expect(loadsAfter(inReturn, (s) => (s.forest.biome = 'tundra'))).toBe(false);
+    expect(loadsAfter(returnClosed, (s) => (s.forest.biome = 'taiga'))).toBe(false);
+    expect(loadsAfter(returnClosed, (s) => (s.forest.biome = 'prairie'))).toBe(false);
+  });
+
+  it('rechaza un ciclo empezado durante El regreso', () => {
+    expect(loadsAfter(inReturn, (s) => (s.cycle.stays = 1))).toBe(false);
+  });
+
+  it('rechaza el natal en un tramo del viaje', () => {
+    // El mismo cambio con un bioma del anillo 2 sí carga: lo único que falla es el natal.
+    expect(
+      loadsAfter(fourthColonized, (s) => {
+        s.forest.biome = 'prairie';
+        s.forest.leg = 3;
+        s.chronicle = s.chronicle.slice(0, 3);
+      }),
+    ).toBe(true);
+    expect(
+      loadsAfter(fourthColonized, (s) => {
+        s.forest.biome = 'natal';
+        s.forest.leg = 3;
+        s.chronicle = s.chronicle.slice(0, 3);
+      }),
+    ).toBe(false);
+    expect(
+      loadsAfter(fourthColonized, (s) => {
+        const prairie = s.chronicle[3];
+        if (prairie) prairie.biome = 'natal';
+      }),
+    ).toBe(false);
+  });
+
+  it('rechaza un tramo más allá del 5, una Crónica de siete entradas o un tramo 5 sin el cuarto bioma', () => {
+    expect(loadsAfter(returnClosed, (s) => (s.forest.leg = 6))).toBe(false);
+    expect(
+      loadsAfter(returnClosed, (s) => {
+        const last = s.chronicle[5];
+        if (last) s.chronicle.push({ ...last, leg: 6 });
+      }),
+    ).toBe(false);
+    expect(loadsAfter(inReturn, (s) => (s.chronicle = s.chronicle.slice(0, 4)))).toBe(false);
+  });
+
+  it('la sexta entrada es el natal, con fecha de cierre y sin fecha de partida', () => {
+    const sixth = (mutate: (e: ChronicleEntry) => void) =>
+      loadsAfter(returnClosed, (s) => {
+        const entry = s.chronicle[5];
+        if (entry) mutate(entry);
+      });
+    expect(sixth(() => undefined)).toBe(true);
+    expect(sixth((e) => (e.biome = 'taiga'))).toBe(false);
+    expect(sixth((e) => (e.colonizedAt = null))).toBe(false);
+    expect(sixth((e) => (e.leftAt = NOW + 60_000))).toBe(false);
+    expect(sixth((e) => (e.levelReached = 520))).toBe(false);
+  });
+
+  it('la entrada del cuarto bioma, que se dejó para volver, guarda su fecha de partida y su nivel', () => {
+    const state = inReturn();
+    expect(state.chronicle[4]).toMatchObject({ biome: 'tundra', leftAt: NOW + 40_000, levelReached: 520 });
+    expect(loadsAfter(inReturn, (s) => Object.assign(s.chronicle[4] ?? {}, { leftAt: null }))).toBe(false);
+    expect(loadsAfter(inReturn, (s) => Object.assign(s.chronicle[4] ?? {}, { levelReached: null }))).toBe(
+      false,
+    );
   });
 });

@@ -3,9 +3,9 @@
  * cada uno suma al multiplicador global, así que otorgar uno invalida la caché.
  */
 import { ACHIEVEMENTS, type AchievementDef } from '../data/achievements.ts';
-import { BIOME_ADAPTATIONS, DESTINATION_IDS } from '../data/biomes.ts';
+import { BIOME_ADAPTATIONS, DESTINATION_IDS, isDestinationId } from '../data/biomes.ts';
 import { emit } from '../core/events.ts';
-import { isColonized } from '../core/forest.ts';
+import { isColonized, isReturnClosed } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { derived, invalidate } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
@@ -41,7 +41,11 @@ function isMet(state: GameState, def: AchievementDef): boolean {
         BIOME_ADAPTATIONS.every((a) => a.biome !== biome || state.biomeAdaptations[a.id] >= a.max),
       );
     case 'biomeLevel':
-      return state.forest.leg >= 1 && state.spores.level >= c.level;
+      // En un destino y no «fuera del tramo 0»: en El regreso el linaje vive en el natal, y
+      // «Echar raíces» es lejos de él.
+      return isDestinationId(state.forest.biome) && state.spores.level >= c.level;
+    case 'returned':
+      return isReturnClosed(state);
   }
 }
 
