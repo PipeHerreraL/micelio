@@ -4,6 +4,7 @@
  */
 import type { AdaptationId } from '../data/adaptations.ts';
 import type { BiomeAdaptationId, BiomeId, DestinationId } from '../data/biomes.ts';
+import type { VowId } from '../data/cycle.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import type { MutationId } from '../data/mutations.ts';
 import type { PartnerId } from '../partners/ids.ts';
@@ -34,6 +35,11 @@ export type GameEvent =
   | { type: 'disperse'; from: BiomeId; to: BiomeId; leg: number; gained: number }
   /** Se cumplió El regreso (fase 10): nivel 500 en el natal del tramo 5. */
   | { type: 'returned' }
+  /**
+   * Se cumplió un ciclo del ciclo libre (fase 10) en `time` ms de reloj, con los votos mantenidos;
+   * `record` dice si es el mejor de su bioma y sus votos (nuevo o mejorado).
+   */
+  | { type: 'cycleDone'; biome: BiomeId; vows: VowId[]; time: number; record: boolean }
   | { type: 'buyBiomeAdaptation'; id: BiomeAdaptationId; rank: number }
   | { type: 'reveal'; key: string }
   /** Llegó un socio (systems/partners.ts). */

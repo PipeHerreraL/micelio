@@ -372,6 +372,8 @@ export const en: Catalog = {
   'biome.actOne': 'Act I complete · level {level}',
   'biome.returnProgress': 'The return: level {level} of {goal}',
   'biome.free': 'Return complete · level {level}',
+  'biome.cycleProgress': 'Cycle {n}: level {level} of {goal}',
+  'biome.cycleDone': 'Cycle {n} complete · level {level}',
   'caption.place': '{name} · {soil}',
   'caption.compact': '{name} · {level}/{goal}',
   'caption.compactDone': '{name} · level {level}',
@@ -706,6 +708,8 @@ export const en: Catalog = {
   'ach.biomeLevel.1.desc': 'Reach spore level {level} in a biome away from home.',
   'ach.return.1.name': 'Homecoming',
   'ach.return.1.desc': 'Complete the return: your network grows again in your home forest.',
+  'ach.cycle.1.name': 'Begin again',
+  'ach.cycle.1.desc': 'Complete a cycle in a biome you sowed after the return.',
 
   // Lluvia
   'rain.drop.label': 'Catch the raindrop',

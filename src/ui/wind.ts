@@ -46,7 +46,10 @@ export function soilSwatch(biome: string, extra = ''): HTMLElement {
   );
 }
 
-/** Texto del progreso del bosque actual (`forestGoal`): Acto I, colonización, El regreso o cumplido. */
+/**
+ * Texto del progreso del bosque actual (`forestGoal`): Acto I, colonización, El regreso, el ciclo
+ * libre o cumplido.
+ */
 export function forestProgressText(goal: ForestGoal): string {
   const level = formatCount(goal.level);
   switch (goal.kind) {
@@ -60,6 +63,10 @@ export function forestProgressText(goal: ForestGoal): string {
       return t('biome.returnProgress', { level, goal: formatCount(goal.goal) });
     case 'free':
       return t('biome.free', { level });
+    case 'cycle':
+      return t('biome.cycleProgress', { n: formatCount(goal.n), level, goal: formatCount(goal.goal) });
+    case 'cycleDone':
+      return t('biome.cycleDone', { n: formatCount(goal.n), level });
   }
 }
 

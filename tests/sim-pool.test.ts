@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { journeyPlan, startJourney, type Journey, type SimTask } from '../scripts/sim-play.ts';
 import { createPool, poolSize, type SimPool } from '../scripts/sim-pool.ts';
+import { BIOME_ADAPTATIONS } from '../src/data/biomes.ts';
+import { returnClosed } from './cycle-states.ts';
 
 /**
  * Simulador de la red repartido entre hilos (fase 10): lo que juega no puede depender de cuántos
@@ -75,6 +77,35 @@ describe('reparto del simulador entre hilos', () => {
     const apart = await pool(1).run({ kind: 'journey', journey: elsewhere, path: ['choco'], finish: true });
     expect(together.legs).toHaveLength(2);
     expect(apart).toEqual(together);
+  }, 120_000);
+
+  it('una vuelta del ciclo libre (fase 10) da lo mismo en 1 hilo, 4 hilos y el hilo principal', async () => {
+    // Desde El regreso cumplido, construido con acciones: una vuelta de un solo bioma basta para
+    // comparar la siembra, el ciclo hasta el nivel 500 y, con `stable`, las adaptaciones al máximo.
+    const journey = startJourney(
+      {
+        state: returnClosed(),
+        elapsed: 0,
+        actOneAt: null,
+        waitRuns: 0,
+        maxValue: 0,
+        earnedSpores: 0,
+        invalidSaves: 0,
+        partnerAt: null,
+      },
+      'doubling',
+      false,
+    );
+    const task: SimTask = { kind: 'lap', journey, biomes: ['tundra'], stable: true };
+    const [one, four, inline] = await Promise.all([pool(1).run(task), pool(4).run(task), pool(0).run(task)]);
+    const cycle = one.laps[0]?.[0];
+    expect(cycle?.biome).toBe('tundra');
+    expect(cycle?.time).not.toBeNull();
+    expect(one.state.cycle).toMatchObject({ stays: 1, done: 1 });
+    for (const def of BIOME_ADAPTATIONS) expect(one.state.biomeAdaptations[def.id]).toBe(def.max);
+    expect(one.invalidSaves).toBe(0);
+    expect(four).toEqual(one);
+    expect(inline).toEqual(one);
   }, 120_000);
 
   it('SIM_WORKERS fija los hilos (0 = el hilo principal) y rechaza lo que no es un entero ≥ 0', () => {

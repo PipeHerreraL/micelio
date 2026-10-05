@@ -7,6 +7,7 @@
  */
 import {
   BIOME_ADAPTATIONS,
+  BIOME_IDS,
   COLONIZE_LEVEL,
   DESTINATION_IDS,
   HOME_BIOME,
@@ -27,7 +28,7 @@ import { SPORE_SCALE, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { RAIN_EFFECTS, type RainEffectDef } from '../data/rain.ts';
 import { adaptationCost } from './formulas.ts';
 import type { Num } from './num.ts';
-import type { ChronicleEntry, GameState } from './state.ts';
+import type { ChronicleEntry, CycleRecord, GameState } from './state.ts';
 
 /**
  * R del bosque actual: requisito y escala de esporas, la escala del bioma × el factor de su tramo.
@@ -95,27 +96,41 @@ export function isFreeStay(state: Readonly<GameState>): boolean {
 }
 
 /**
+ * El ciclo actual está cumplido. No se guarda aparte: el nivel solo cambia al esporular y vuelve a
+ * 0 al sembrar, así que un ciclo empezado con el nivel en 500 o más es uno que ya llegó a la meta.
+ */
+export function isCycleDone(state: Readonly<GameState>): boolean {
+  return state.cycle.stays > 0 && state.spores.level >= CYCLE_GOAL_LEVEL;
+}
+
+/**
  * Qué persigue el bosque actual y cuánto lleva: el Acto I en el natal, colonizar (nivel 500) en
- * un destino abierto, nada más en uno colonizado, El regreso (nivel 500 en el natal) o, cumplido,
- * nada más. Es la única lectura del progreso de la cartela, la sección Viento y la Crónica: en el
- * tramo 5, «la Crónica tiene la entrada de este tramo» no significa «colonizado», y los casos se
- * deciden aquí y no en cada pantalla.
+ * un destino abierto, nada más en uno colonizado, El regreso (nivel 500 en el natal), nada más
+ * tras cumplirlo y, en el ciclo libre, el nivel 500 del ciclo n o, cumplido, nada más. Es la única
+ * lectura del progreso de la cartela, la sección Viento y la Crónica: en el tramo 5, «la Crónica
+ * tiene la entrada de este tramo» no significa «colonizado», y los casos se deciden aquí y no en
+ * cada pantalla.
  */
 export type ForestGoal =
   | { kind: 'actOne'; level: number }
   | { kind: 'colonize'; level: number; goal: number }
   | { kind: 'colonized'; level: number }
   | { kind: 'return'; level: number; goal: number }
-  | { kind: 'free'; level: number };
+  | { kind: 'free'; level: number }
+  | { kind: 'cycle'; n: number; level: number; goal: number }
+  | { kind: 'cycleDone'; n: number; level: number };
 
 export function forestGoal(state: GameState): ForestGoal {
   const level = state.spores.level;
   const leg = state.forest.leg;
   if (leg === 0) return { kind: 'actOne', level };
   if (leg === RETURN_LEG) {
-    return isReturnClosed(state)
-      ? { kind: 'free', level }
-      : { kind: 'return', level, goal: CYCLE_GOAL_LEVEL };
+    if (!isReturnClosed(state)) return { kind: 'return', level, goal: CYCLE_GOAL_LEVEL };
+    const n = state.cycle.stays;
+    if (n === 0) return { kind: 'free', level };
+    return isCycleDone(state)
+      ? { kind: 'cycleDone', n, level }
+      : { kind: 'cycle', n, level, goal: CYCLE_GOAL_LEVEL };
   }
   if (isForestColonized(state)) return { kind: 'colonized', level };
   return { kind: 'colonize', level, goal: COLONIZE_LEVEL };
@@ -141,12 +156,12 @@ export function lineageFactor(state: GameState): number {
 }
 
 /**
- * Viajes del linaje: la semilla de la red y la transición del suelo cambian con cada uno. Hoy es
- * el tramo; el ciclo libre de la fase 10 sumará las siembras, que vuelven a un bioma sin cambiar de
- * tramo.
+ * Viajes del linaje: la semilla de la red y la transición del suelo cambian con cada uno. Son los
+ * tramos y las siembras del ciclo libre, que vuelven a un bioma sin cambiar de tramo: sin ellas,
+ * sembrar el mismo bioma no cambiaba de red ni pasaba por la transición.
  */
 export function dispersalCount(state: Readonly<GameState>): number {
-  return state.forest.leg;
+  return state.forest.leg + state.cycle.stays;
 }
 
 /** Biomas por los que pasó el linaje, incluido el actual. Solo se sale de un bosque cerrado. */
@@ -182,8 +197,11 @@ export function destinations(state: GameState): DestinationId[] {
   return DESTINATION_IDS.filter((id) => !visited.includes(id) && getBiome(id).ring <= open);
 }
 
-/** Adónde puede llevar el viento: un destino del viaje o, tras el cuarto, de vuelta al natal. */
-export type WindTargetKind = 'journey' | 'return';
+/**
+ * Adónde puede llevar el viento: un destino del viaje, tras el cuarto de vuelta al natal y, con El
+ * regreso cumplido, sembrar cualquier bioma (el ciclo libre).
+ */
+export type WindTargetKind = 'journey' | 'return' | 'cycle';
 
 export interface WindTarget {
   biome: BiomeId;
@@ -191,15 +209,31 @@ export interface WindTarget {
 }
 
 /**
- * Lo que ofrece la sección Viento, en orden: los destinos que quedan y, con el cuarto colonizado,
- * El regreso. Lo leen la interfaz, las láminas y `disperse`, así que la regla vive en un solo
- * sitio. Durante El regreso y después no hay ninguno.
+ * Lo que ofrece la sección Viento, en orden: los destinos que quedan, con el cuarto colonizado El
+ * regreso y, cumplido, los cinco biomas en el orden de BIOME_IDS, también el actual (los récords
+ * son por bioma: repetir uno es la forma de mejorarlo). Lo leen la interfaz, las láminas y
+ * `disperse`, así que la regla vive en un solo sitio. Durante El regreso no hay ninguno.
  */
 export function windTargets(state: GameState): WindTarget[] {
   const leg = state.forest.leg;
   if (leg < JOURNEY_LEGS) return destinations(state).map((biome) => ({ biome, kind: 'journey' }));
   if (leg === JOURNEY_LEGS && isForestColonized(state)) return [{ biome: HOME_BIOME, kind: 'return' }];
+  if (isFreeStay(state)) return BIOME_IDS.map((biome) => ({ biome, kind: 'cycle' }));
   return [];
+}
+
+/** Los votos de dos récords son la misma combinación (los dos van en el orden de VOW_IDS). */
+export function sameVows(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((vow, i) => vow === b[i]);
+}
+
+/** El mejor ciclo cumplido en un bioma, con cualquier combinación de votos; null si no hay. */
+export function bestRecord(state: Readonly<GameState>, biome: BiomeId): CycleRecord | null {
+  let best: CycleRecord | null = null;
+  for (const record of state.records) {
+    if (record.biome === biome && (best === null || record.time < best.time)) best = record;
+  }
+  return best;
 }
 
 // ---------------------------------------------------------------------------------------

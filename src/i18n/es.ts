@@ -376,6 +376,8 @@ export const es = {
   'biome.actOne': 'Acto I cumplido · nivel {level}',
   'biome.returnProgress': 'El regreso: nivel {level} de {goal}',
   'biome.free': 'El regreso cumplido · nivel {level}',
+  'biome.cycleProgress': 'Ciclo {n}: nivel {level} de {goal}',
+  'biome.cycleDone': 'Ciclo {n} cumplido · nivel {level}',
   'caption.place': '{name} · {soil}',
   'caption.compact': '{name} · {level}/{goal}',
   'caption.compactDone': '{name} · nivel {level}',
@@ -714,6 +716,8 @@ export const es = {
   'ach.biomeLevel.1.desc': 'Llega al nivel de esporas {level} en un bioma lejos del natal.',
   'ach.return.1.name': 'De vuelta a casa',
   'ach.return.1.desc': 'Cumple El regreso: tu red vuelve a crecer en el bosque natal.',
+  'ach.cycle.1.name': 'Volver a empezar',
+  'ach.cycle.1.desc': 'Cumple un ciclo en un bioma que sembraste tras El regreso.',
 
   // Lluvia
   'rain.drop.label': 'Atrapar la gota de lluvia',

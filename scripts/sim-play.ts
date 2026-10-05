@@ -18,8 +18,10 @@ import {
   click,
   canSporulate,
   completesGoal,
+  departureCost,
   disperse,
   disperseBlock,
+  disperseFunds,
   nextAdaptationCost,
   sporeGain,
   sporulate,
@@ -31,6 +33,7 @@ import {
   biomeAdaptationGate,
   destinations,
   isActOneClosed,
+  isCycleDone,
   isForestColonized,
   nextBiomeAdaptationCost,
   sporulateRequirement,
@@ -46,6 +49,7 @@ import {
   HOME_BIOME,
   RETURN_LEG,
   type BiomeAdaptationId,
+  type BiomeId,
   type DestinationId,
 } from '../src/data/biomes.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
@@ -190,6 +194,11 @@ interface RunOptions {
    * primero. El simulador de la red no avanza al socio: solo anota cuándo lo trae el núcleo.
    */
   onPartner?: (cumulative: number) => void;
+  /**
+   * La partida termina sin esporular en cuanto se cumple (quien llama parte: sembrar esporula antes
+   * de irse). Es la espera para pagar la siembra del ciclo libre (fase 10).
+   */
+  departWhen?: (state: GameState) => boolean;
 }
 
 const START_TIME = Date.UTC(2026, 0, 1);
@@ -228,6 +237,10 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
     if (options.onActOne && isActOneClosed(state)) options.onActOne(options.elapsedBefore + t + 1);
     if (options.onPartner && state.partners.plasmodium) options.onPartner(options.elapsedBefore + t + 1);
 
+    if (options.departWhen?.(state)) {
+      record.duration = t + 1;
+      return record;
+    }
     if (record.sporulateAvailableAt === null && num.gte(state.runEarned, sporulateRequirement(state))) {
       record.sporulateAvailableAt = t + 1;
       if (options.stopWhen === 'available') {
@@ -249,10 +262,10 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
         go = gain >= 1 && rate < bestRate * 0.995 && t + 1 - bestAt >= 30;
       } else {
         // La campaña esporula cuando la ganancia es al menos max(10, nivel actual) (§17) y, en El
-        // regreso, también cuando la esporulación cumple la meta (fase 10): es lo que haría una
-        // persona que lee «esta esporulación cierra El regreso». Sin esa regla el nivel pasaba de
-        // 256 a 512 en la última partida, que duraba 1:30 h. En los tramos 0–4 nunca cumple nada,
-        // así que sus métricas no cambian.
+        // regreso y en el ciclo libre, también cuando la esporulación cumple la meta (fase 10): es lo
+        // que haría una persona que lee «esta esporulación cierra El regreso» o «cumple el ciclo».
+        // Sin esa regla el nivel pasaba de 256 a 512 en la última partida, que duraba 1:30 h. En los
+        // tramos 0–4 nunca cumple nada, así que sus métricas no cambian.
         go = gain >= Math.max(10, state.spores.level) || completesGoal(state);
       }
       if (go) {
@@ -364,6 +377,11 @@ export interface Journey {
   waits: number[];
   /** El regreso (fase 10), si el viaje llegó a jugarlo. */
   homecoming: ReturnLeg | null;
+  /**
+   * Vueltas del ciclo libre (fase 10), en el orden en que se jugaron: la primera tras El regreso y,
+   * sobre una copia, la del régimen estable.
+   */
+  laps: CycleLeg[][];
   /** Esporas sin gastar al colonizar el último bioma colonizado. */
   unspent: number;
   /** Esporas ganadas en toda la campaña al colonizar el último bioma colonizado. */
@@ -372,6 +390,23 @@ export interface Journey {
   partnerAt: number | null;
   /** Falso desde que un tramo no se pudo empezar o no se colonizó: el viaje se detiene ahí. */
   going: boolean;
+}
+
+/** Un ciclo del ciclo libre (fase 10): sembrar un bioma y jugar hasta el nivel 500. */
+export interface CycleLeg {
+  biome: BiomeId;
+  /**
+   * Duración de cada partida desde que se cumplió lo anterior (El regreso o el ciclo de antes) hasta
+   * la que cumple este, incluida: las primeras `waits` son la espera para pagar la siembra.
+   */
+  runs: number[];
+  waits: number;
+  /** Tiempo de juego desde que se cumplió lo anterior hasta cumplir este (null si no se cumplió). */
+  time: number | null;
+  /** Esporas ganadas en el ciclo, también las de la esporulación de sembrar. */
+  spores: number;
+  /** Tiempo acumulado al cumplirlo. */
+  cumulative: number;
 }
 
 /** El regreso (fase 10): de vuelta al natal tras el cuarto bioma, hasta el nivel 500. */
@@ -399,9 +434,11 @@ function saveIsValid(state: GameState, now: number): boolean {
 
 /**
  * Reserva para el próximo viaje: con el bosque cerrado y algo por delante (otro destino o, tras el
- * cuarto, El regreso). En el tramo 5, igual: nada mientras no se cumple la meta, como en el
- * prototipo que midió El regreso y el ciclo. Con la reserva durante todo El regreso el bot compraba
- * menos adaptaciones y lo cumplía en 2,96–3,20 h en vez de 2,94–3,12 h (simulador, con R 6,3e13).
+ * cuarto, El regreso). Durante El regreso, nada mientras no se cumple la meta, como en el prototipo
+ * que lo midió: con la reserva el bot compraba menos adaptaciones y lo cumplía en 2,96–3,20 h en vez
+ * de 2,94–3,12 h (simulador, con R 6,3e13). En el ciclo libre, todo el ciclo: el bosque está cerrado
+ * (El regreso cumplido) y siempre hay adónde sembrar. Con un ciclo de unas 500 esporas brutas, las
+ * 300 guardadas pagan la siembra siguiente sin partidas de espera.
  */
 function journeyReserve(state: GameState): number {
   return isForestColonized(state) && windTargets(state).length > 0 ? DISPERSE_COST : 0;
@@ -465,7 +502,7 @@ function natalToActOne(seed: number, policy: SporulatePolicy): NatalJourney {
 
 /**
  * Juega en el bioma actual hasta cerrarlo (o hasta el tope): colonizarlo o, en el natal del tramo 5,
- * cumplir El regreso. Devuelve las duraciones.
+ * cumplir El regreso; en el ciclo libre, `closed` es cumplir el ciclo. Devuelve las duraciones.
  */
 function playBiome(
   state: GameState,
@@ -474,11 +511,12 @@ function playBiome(
   start: number,
   onRun?: (run: RunRecord, elapsed: number) => void,
   onPartner?: (cumulative: number) => void,
+  closed: (state: GameState) => boolean = isForestColonized,
 ): { runs: number[]; elapsed: number; colonized: boolean } {
   const runs: number[] = [];
   let elapsed = start;
   const cap = policy === 'rate' ? RATE_RUN_CAP : BIOME_RUN_CAP;
-  for (let i = 0; i < cap && !isForestColonized(state); i += 1) {
+  for (let i = 0; i < cap && !closed(state); i += 1) {
     const run = playRun(state, {
       profile,
       stopWhen: 'campaign',
@@ -493,7 +531,7 @@ function playBiome(
     if (run.sporesGained === 0) break;
     shopBetweenRuns(state);
   }
-  return { runs, elapsed, colonized: isForestColonized(state) };
+  return { runs, elapsed, colonized: closed(state) };
 }
 
 /**
@@ -540,6 +578,7 @@ export function startJourney(natal: NatalJourney, policy: SporulatePolicy, withP
     legs: [],
     waits: [],
     homecoming: null,
+    laps: [],
     unspent: 0,
     earnedAtColonize: 0,
     partnerAt: natal.partnerAt,
@@ -670,6 +709,110 @@ export function finishJourney(journey: Journey): void {
 }
 
 /**
+ * Una vuelta del ciclo libre (fase 10): tras El regreso o tras la vuelta anterior, los biomas que se
+ * le piden, seguidos y sin votos (simulate.ts juega los cinco y rota el primero con el orden del
+ * viaje, para que cada bioma salga en posiciones distintas). El bot siembra al empezar partida tras cumplir y juega hasta el nivel
+ * 500 con la regla de la meta. Si no alcanza para sembrar, partidas de espera que terminan en
+ * cuanto alcanza: sembrar esporula antes de irse, que es lo que haría una persona; con la regla de
+ * §17 la espera tendría que duplicar el nivel, que tras cumplir es 500. La espera cuenta en el
+ * tiempo del ciclo siguiente y en sus partidas.
+ *
+ * Con `stable`, el régimen estable: antes, las adaptaciones de bioma hasta el máximo con esporas
+ * inyectadas (las mismas que cuesta cada rango, así que las disponibles no cambian), por la acción
+ * de comprarlas. Es el final de juego, cuando ya nada crece.
+ */
+export function playLap(journey: Journey, biomes: readonly BiomeId[], stable: boolean): void {
+  const state = journey.state;
+  const lap: CycleLeg[] = [];
+  journey.laps.push(lap);
+  if (!journey.going || !windTargets(state).some((target) => target.kind === 'cycle')) {
+    journey.going = false;
+    return;
+  }
+  if (stable) maxBiomeAdaptations(state);
+  for (const biome of biomes) {
+    const start = journey.elapsed;
+    const runs: number[] = [];
+    let waits = 0;
+    for (; disperseBlock(state) === 'spores' && waits < 10; waits += 1) {
+      const run = playRun(state, {
+        profile: PROFILES.active,
+        stopWhen: 'campaign',
+        policy: journey.policy,
+        maxSeconds: 12 * 3600,
+        elapsedBefore: journey.elapsed,
+        departWhen: (s) => disperseFunds(s) >= departureCost(s),
+      });
+      journey.elapsed += run.duration;
+      runs.push(run.duration);
+      trackRun(journey, run, journey.elapsed);
+      if (run.sporesGained > 0) shopBetweenRuns(state);
+    }
+    journey.waits.push(waits);
+    const stays = state.cycle.stays;
+    const atSow = canSporulate(state) ? sporeGain(state) : 0;
+    disperse(state, { to: biome, now: START_TIME + journey.elapsed * 1000 });
+    drain();
+    if (state.cycle.stays !== stays + 1 || state.forest.biome !== biome) {
+      journey.going = false;
+      return;
+    }
+    journey.earnedSpores += atSow;
+    if (!saveIsValid(state, START_TIME + journey.elapsed * 1000)) journey.invalidSaves += 1;
+    buyBiomeAdaptations(state, journeyReserve(state));
+    let spores = atSow;
+    const a = playBiome(
+      state,
+      PROFILES.active,
+      journey.policy,
+      journey.elapsed,
+      (run, at) => {
+        spores += run.sporesGained;
+        trackRun(journey, run, at);
+      },
+      (at) => {
+        journey.partnerAt ??= at;
+      },
+      isCycleDone,
+    );
+    journey.elapsed = a.elapsed;
+    lap.push({
+      biome,
+      runs: [...runs, ...a.runs],
+      waits,
+      time: a.colonized ? journey.elapsed - start : null,
+      spores,
+      cumulative: journey.elapsed,
+    });
+    if (!a.colonized) {
+      journey.going = false;
+      return;
+    }
+  }
+}
+
+/** Cada adaptación de bioma hasta su máximo, inyectando las esporas de cada rango y comprándolo. */
+function maxBiomeAdaptations(state: GameState): void {
+  for (const { id } of BIOME_ADAPTATIONS) {
+    for (
+      let cost = nextBiomeAdaptationCost(state, id);
+      cost !== null;
+      cost = nextBiomeAdaptationCost(state, id)
+    ) {
+      const rank = state.biomeAdaptations[id];
+      state.spores.available += cost;
+      buyBiomeAdaptation(state, { id });
+      // Si la acción no compra (no debería: todos los biomas están colonizados), no se queda en bucle.
+      if (state.biomeAdaptations[id] === rank) {
+        state.spores.available -= cost;
+        break;
+      }
+    }
+  }
+  drain();
+}
+
+/**
  * Perfil ausente (fase 10): quien juega sesiones cortas y se va horas. Cuenta las sesiones hasta
  * colonizar `to`, incluida la que coloniza, o null si no llega en `ABSENT_SESSION_CAP`.
  */
@@ -730,7 +873,9 @@ export type SimTask =
   /** Sigue un viaje por `path` y, con `finish`, juega El regreso si el cuarto bioma quedó colonizado. */
   | { kind: 'journey'; journey: Journey; path: readonly DestinationId[]; finish: boolean }
   /** Desde un viaje, el perfil ausente hasta colonizar `to` (fase 10). */
-  | { kind: 'absent'; journey: Journey; to: DestinationId; sessionMinutes: number; awayHours: number };
+  | { kind: 'absent'; journey: Journey; to: DestinationId; sessionMinutes: number; awayHours: number }
+  /** Tras El regreso, una vuelta del ciclo libre por `biomes`; con `stable`, el régimen estable. */
+  | { kind: 'lap'; journey: Journey; biomes: readonly BiomeId[]; stable: boolean };
 
 export interface SimTaskResults {
   firstRun: RunRecord;
@@ -738,6 +883,7 @@ export interface SimTaskResults {
   natal: NatalJourney;
   journey: Journey;
   absent: AbsentResult;
+  lap: Journey;
 }
 
 export type SimTaskResult<T extends SimTask> = SimTaskResults[T['kind']];
@@ -758,5 +904,8 @@ export function runTask(task: SimTask): SimTaskResults[SimTask['kind']] {
     }
     case 'absent':
       return absentLeg(task.journey, task.to, task.sessionMinutes, task.awayHours);
+    case 'lap':
+      playLap(task.journey, task.biomes, task.stable);
+      return task.journey;
   }
 }

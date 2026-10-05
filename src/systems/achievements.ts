@@ -46,6 +46,8 @@ function isMet(state: GameState, def: AchievementDef): boolean {
       return isDestinationId(state.forest.biome) && state.spores.level >= c.level;
     case 'returned':
       return isReturnClosed(state);
+    case 'cycles':
+      return state.cycle.done >= c.count;
   }
 }
 

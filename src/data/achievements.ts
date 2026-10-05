@@ -26,7 +26,9 @@ export type AchievementCondition =
   /** Nivel de esporas local en un destino (nunca en el natal, tampoco en El regreso). */
   | { kind: 'biomeLevel'; level: number }
   /** El regreso cumplido (fase 10): la Crónica tiene la entrada del tramo 5. */
-  | { kind: 'returned' };
+  | { kind: 'returned' }
+  /** Ciclos cumplidos en el ciclo libre (fase 10). */
+  | { kind: 'cycles'; count: number };
 
 export interface AchievementDef {
   id: string;
@@ -99,6 +101,7 @@ function build(): AchievementDef[] {
     reveal: 'actOne',
   });
   list.push({ id: 'return.1', condition: { kind: 'returned' }, reveal: 'actOne' });
+  list.push({ id: 'cycle.1', condition: { kind: 'cycles', count: 1 }, reveal: 'actOne' });
   return list;
 }
 

@@ -23,8 +23,10 @@ import {
   type BiomeAdaptationId,
   type BiomeId,
 } from '../data/biomes.ts';
+import { MAX_RECORDS } from '../data/cycle.ts';
 import { HISTORY_LIMIT, SPORE_SOFTCAP_BASE } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
+import { sameVows } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { PARTNER_IDS, emptyPartners, type PartnerId } from '../partners/ids.ts';
 import { PARTNER_CORES, validatePartners, type ValidationMode } from '../partners/registry.ts';
@@ -351,7 +353,7 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   if (!biomeAdaptations) return null;
   const cycle = validateCycle(raw.cycle);
   if (!cycle || !isStayValid(forest, chronicle, cycle)) return null;
-  const records = validateRecords(raw.records);
+  const records = validateRecords(raw.records, cycle, stats.sporulations);
   if (!records) return null;
 
   // Al final: un socio inválido en modo lenient no debe ocultar un error de la red.
@@ -513,20 +515,40 @@ function validateBiomeAdaptations(
 }
 
 /**
- * El ciclo libre (fase 10). Hasta que lleguen sus reglas solo vale sin empezar: un ciclo empezado
- * o un voto solo los escribe un juego más nuevo, y a ese guardado lo protege `isFromNewerGame`
- * por la versión del juego, no este validador.
+ * El ciclo libre (fase 10): ciclos empezados y cumplidos, enteros, y nunca más cumplidos que
+ * empezados; dónde puede haber ciclos lo comprueba `isStayValid`. Los votos y las mutaciones
+ * despiertas solo valen vacíos hasta que lleguen sus reglas (el bloque de los votos): un guardado
+ * con votos solo lo escribe un juego más nuevo, y a ese lo protege `isFromNewerGame` por la versión
+ * del juego, no este validador.
  */
 function validateCycle(raw: unknown): CycleState | null {
-  if (!isObject(raw) || raw.stays !== 0 || raw.done !== 0) return null;
+  if (!isObject(raw) || !isCount(raw.stays) || !isCount(raw.done) || raw.done > raw.stays) return null;
   if (!Array.isArray(raw.vows) || raw.vows.length > 0) return null;
   if (!Array.isArray(raw.woken) || raw.woken.length > 0) return null;
-  return { stays: 0, done: 0, vows: [], woken: [] };
+  return { stays: raw.stays, done: raw.done, vows: [], woken: [] };
 }
 
-/** Los récords del ciclo libre: hasta que lleguen sus reglas, ninguno (ver `validateCycle`). */
-function validateRecords(raw: unknown): CycleRecord[] | null {
-  return Array.isArray(raw) && raw.length === 0 ? [] : null;
+/**
+ * Los récords del ciclo libre: uno por bioma y votos (el tope se comprueba antes de recorrerlos),
+ * ninguno sin un ciclo cumplido y sin más partidas que las esporulaciones de la vida. Hasta el
+ * bloque de los votos, todos son sin votos (ver `validateCycle`). Un tiempo negativo se repara a 0
+ * en lugar de rechazar el guardado: lo dejan un reloj que retrocedió o un guardado importado de un
+ * dispositivo con otra hora, es solo presentación, y rechazarlo bloquearía el guardado para siempre
+ * (el récord negativo sería el mejor y nunca se reemplazaría). Precedente: BUG-JOURNAL #18.
+ */
+function validateRecords(raw: unknown, cycle: CycleState, sporulations: number): CycleRecord[] | null {
+  if (!Array.isArray(raw) || raw.length > MAX_RECORDS) return null;
+  if (raw.length > 0 && cycle.done < 1) return null;
+  const out: CycleRecord[] = [];
+  for (const r of raw) {
+    if (!isObject(r) || !isBiomeId(r.biome) || !Array.isArray(r.vows) || r.vows.length > 0) return null;
+    const biome = r.biome;
+    if (out.some((o) => o.biome === biome && sameVows(o.vows, []))) return null;
+    if (!isFiniteNumber(r.time) || !isCount(r.runs) || r.runs < 1 || r.runs > sporulations) return null;
+    if (!isTimestamp(r.at)) return null;
+    out.push({ biome, vows: [], time: Math.max(0, r.time), runs: r.runs, at: r.at });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------------------

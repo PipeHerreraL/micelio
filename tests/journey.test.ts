@@ -1164,7 +1164,7 @@ describe('El regreso (fase 10)', () => {
     expect(natal.chronicle).toHaveLength(1);
   });
 
-  it('durante El regreso no se puede partir; cumplido, no queda adónde ir hasta el ciclo libre', () => {
+  it('durante El regreso no se puede partir; cumplido, el viento lleva al ciclo libre', () => {
     const s = inReturn();
     s.spores.available = 5000;
     expect(disperseBlock(s)).toBe('colonize');
@@ -1173,8 +1173,14 @@ describe('El regreso (fase 10)', () => {
     expect(s).toEqual(before);
     readyToClose(s);
     sporulate(s, { now: NOW + 90_000 });
-    expect(windTargets(s)).toEqual([]);
-    expect(disperseBlock(s)).toBe('noDestination');
+    expect(windTargets(s).map((target) => target.kind)).toEqual([
+      'cycle',
+      'cycle',
+      'cycle',
+      'cycle',
+      'cycle',
+    ]);
+    expect(disperseBlock(s)).toBeNull();
   });
 
   it('esporular cumple la meta cuando la ganancia lleva el nivel de menos de 500 a 500 o más en El regreso', () => {

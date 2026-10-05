@@ -9,11 +9,26 @@
  *
  * Uso: npm run sim (con SIM_WORKERS=n, n hilos; con 0, todo en el hilo principal)
  */
-import { DESTINATION_IDS, getBiome, type DestinationId } from '../src/data/biomes.ts';
+import {
+  BIOME_IDS,
+  DESTINATION_IDS,
+  HOME_BIOME,
+  getBiome,
+  type BiomeId,
+  type DestinationId,
+} from '../src/data/biomes.ts';
+import { SOW_COST } from '../src/data/cycle.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
-import { journeyPlan, startJourney, type CampaignResult, type Journey, type RunRecord } from './sim-play.ts';
+import {
+  journeyPlan,
+  startJourney,
+  type CampaignResult,
+  type CycleLeg,
+  type Journey,
+  type RunRecord,
+} from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
 import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
 
@@ -41,6 +56,18 @@ const ABSENT_HOURS = [12, 24, 36, 48, 72];
 /** Biomas del segundo anillo, los que el perfil ausente compara como tercer destino. */
 const ABSENT_BIOMES: readonly DestinationId[] = BRANCHES[0] ?? [];
 
+/**
+ * Vueltas del ciclo libre (fase 10): tras El regreso, los cinco biomas seguidos y sin votos,
+ * empezando en uno distinto en cada orden del viaje (T‑C‑P‑U por la taiga, T‑C‑U‑P por el Chocó…).
+ * Así cada bioma sale en cuatro posiciones distintas y su métrica es la mediana de sus cuatro
+ * apariciones por las semillas; el natal nunca abre la vuelta, porque acaba de cerrar El regreso.
+ * El régimen estable juega la misma vuelta otra vez, sobre una copia y con las adaptaciones de bioma
+ * al máximo.
+ */
+const LAP_BASE: readonly BiomeId[] = [...DESTINATION_IDS, HOME_BIOME];
+const lapOf = (order: number): BiomeId[] =>
+  LAP_BASE.map((_, i) => LAP_BASE[(i + order) % LAP_BASE.length] ?? HOME_BIOME);
+
 // ---------------------------------------------------------------------------------------
 // Corridas
 
@@ -59,14 +86,22 @@ async function playAll(pool: SimPool) {
       return pool.run({ kind: 'journey', journey, path, finish: !HAS_BRANCHES });
     }),
   );
-  const windRuns = prefixRuns.flatMap((prefixes) =>
+  const branchRuns = prefixRuns.flatMap((prefixes) =>
     BRANCHES.map((path) =>
-      Promise.all(
-        prefixes.map(async (prefix) =>
-          HAS_BRANCHES ? pool.run({ kind: 'journey', journey: await prefix, path, finish: true }) : prefix,
-        ),
+      prefixes.map(async (prefix) =>
+        HAS_BRANCHES ? pool.run({ kind: 'journey', journey: await prefix, path, finish: true }) : prefix,
       ),
     ),
+  );
+  // Tras El regreso, la primera vuelta del ciclo libre en cada semilla y, sobre una copia de su
+  // final, el régimen estable: cada semilla sigue en cuanto termina su tramo anterior.
+  const lapRuns = branchRuns.map((bySeed, o) =>
+    bySeed.map(async (branch) =>
+      pool.run({ kind: 'lap', journey: await branch, biomes: lapOf(o), stable: false }),
+    ),
+  );
+  const stableRuns = lapRuns.map((bySeed, o) =>
+    bySeed.map(async (lap) => pool.run({ kind: 'lap', journey: await lap, biomes: lapOf(o), stable: true })),
   );
   // Regla del mejor ritmo, informativa: natal y primer bioma (taiga), sin perfil pasivo.
   const rateRuns = perSeed(async (seed) => {
@@ -104,19 +139,31 @@ async function playAll(pool: SimPool) {
   const passiveRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'passive' }));
   const activeRuns = perSeed((seed) => pool.run({ kind: 'firstRun', seed, profile: 'active' }));
   // Todo en un solo Promise.all: si una tarea falla, la corrida termina con ese error.
-  const [natals, prefixes, winds, absents, rateJourneys, longDoubling, longRate, campaigns, active, passive] =
-    await Promise.all([
-      Promise.all(natalRuns),
-      Promise.all(prefixRuns.map((runs) => Promise.all(runs))),
-      Promise.all(windRuns),
-      Promise.all(absentRuns.map((byHours) => Promise.all(byHours))),
-      rateRuns,
-      longDoublingRuns,
-      longRateRuns,
-      campaignRuns,
-      activeRuns,
-      passiveRuns,
-    ]);
+  const [
+    natals,
+    prefixes,
+    winds,
+    stables,
+    absents,
+    rateJourneys,
+    longDoubling,
+    longRate,
+    campaigns,
+    active,
+    passive,
+  ] = await Promise.all([
+    Promise.all(natalRuns),
+    Promise.all(prefixRuns.map((runs) => Promise.all(runs))),
+    Promise.all(lapRuns.map((runs) => Promise.all(runs))),
+    Promise.all(stableRuns.map((runs) => Promise.all(runs))),
+    Promise.all(absentRuns.map((byHours) => Promise.all(byHours))),
+    rateRuns,
+    longDoublingRuns,
+    longRateRuns,
+    campaignRuns,
+    activeRuns,
+    passiveRuns,
+  ]);
   return {
     active,
     passive,
@@ -126,6 +173,7 @@ async function playAll(pool: SimPool) {
     natals,
     prefixes,
     winds,
+    stables,
     absents,
     rateJourneys,
   };
@@ -134,8 +182,19 @@ async function playAll(pool: SimPool) {
 const started = performance.now();
 const workers = poolSize();
 const pool = createPool(workers);
-const { active, passive, campaigns, longDoubling, longRate, natals, prefixes, winds, absents, rateJourneys } =
-  await playAll(pool).finally(() => pool.close());
+const {
+  active,
+  passive,
+  campaigns,
+  longDoubling,
+  longRate,
+  natals,
+  prefixes,
+  winds,
+  stables,
+  absents,
+  rateJourneys,
+} = await playAll(pool).finally(() => pool.close());
 
 const first = (id: GeneratorId) => active.map((r) => r.firstOwned[id] ?? null);
 const run1Available = active.map((r) => r.sporulateAvailableAt);
@@ -274,10 +333,12 @@ metrics.push({
   format: hours,
   pass: (m) => m >= 2.5 * 3600 && m <= 3.5 * 3600,
 });
+// Con las siembras del ciclo libre (fase 10): el régimen estable es una copia del viaje entero, así
+// que sus esperas son las del viaje, las de la primera vuelta y las suyas.
 metrics.push({
-  name: 'Viento: partidas de espera para pagar un viaje (tras el Acto I o tras colonizar)',
+  name: 'Viento: partidas de espera para pagar un viaje o una siembra (tras el Acto I, tras colonizar o tras cumplir)',
   target: '≤ 1',
-  values: winds.flat().map((w, i) => Math.max(natals[i % natals.length]?.waitRuns ?? 0, ...w.waits)),
+  values: stables.flat().map((w, i) => Math.max(natals[i % natals.length]?.waitRuns ?? 0, ...w.waits)),
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m <= 1,
 });
@@ -447,9 +508,9 @@ metrics.push({
   format: (v) => (v === null ? '—' : `${Math.round(v * 100)} %`),
   pass: (m) => m < 0.5,
 });
-const windCeiling = Math.max(...winds.flat().map((w) => w.maxValue));
+const windCeiling = Math.max(...stables.flat().map((w) => w.maxValue));
 metrics.push({
-  name: 'Viento: techo numérico (campaña, los cuatro destinos y El regreso)',
+  name: 'Viento: techo numérico (campaña, los cuatro destinos, El regreso y el ciclo libre)',
   target: '< 1e63',
   values: [windCeiling],
   format: (v) => (v === null ? '—' : fmt(v)),
@@ -458,12 +519,148 @@ metrics.push({
 metrics.push({
   name: 'Viento: guardados inválidos tras esporular, dispersar o colonizar',
   target: '0',
+  // El régimen estable copia el viaje: su cuenta ya lleva la del viaje y la de la primera vuelta.
   values: [
     natals.reduce((sum, n) => sum + n.invalidSaves, 0) +
-      winds.flat().reduce((sum, w) => sum + w.invalidSaves, 0),
+      stables.flat().reduce((sum, w) => sum + w.invalidSaves, 0),
   ],
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m === 0,
+});
+
+// Ciclo libre (fase 10): la primera vuelta tras El regreso y el régimen estable, sin votos.
+const CYCLE_NAMES: Record<BiomeId, string> = { natal: 'natal', ...BIOME_NAMES };
+/** El ciclo de `biome` en la vuelta `lap` de cada viaje (null si esa vuelta no llegó a él). */
+const cyclesOf = (
+  journeys: readonly (readonly Journey[])[],
+  lap: number,
+  biome: BiomeId,
+): (CycleLeg | null)[] => journeys.flat().map((j) => j.laps[lap]?.find((c) => c.biome === biome) ?? null);
+/** Medianas por partida de unos ciclos; `withoutGoal` deja fuera la última, la que cumple la meta. */
+const cycleRunMedians = (cycles: readonly (CycleLeg | null)[], withoutGoal = false): number[] =>
+  runMedians(cycles.map((c) => (c ? (withoutGoal ? c.runs.slice(0, -1) : c.runs) : undefined)));
+const cycleTime = (cycles: readonly (CycleLeg | null)[]): number | null => {
+  const times = cycles.map((c) => c?.time ?? null);
+  return times.every((t) => t !== null) ? median(present(times)) : null;
+};
+for (const biome of BIOME_IDS) {
+  const cycles = cyclesOf(winds, 0, biome);
+  const label = `Ciclo libre, primera vuelta, ${CYCLE_NAMES[biome]}`;
+  const medians = cycleRunMedians(cycles);
+  metrics.push({
+    name: `${label}: partidas hasta cumplirlo (todas)`,
+    target: '20–35 min',
+    values: cycles.flatMap((c) => c?.runs ?? [null]),
+    format: clock,
+    pass: (m) => m >= 20 * 60 && m <= 35 * 60,
+  });
+  metrics.push({
+    name: `${label}: partida más corta (mediana por partida)`,
+    target: '≥ 10 min',
+    values: [medians.length > 0 ? Math.min(...medians) : null],
+    format: clock,
+    pass: (m) => m >= 600,
+  });
+  metrics.push({
+    name: `${label}: partida más larga (mediana por partida)`,
+    target: '≤ 60 min',
+    values: [medians.length > 0 ? Math.max(...medians) : null],
+    format: clock,
+    pass: (m) => m <= 3600,
+  });
+  metrics.push({
+    name: `${label}: ciclo`,
+    target: '2–4 h',
+    values: cycles.map((c) => c?.time ?? null),
+    format: hours,
+    pass: (m) => m >= 2 * 3600 && m <= 4 * 3600,
+  });
+}
+for (const biome of BIOME_IDS) {
+  metrics.push({
+    name: `Ciclo libre, régimen estable, ${CYCLE_NAMES[biome]}: partidas hasta cumplirlo (todas)`,
+    target: '15–35 min',
+    values: cyclesOf(stables, 1, biome).flatMap((c) => c?.runs ?? [null]),
+    format: clock,
+    pass: (m) => m >= 15 * 60 && m <= 35 * 60,
+  });
+}
+/**
+ * Lo del régimen estable que vale para el peor bioma: una fila por métrica con un valor por bioma,
+ * y cada uno debe cumplir (`every`). La partida más corta no cuenta la que cumple la meta: termina
+ * al llegar a 500 y dura lo que falte, no lo que pide la regla de §17 (en el prototipo, de 5 a 40
+ * min); las demás siguen el suelo de 10 min de los tramos.
+ */
+const perStableBiome = (value: (biome: BiomeId) => number | null): (number | null)[] =>
+  BIOME_IDS.map((biome) => value(biome));
+const stableLabel = 'Ciclo libre, régimen estable (el peor bioma)';
+metrics.push({
+  name: `${stableLabel}: partida más corta sin la que cumple la meta (mediana por partida)`,
+  target: '≥ 10 min',
+  values: perStableBiome((biome) => {
+    const medians = cycleRunMedians(cyclesOf(stables, 1, biome), true);
+    return medians.length > 0 ? Math.min(...medians) : null;
+  }),
+  format: clock,
+  pass: (m) => m >= 600,
+  every: true,
+});
+metrics.push({
+  name: `${stableLabel}: partida más larga (mediana por partida)`,
+  target: '≤ 60 min',
+  values: perStableBiome((biome) => {
+    const medians = cycleRunMedians(cyclesOf(stables, 1, biome));
+    return medians.length > 0 ? Math.max(...medians) : null;
+  }),
+  format: clock,
+  pass: (m) => m <= 3600,
+  every: true,
+});
+metrics.push({
+  name: `${stableLabel}: ciclo`,
+  target: '≤ 3,5 h',
+  values: perStableBiome((biome) => cycleTime(cyclesOf(stables, 1, biome))),
+  format: hours,
+  pass: (m) => m <= 3.5 * 3600,
+  every: true,
+});
+// La deriva acota cuánto se acortan los ciclos al terminar las adaptaciones de bioma: no se fija a
+// un valor medido sino a la mitad de la primera vuelta (en el prototipo, el Chocó quedaba en 0,52).
+metrics.push({
+  name: `${stableLabel}: deriva, ciclo estable ÷ ciclo de la primera vuelta`,
+  target: '≥ 0,5',
+  values: perStableBiome((biome) => {
+    const first = cycleTime(cyclesOf(winds, 0, biome));
+    const stable = cycleTime(cyclesOf(stables, 1, biome));
+    return first !== null && stable !== null && first > 0 ? stable / first : null;
+  }),
+  format: (v) => (v === null ? '—' : v.toFixed(2)),
+  pass: (m) => m >= 0.5,
+  every: true,
+});
+metrics.push({
+  name: `${stableLabel}: esporas netas por ciclo (las ganadas menos las ${SOW_COST} de sembrar)`,
+  target: '> 0',
+  values: perStableBiome((biome) => {
+    const spores = present(cyclesOf(stables, 1, biome).map((c) => c?.spores ?? null));
+    return spores.length > 0 ? median(spores) - SOW_COST : null;
+  }),
+  format: (v) => (v === null ? '—' : String(Math.round(v))),
+  pass: (m) => m > 0,
+  every: true,
+});
+metrics.push({
+  name: 'Ciclo libre: esporas sin gastar tras El regreso y la primera vuelta, sobre las ganadas en toda la campaña',
+  target: '< 50 %',
+  values: winds
+    .flat()
+    .map((w) =>
+      w.laps[0]?.length === LAP_BASE.length && w.earnedSpores > 0
+        ? w.state.spores.available / w.earnedSpores
+        : null,
+    ),
+  format: (v) => (v === null ? '—' : `${Math.round(v * 100)} %`),
+  pass: (m) => m < 0.5,
 });
 
 const rows = metrics.map(row);
@@ -540,6 +737,28 @@ ORDERS.forEach((order, o) => {
     } | ${clock(median(home.flatMap((h) => h.runs)))} | ${hours(median(closed))} | ${Math.round(median(home.map((h) => h.levelAtClose)))} | ${hours(median(home.map((h) => h.cumulative)))} |`,
   );
 });
+/** El ciclo libre por bioma (fase 10): la primera vuelta y el régimen estable. */
+const cycleTable = [
+  '| Bioma | R | Requisito | Vuelta | Partidas hasta cumplirlo (mediana de cada una) | Todas (mediana) | Ciclo | Esporas por ciclo |',
+  '| ----- | - | --------- | ------ | ---------------------------------------------- | --------------- | ----- | ----------------- |',
+];
+for (const biome of BIOME_IDS) {
+  const def = getBiome(biome);
+  (
+    [
+      ['primera', cyclesOf(winds, 0, biome)],
+      ['estable', cyclesOf(stables, 1, biome)],
+    ] as const
+  ).forEach(([lap, cycles]) => {
+    const played = cycles.filter((c): c is CycleLeg => c !== null);
+    cycleTable.push(
+      `| ${capital(CYCLE_NAMES[biome])} | ${fmt(def.cycleScale)} | ${def.cycleRequirement} R | ${lap} | ${
+        cycleRunMedians(cycles).map(clock).join(', ') || '—'
+      } | ${clock(median(played.flatMap((c) => c.runs)))} | ${hours(median(present(played.map((c) => c.time))))} | ${Math.round(median(played.map((c) => c.spores)))} |`,
+    );
+  });
+}
+
 const partnerTimes = winds.flat().map((w) => w.partnerAt);
 const partnerPresent = partnerTimes.filter((v): v is number => v !== null);
 const partnerLine =
@@ -557,7 +776,7 @@ const rateLine =
 const COUNT_WORDS = ['ningún', 'un', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho'];
 const countWord = (n: number): string => COUNT_WORDS[n] ?? String(n);
 const journeyShape =
-  `los ${countWord(DESTINATION_IDS.length)} destinos y El regreso, en los ${countWord(ORDERS.length)} órdenes` +
+  `los ${countWord(DESTINATION_IDS.length)} destinos, El regreso y dos vueltas del ciclo libre, en los ${countWord(ORDERS.length)} órdenes` +
   (HAS_BRANCHES
     ? ' que permiten los anillos (el primero entero y en cualquier orden antes del segundo; cada orden del primero se juega una vez por semilla y se ramifica, sobre copias, en los del segundo)'
     : '');
@@ -648,6 +867,17 @@ const block = [
   `El regreso (fase 10): tras el cuarto bioma, el bot vuelve al natal al empezar partida y juega hasta el nivel 500 con R ${fmt(getBiome('natal').cycleScale)} y un requisito de ${getBiome('natal').cycleRequirement} R. En el tramo 5 esporula también cuando la ganancia lleva el nivel a 500 (la regla de la meta). Mediana de ${SEEDS.length} semillas:`,
   '',
   ...returnTable,
+  '',
+  `Ciclo libre (fase 10): tras El regreso, el bot siembra al empezar partida los cinco biomas seguidos, sin votos, por ${SOW_COST} esporas, y juega cada uno hasta el nivel 500 con la R fija del bioma y su requisito (en múltiplos de R), con la regla de la meta. La vuelta empieza en un bioma distinto en cada orden del viaje (${ORDERS.map(
+    (order, o) =>
+      `${orderName(order)}: ${lapOf(o)
+        .map((b) => CYCLE_NAMES[b])
+        .join(', ')}`,
+  ).join(
+    '; ',
+  )}); cada fila es la mediana de las cuatro apariciones del bioma por las ${SEEDS.length} semillas. El régimen estable vuelve a jugar la misma vuelta sobre una copia, con las adaptaciones de bioma al máximo. Una partida de espera para pagar la siembra, si la hay, cuenta en el ciclo siguiente.`,
+  '',
+  ...cycleTable,
   '',
   rateLine,
   '',

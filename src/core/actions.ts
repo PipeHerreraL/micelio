@@ -11,12 +11,13 @@ import {
 } from '../data/adaptations.ts';
 import {
   DISPERSE_COST,
+  RETURN_LEG,
   isBiomeAdaptationId,
   isBiomeId,
   type BiomeAdaptationId,
   type BiomeId,
 } from '../data/biomes.ts';
-import type { VowId } from '../data/cycle.ts';
+import { SOW_COST, type VowId } from '../data/cycle.ts';
 import { GENERATORS, getGenerator, isGeneratorId, type GeneratorId } from '../data/generators.ts';
 import {
   INHERITANCE_GENERATORS,
@@ -31,6 +32,7 @@ import {
 import { HISTORY_LIMIT } from '../data/prestige.ts';
 import { getUpgrade } from '../data/upgrades.ts';
 import { checkAchievements } from '../systems/achievements.ts';
+import { checkCycleDone } from '../systems/cycle.ts';
 import { checkColonization, checkReturn } from '../systems/journey.ts';
 import { evaporateDrop, rollRainInterval } from '../systems/rain.ts';
 import { gain, isGeneratorUnlocked, isUpgradeAppeared, quoteGenerator, spend } from './economy.ts';
@@ -137,13 +139,15 @@ export function canSporulate(state: GameState): boolean {
 
 /**
  * Esporular ahora cumple la meta del bosque: lleva el nivel de por debajo de 500 a 500 o más en El
- * regreso. La interfaz lo dice en el botón y en la confirmación, y el bot del simulador esporula
- * entonces (fase 10): sin esa regla, el nivel se pasaba de largo de la meta y la última partida
- * cargaba con casi todo el ciclo. En los tramos 0–4 siempre es falso, así que no mueve nada allí.
+ * regreso o en un ciclo sin cumplir. La interfaz lo dice en el botón y en la confirmación, y el bot
+ * del simulador esporula entonces (fase 10): sin esa regla, el nivel se pasaba de largo de la meta y
+ * la última partida cargaba con casi todo el ciclo. En los tramos 0–4 siempre es falso, así que no
+ * mueve nada allí.
  */
 export function completesGoal(state: GameState): boolean {
   const goal = forestGoal(state);
-  if (goal.kind !== 'return' || goal.level >= goal.goal || !canSporulate(state)) return false;
+  if (goal.kind !== 'return' && goal.kind !== 'cycle') return false;
+  if (goal.level >= goal.goal || !canSporulate(state)) return false;
   return goal.level + sporeGain(state) >= goal.goal;
 }
 
@@ -193,7 +197,8 @@ function startRun(state: GameState, now: number, table: typeof SPORULATE_RESET, 
 /**
  * Esporular: suma esporas al nivel y a las disponibles y reinicia la partida. Se conservan
  * nivel, esporas, mutaciones, logros, estadísticas de vida, ajustes y autocompra. Si el nivel
- * local llega al de colonizar, el bioma queda colonizado (systems/journey.ts).
+ * local llega al de colonizar, el bioma queda colonizado (systems/journey.ts); en el tramo 5, se
+ * cumple El regreso o el ciclo (systems/cycle.ts).
  */
 export function sporulate(state: GameState, payload: { now: number }): void {
   if (!canSporulate(state) || !isValidTime(payload.now)) return;
@@ -201,6 +206,7 @@ export function sporulate(state: GameState, payload: { now: number }): void {
   recordSporulation(state, gained, payload.now);
   checkColonization(state, payload.now);
   checkReturn(state, payload.now);
+  checkCycleDone(state, gained, payload.now);
   startRun(state, payload.now, SPORULATE_RESET, false);
 
   invalidate(state);
@@ -210,6 +216,11 @@ export function sporulate(state: GameState, payload: { now: number }): void {
 
 /** Por qué no se puede dispersar, en este orden de prioridad (null = se puede). */
 export type DisperseBlock = 'actOne' | 'noDestination' | 'colonize' | 'spores';
+
+/** Lo que cuesta partir: sembrar en el ciclo libre, y si no, el viaje. Hoy son lo mismo (300). */
+export function departureCost(state: GameState): number {
+  return state.forest.leg === RETURN_LEG ? SOW_COST : DISPERSE_COST;
+}
 
 /** Esporas con que se pagaría el viaje: las disponibles más lo que daría esporular ahora. */
 export function disperseFunds(state: GameState): number {
@@ -225,16 +236,18 @@ export function disperseBlock(state: GameState): DisperseBlock | null {
   if (!isActOneClosed(state)) return 'actOne';
   if (!isForestColonized(state)) return 'colonize';
   if (windTargets(state).length === 0) return 'noDestination';
-  if (disperseFunds(state) < DISPERSE_COST) return 'spores';
+  if (disperseFunds(state) < departureCost(state)) return 'spores';
   return null;
 }
 
 /**
- * Dispersar: el linaje viaja a otro bioma o, tras el cuarto, vuelve al natal (El regreso, fase
- * 10). Si la partida puede esporular, termina esporulando (mismas cuentas que `sporulate`) y esas
- * esporas ayudan a pagar el viaje. El nivel vuelve a 0 (el territorio no viaja); las esporas que
- * quedan, las mutaciones y las adaptaciones viajan en las esporas. Todo se valida antes de mutar.
- * Los votos solo se juran al sembrar en el ciclo libre: el viaje y El regreso no llevan ninguno.
+ * Dispersar: el linaje viaja a otro bioma, tras el cuarto vuelve al natal (El regreso, fase 10) y,
+ * cumplido El regreso, siembra cualquier bioma (el ciclo libre, sin cambiar de tramo). Si la
+ * partida puede esporular, termina esporulando (mismas cuentas que `sporulate`) y esas esporas
+ * ayudan a pagar el viaje; en un ciclo, esa esporulación también puede cumplirlo antes de irse. El
+ * nivel vuelve a 0 (el territorio no viaja); las esporas que quedan, las mutaciones y las
+ * adaptaciones viajan en las esporas. Todo se valida antes de mutar. Los votos solo se juran al
+ * sembrar, y llegan con su bloque: hasta entonces ningún viaje lleva votos.
  */
 export function disperse(
   state: GameState,
@@ -246,25 +259,38 @@ export function disperse(
   if (disperseBlock(state) !== null || !windTargets(state).some((target) => target.biome === to)) return;
   const now = payload.now;
   const from = state.forest.biome;
+  const sowing = state.forest.leg === RETURN_LEG;
+  const cost = departureCost(state);
   const gained = canSporulate(state) ? sporeGain(state) : 0;
-  if (gained > 0) recordSporulation(state, gained, now);
+  if (gained > 0) {
+    recordSporulation(state, gained, now);
+    // Con el bosque de este ciclo aún en su sitio: el récord es de aquí y cuenta desde su llegada.
+    checkCycleDone(state, gained, now);
+  }
 
-  // La entrada del bosque que se deja recuerda cuándo se fue y hasta dónde llegó.
-  const entry = state.chronicle.find((e) => e.leg === state.forest.leg);
+  // La entrada del bosque que se deja recuerda cuándo se fue y hasta dónde llegó. En el tramo 5 la
+  // entrada es la de El regreso, que se cierra una vez y no se deja: sembrar no la toca.
+  const entry = sowing ? undefined : state.chronicle.find((e) => e.leg === state.forest.leg);
   if (entry) {
     entry.leftAt = now;
     entry.levelReached = state.spores.level;
   }
-  state.spores.available -= DISPERSE_COST;
+  state.spores.available -= cost;
   state.spores.level = 0;
   state.forest = {
     biome: to,
-    leg: state.forest.leg + 1,
+    // El ciclo libre vive entero en el tramo 5: la Crónica se queda en seis entradas.
+    leg: sowing ? RETURN_LEG : state.forest.leg + 1,
     earned: 0,
     arrivedAt: now,
     arrivalSporulations: state.stats.sporulations,
     arrivalPlayTime: state.stats.totalTime,
   };
+  if (sowing) {
+    state.cycle.stays += 1;
+    state.cycle.vows = [];
+    state.cycle.woken = [];
+  }
   // Con el bosque ya cambiado: la espera de la lluvia se sortea con la del destino.
   startRun(state, now, DISPERSE_RESET, true);
 

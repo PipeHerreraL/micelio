@@ -93,7 +93,8 @@ export const BIOMES: readonly BiomeDef[] = [
     // y duraba 1:30 h (prototipo R). Escala: con la del prototipo, 6,3e13, El regreso se cumplía en
     // 2,94–3,12 h y las partidas de un orden pasaban de 35 min de mediana (35:50); con 5,2e13, aún
     // 35:05; con 4,8e13, 2,36–2,66 h, partidas de 26:47–30:53 y la más larga en 37:28–51:31
-    // (simulador, los cuatro órdenes).
+    // (simulador, los cuatro órdenes). En el ciclo libre, la misma: la primera vuelta lo cumple en
+    // 2,29 h con partidas de 26:00 y la más larga en 41:59 (simulador).
     cycleScale: 4.8e13,
     cycleRequirement: 6,
   },
@@ -113,7 +114,9 @@ export const BIOMES: readonly BiomeDef[] = [
     offlineHours: 0,
     thawAfterHours: null,
     // Ciclo libre (fase 10), valores de partida del prototipo R: con R ×1 la partida más larga de
-    // la primera vuelta duraba 1:12–1:15; con 4,6e13 (×0,6) y requisito 5, 45:02–48:59.
+    // la primera vuelta duraba 1:12–1:15; con 4,6e13 (×0,6) y requisito 5, 45:02–48:59. En el
+    // simulador, 48:54, partidas de 30:25 y el ciclo en 2,72 h; en el régimen estable la más corta
+    // (sin la que cumple la meta) queda en 10:12, al borde de los 10 min.
     cycleScale: 4.6e13,
     cycleRequirement: 5,
   },
@@ -134,8 +137,11 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
-    // Ciclo libre, valores de partida (R): queda al límite, con la más larga en 1:00:10–1:02:34.
-    cycleScale: 5e14,
+    // Ciclo libre: al límite en las dos direcciones, como ya decía el prototipo R. Con 5e14 las
+    // partidas del régimen estable duraban 14:50 de mediana, por debajo de 15 min; con 5,4e14, 15:21,
+    // y la más larga de la primera vuelta queda en 56:52 (simulador). Si hubiera que elegir, manda
+    // la más larga ≤ 60 min: es el muro que la fase resuelve.
+    cycleScale: 5.4e14,
     cycleRequirement: 6,
   },
   {
@@ -157,8 +163,9 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 1,
     offlineHours: 0,
     thawAfterHours: null,
-    // Ciclo libre, valores de partida (R).
-    cycleScale: 4e13,
+    // Ciclo libre: con 4e13 (R) las partidas de la primera vuelta duraban 35:34 de mediana, por
+    // encima de 35 min; con 3,7e13, 31:52, el ciclo en 3,05 h y la más larga en 55:23 (simulador).
+    cycleScale: 3.7e13,
     cycleRequirement: 6,
   },
   {
@@ -184,8 +191,9 @@ export const BIOMES: readonly BiomeDef[] = [
     productionFactor: 0.5,
     offlineHours: 24,
     thawAfterHours: 8,
-    // Ciclo libre, valores de partida (R).
-    cycleScale: 5e12,
+    // Ciclo libre: con 5e12 (R) las partidas de la primera vuelta duraban 35:01 de mediana; con
+    // 4,6e12, 33:55 y el ciclo en 2,97 h (simulador).
+    cycleScale: 4.6e12,
     cycleRequirement: 6,
   },
 ];
