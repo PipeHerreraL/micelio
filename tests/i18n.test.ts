@@ -121,9 +121,9 @@ describe('catálogos de las noticias (llegan aparte)', () => {
   };
   const ids = new Set(NEWS.map((n) => n.id));
   const destinations = new Set<string>(DESTINATION_IDS);
-  /** Las que solo pueden salir tras dispersar una vez: en un destino o con una dispersión. */
+  /** Las que solo pueden salir tras dispersar una vez: en un destino, con una dispersión o de vuelta en casa. */
   const afterDispersal = new Set(
-    NEWS.filter((n) => n.when.kind === 'biome' || n.when.kind === 'dispersals').map((n) => n.id),
+    NEWS.filter((n) => ['biome', 'dispersals', 'returned'].includes(n.when.kind)).map((n) => n.id),
   );
 
   it('cada noticia tiene su texto en los dos idiomas, ninguno vacío y sin marcadores', () => {

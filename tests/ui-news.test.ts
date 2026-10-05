@@ -76,6 +76,28 @@ describe('noticias de los biomas (fase 10)', () => {
     expect(text()).toBe(biomeNewsEs['prairie.arrival']);
   });
 
+  it('de vuelta en el natal salen las noticias de El regreso; en el viaje, todavía no', () => {
+    const state = inPrairie();
+    provideNewsCatalog('es', newsEs);
+    provideBiomeNewsCatalog('es', biomeNewsEs);
+    // Con el azar casi en 1 no toca una del bioma: sale la última de las que se pueden ver, en el
+    // orden de data/news.ts, donde las de El regreso van detrás de las del viento.
+    vi.spyOn(Math, 'random').mockReturnValue(0.999);
+    const first = createNewsTicker();
+    first.update(state, 0);
+    expect(first.root.querySelector('.news__text')?.textContent).toBe(biomeNewsEs['wind.altitude']);
+    state.spores.level = 500;
+    checkColonization(state, NOW + 6000);
+    disperse(state, { to: 'tundra', now: NOW + 7000 });
+    state.spores.level = 500;
+    checkColonization(state, NOW + 8000);
+    disperse(state, { to: 'natal', now: NOW + 9000 });
+    expect(state.forest).toMatchObject({ biome: 'natal', leg: 5 });
+    const home = createNewsTicker();
+    home.update(state, 0);
+    expect(home.root.querySelector('.news__text')?.textContent).toBe(biomeNewsEs['return.sporeBank']);
+  });
+
   it('en la pradera y la tundra, la piña es una bellota y un arándano, y en el natal sigue siendo una piña', () => {
     provideNewsCatalog('es', newsEs);
     provideBiomeNewsCatalog('es', biomeNewsEs);

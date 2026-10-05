@@ -120,6 +120,19 @@ export const biomeNewsEs = {
   'wind.altitude':
     'Se han recogido esporas de hongos a kilómetros de altura en la atmósfera. El viento lleva pasajeros que no salen en los mapas.',
   postcard: 'El bosque natal recibe una postal: «Aquí todo bien. Mucha lluvia. Os escribo por la red».',
+  // De vuelta en el natal (El regreso y el ciclo libre)
+  'return.mycorrhizal':
+    'Siete de cada diez especies de plantas viven con hongos micorrícicos arbusculares, y solo un 8 % no tiene micorriza de ninguna clase (Brundrett y Tedersoo, 2018).',
+  'return.rhynie':
+    'En el sílex de Rhynie, en Escocia, una planta de hace unos 400 millones de años guarda arbúsculos dentro de sus células: la micorriza es casi tan vieja como las plantas de tierra firme (Remy y colegas, 1994).',
+  'return.sporeAir':
+    'Los hongos sueltan al aire unos 50 millones de toneladas de esporas al año (Elbert y colegas, 2007). Tu linaje volvió a casa en unas pocas.',
+  'return.sugarcaneRust':
+    'En 1978 la roya de la caña de azúcar apareció en la República Dominicana. Sus esporas habrían cruzado el Atlántico desde Camerún con el viento, en unos nueve días (Purdy y colegas, 1985).',
+  'return.oldGrowth':
+    'Un bosque tarda siglos en volver a ser viejo: los de abeto de Douglas necesitan unos 175–250 años para tener árboles enormes, troncos muertos en pie y madera caída (Franklin y Spies, 1991).',
+  'return.sporeBank':
+    'En California hay esporas de Rhizopogon enterradas en un experimento de 99 años. En los cuatro primeros no perdieron fuerza: cada vez más despertaban junto a las raíces de un pino (Bruns y colegas, 2009).',
   // En la taiga y la pradera llueve la mitad; en la tundra, un tercio.
   'postcard.taiga':
     'El bosque natal recibe una postal: «Aquí todo bien. Frío y poca lluvia. Os escribo por la red».',

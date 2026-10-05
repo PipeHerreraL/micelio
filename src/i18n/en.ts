@@ -251,6 +251,7 @@ export const en: Catalog = {
   'sporulate.confirm.no': 'Keep growing',
   'sporulate.done.one': 'Sporulated: +{count} spore',
   'sporulate.done.other': 'Sporulated: +{count} spores',
+  'sporulate.completesReturn': 'This sporulation completes the return.',
 
   // Mutaciones
   'mutations.title': 'Mutations',
@@ -386,9 +387,7 @@ export const en: Catalog = {
   'wind.needColonize': 'First colonize this biome: level {goal}.',
   'wind.needSpores.one': '{count} more spore needed for the journey.',
   'wind.needSpores.other': '{count} more spores needed for the journey.',
-  'wind.last': 'This is the last biome in this version of Micelio: colonize it to complete the journey.',
-  'wind.none':
-    'There are no new biomes to travel to in this version of Micelio. Your network can keep growing here, unhurried.',
+  'wind.last': 'This is the last biome of the journey: colonize it and the wind will blow you back home.',
   'wind.ring2':
     'Past the treeline: two more biomes open once your lineage colonizes the taiga and the Chocó rainforest.',
   'wind.confirm.title': 'Disperse your lineage?',
@@ -411,6 +410,12 @@ export const en: Catalog = {
   'wind.gained.one': 'You sporulated before leaving: +{count} spore.',
   'wind.gained.other': 'You sporulated before leaving: +{count} spores.',
   'wind.colonized': 'Biome colonized: {name}. Your lineage now produces ×{factor} in every biome.',
+  'wind.return.go': 'Return to the home forest',
+  'wind.return.style': 'A thousand years later: the journey ends where it began.',
+  'wind.return.goal': 'Reach level {goal} in the home forest to complete the journey.',
+  'wind.return.confirmTitle': 'Return to the home forest?',
+  'wind.return.yes': 'Return',
+  'wind.returned': 'The return is complete: your network closes the journey in the home forest.',
   'actOne.announce': 'End of Act I. The spore wind can now carry you to other biomes.',
   'hint.wind':
     "There's no rush to disperse: stay here as long as you like. In a new biome, runs last as long as they did at the start, with new rules.",
@@ -473,6 +478,21 @@ export const en: Catalog = {
   'chapter.tundra.colonize.line1':
     'Under the snow the cold arrives muffled, and your hyphae keep working all winter, like the snow molds.',
   'chapter.tundra.colonize.line2': 'The tundra is now part of your lineage.',
+  'chapter.homeward': 'The wind changes direction: it blows toward home.',
+  'chapter.epilogue.kicker': 'Epilogue',
+  'chapter.return.arrive.title': 'The return',
+  'chapter.return.arrive.line1':
+    'A thousand years later, the wind carries your lineage back to the forest where it all began.',
+  'chapter.return.arrive.line2':
+    'The trees you knew have fallen, and the soil kept them. Beneath the new forest another network pulses: yours.',
+  'chapter.return.arrive.line3': 'Your spore level starts at 0. Reach level {goal} to complete the journey.',
+  'chapter.return.close.title': 'The planetary network',
+  'chapter.return.close.line1':
+    'Home forest, taiga, rainforest, prairie and tundra: your network joins them all.',
+  'chapter.return.close.line2':
+    'The largest known fungus, an Armillaria in Oregon, covers about 9 km². No network spans the planet, but mycorrhizal fungi live with most of the plants on Earth.',
+  'chapter.return.close.line3': 'You can sow any biome again.',
+  'chapter.toCycle': 'See the free cycle',
   // Crónica
   'chronicle.title': 'Chronicle',
   'chronicle.intro': 'Every biome your lineage inhabits is written here.',
@@ -497,6 +517,12 @@ export const en: Catalog = {
   'chronicle.reread.arrive.label': 'Reread the arrival: {name}',
   'chronicle.reread.colonize': 'Reread the colonization',
   'chronicle.reread.colonize.label': 'Reread the colonization: {name}',
+  'chronicle.status.return': 'The return',
+  'chronicle.return.current': 'The return, in progress',
+  'chronicle.returnIn.one': 'Completed on {date}, in {count} run and {time} of play',
+  'chronicle.returnIn.other': 'Completed on {date}, in {count} runs and {time} of play',
+  'chronicle.reread.return.arrive': 'Reread “The return”',
+  'chronicle.reread.return.close': 'Reread “The planetary network”',
   'hint.chronicle': 'Plates you close can be reread here.',
   // Adaptaciones de bioma
   'adapt.group.network': 'From the network',

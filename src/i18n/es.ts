@@ -257,6 +257,7 @@ export const es = {
   'sporulate.confirm.no': 'Seguir creciendo',
   'sporulate.done.one': 'Esporulaste: +{count} espora',
   'sporulate.done.other': 'Esporulaste: +{count} esporas',
+  'sporulate.completesReturn': 'Esta esporulación cierra El regreso.',
 
   // Mutaciones
   'mutations.title': 'Mutaciones',
@@ -391,9 +392,7 @@ export const es = {
   'wind.needColonize': 'Antes hay que colonizar este bioma: nivel {goal}.',
   'wind.needSpores.one': 'Falta {count} espora para el viaje.',
   'wind.needSpores.other': 'Faltan {count} esporas para el viaje.',
-  'wind.last': 'Este es el último bioma de esta versión de Micelio: colonízalo para cerrar el viaje.',
-  'wind.none':
-    'No quedan biomas nuevos adonde viajar en esta versión de Micelio. Tu red puede seguir creciendo aquí, sin prisa.',
+  'wind.last': 'Este es el último bioma del viaje: colonízalo y el viento soplará de vuelta a casa.',
   'wind.ring2':
     'Donde acaban los árboles: dos biomas más se abren cuando tu linaje colonice la taiga y la selva del Chocó.',
   'wind.confirm.title': '¿Dispersar tu linaje?',
@@ -416,6 +415,13 @@ export const es = {
   'wind.gained.one': 'Esporulaste antes de partir: +{count} espora.',
   'wind.gained.other': 'Esporulaste antes de partir: +{count} esporas.',
   'wind.colonized': 'Bioma colonizado: {name}. Tu linaje produce ×{factor} en todos los biomas.',
+  // El regreso (fase 10): de vuelta al natal tras el cuarto bioma
+  'wind.return.go': 'Volver al bosque natal',
+  'wind.return.style': 'Mil años después: el viaje termina donde empezó.',
+  'wind.return.goal': 'Llega al nivel {goal} en el bosque natal para cerrar el viaje.',
+  'wind.return.confirmTitle': '¿Volver al bosque natal?',
+  'wind.return.yes': 'Volver',
+  'wind.returned': 'El regreso, cumplido: tu red cierra el viaje en el bosque natal.',
   'actOne.announce': 'Fin del Acto I. El viento de esporas ya puede llevarte a otros biomas.',
   'hint.wind':
     'Dispersar no tiene prisa: puedes quedarte aquí lo que quieras. En un bioma nuevo, las partidas vuelven a durar lo que al principio, con reglas nuevas.',
@@ -478,6 +484,21 @@ export const es = {
   'chapter.tundra.colonize.line1':
     'Bajo la nieve, el frío llega amortiguado y tus hifas siguen trabajando todo el invierno, como los mohos de nieve.',
   'chapter.tundra.colonize.line2': 'La tundra ya forma parte de tu linaje.',
+  'chapter.homeward': 'El viento cambia de dirección: sopla hacia casa.',
+  'chapter.epilogue.kicker': 'Epílogo',
+  'chapter.return.arrive.title': 'El regreso',
+  'chapter.return.arrive.line1':
+    'Mil años después, el viento devuelve tu linaje al bosque donde empezó todo.',
+  'chapter.return.arrive.line2':
+    'Los árboles que conociste cayeron y el suelo los guardó. Bajo el bosque nuevo late otra red: la tuya.',
+  'chapter.return.arrive.line3':
+    'Tu nivel de esporas empieza en 0. Llega al nivel {goal} para cerrar el viaje.',
+  'chapter.return.close.title': 'La red planetaria',
+  'chapter.return.close.line1': 'Bosque natal, taiga, selva, pradera y tundra: tu red las une a todas.',
+  'chapter.return.close.line2':
+    'El hongo más grande que se conoce, una Armillaria de Oregón, ocupa unos 9 km². Ninguna red cubre el planeta, pero los hongos micorrícicos viven con la mayoría de las plantas de la Tierra.',
+  'chapter.return.close.line3': 'Puedes volver a sembrar cualquier bioma.',
+  'chapter.toCycle': 'Ver el ciclo libre',
   // Crónica
   'chronicle.title': 'Crónica',
   'chronicle.intro': 'Cada bioma que habita tu linaje queda escrito aquí.',
@@ -502,6 +523,12 @@ export const es = {
   'chronicle.reread.arrive.label': 'Releer la llegada: {name}',
   'chronicle.reread.colonize': 'Releer la colonización',
   'chronicle.reread.colonize.label': 'Releer la colonización: {name}',
+  'chronicle.status.return': 'El regreso',
+  'chronicle.return.current': 'El regreso, en curso',
+  'chronicle.returnIn.one': 'Cumplido el {date}, en {count} partida y {time} de juego',
+  'chronicle.returnIn.other': 'Cumplido el {date}, en {count} partidas y {time} de juego',
+  'chronicle.reread.return.arrive': 'Releer «El regreso»',
+  'chronicle.reread.return.close': 'Releer «La red planetaria»',
   'hint.chronicle': 'Las láminas que cierres se pueden releer aquí.',
   // Adaptaciones de bioma
   'adapt.group.network': 'De la red',

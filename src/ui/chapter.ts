@@ -1,22 +1,27 @@
 /**
  * Láminas del viaje (docs/ROADMAP.md, fases 8 y 10): el fin del Acto I, la llegada a cada bioma y
- * su colonización, y la apertura del segundo anillo; y las de los socios (fase 9): su llegada y
- * cada placa cartografiada. La cola se calcula del estado, no de los eventos: así sale igual tras
- * el progreso offline, una migración o una recarga con la lámina abierta (vuelve a salir hasta que
- * se cierra, y entonces queda en `seen`).
+ * su colonización, la apertura del segundo anillo y las dos de El regreso (la llegada al natal y
+ * «La red planetaria» al cumplirlo); y las de los socios (fase 9): su llegada y cada placa
+ * cartografiada. La cola se calcula del estado, no de los eventos: así sale igual tras el progreso
+ * offline, una migración o una recarga con la lámina abierta (vuelve a salir hasta que se cierra, y
+ * entonces queda en `seen`). Las claves de `seen` son fijas: ninguna crece con los ciclos.
  */
 import { markSeen } from '../core/actions.ts';
-import { destinations, isActOneClosed, isColonized, openRing } from '../core/forest.ts';
+import { isActOneClosed, isColonized, isReturnClosed, openRing, windTargets } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
 import {
   COLONIZE_LEVEL,
   LINEAGE_FACTOR,
+  RETURN_LEG,
   getBiome,
   isDestinationId,
   type BiomeId,
   type DestinationId,
 } from '../data/biomes.ts';
+import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
 import { PLATES } from '../data/plasmodium-plates.ts';
+import { SOIL_PALETTES } from '../render/palettes.ts';
+import { drawPlanetaryBand, planetaryLit, planetaryStrips } from '../render/planetary-band.ts';
 import { formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
 import { partnerText } from '../i18n/partners/index.ts';
@@ -32,6 +37,9 @@ export type Chapter =
   | { kind: 'colonize'; biome: DestinationId }
   /** «Donde acaban los árboles»: el primer anillo colonizado entero abre la pradera y la tundra. */
   | { kind: 'ring2' }
+  /** El regreso (fase 10): la llegada al natal en el tramo 5 y, al cumplirlo, la red planetaria. */
+  | { kind: 'returnArrive' }
+  | { kind: 'returnClose' }
   | { kind: 'partner'; partner: PartnerId }
   | { kind: 'plate'; plate: number };
 
@@ -41,6 +49,10 @@ export function chapterSeenKey(chapter: Chapter): string {
       return 'chapter.act1';
     case 'ring2':
       return 'chapter.ring2';
+    case 'returnArrive':
+      return 'chapter.return.arrive';
+    case 'returnClose':
+      return 'chapter.return.close';
     case 'partner':
       return `chapter.partner.${chapter.partner}`;
     case 'plate':
@@ -72,8 +84,9 @@ function ringOneCloser(state: GameState): BiomeId | null {
 }
 
 /**
- * La primera lámina sin ver, en el orden del viaje: Acto I; por bioma, llegada y colonización; y,
- * tras la colonización que cierra el primer anillo, la de «Donde acaban los árboles».
+ * La primera lámina sin ver, en el orden del viaje: Acto I; por bioma, llegada y colonización;
+ * tras la colonización que cierra el primer anillo, la de «Donde acaban los árboles»; y en el
+ * tramo 5, la llegada de El regreso y, cumplido, «La red planetaria».
  */
 export function pendingChapter(state: GameState): Chapter | null {
   if (!isActOneClosed(state)) return null;
@@ -83,6 +96,10 @@ export function pendingChapter(state: GameState): Chapter | null {
     if (!isColonized(state, biome)) continue;
     queue.push({ kind: 'colonize', biome });
     if (biome === ringOneCloser(state)) queue.push({ kind: 'ring2' });
+  }
+  if (state.forest.leg === RETURN_LEG) {
+    queue.push({ kind: 'returnArrive' });
+    if (isReturnClosed(state)) queue.push({ kind: 'returnClose' });
   }
   // Socios: su llegada y, por orden, cada placa cartografiada (calculado del estado: sale igual
   // tras el progreso offline o una recarga).
@@ -127,6 +144,7 @@ export function openChapter(
   let kicker: string;
   let title: string;
   let biome: string | undefined;
+  let band: HTMLCanvasElement | null = null;
 
   switch (chapter.kind) {
     case 'act1':
@@ -222,15 +240,65 @@ export function openChapter(
         t(`chapter.${b}.colonize.line2` as MessageKey),
         t('chapter.lineage', { factor: formatFactor(LINEAGE_FACTOR ** leg, getLocale()) }),
       );
-      const ahead = !options.reread && destinations(state).length > 0;
+      // Lo que sigue sale de `windTargets`, como en Viento: otro destino o, tras el cuarto, casa.
+      const next = options.reread ? undefined : windTargets(state)[0];
       // La colonización que cierra el primer anillo no lleva al viento: la lámina siguiente, la del
       // anillo 2, lo presenta y lleva allí (dos «Ver el viento» seguidos).
-      const more = ahead && !(b === ringOneCloser(state) && !hasSeen(state, 'chapter.ring2'));
-      if (!options.reread) body.push(ahead ? t('chapter.next') : t('wind.none'));
+      const more = next !== undefined && !(b === ringOneCloser(state) && !hasSeen(state, 'chapter.ring2'));
+      if (next) body.push(next.kind === 'return' ? t('chapter.homeward') : t('chapter.next'));
       actions.push({ label: t('chapter.close'), kind: more ? 'quiet' : 'primary', autofocus: true });
       if (more) {
         actions.push({
           label: t('chapter.toWind'),
+          kind: 'primary',
+          onSelect: () => {
+            choice = 'wind';
+            return undefined;
+          },
+        });
+      }
+      break;
+    }
+    case 'returnArrive':
+      kicker = t('chapter.epilogue.kicker');
+      title = t('chapter.return.arrive.title');
+      biome = 'natal';
+      body.push(
+        t('chapter.return.arrive.line1'),
+        h('p', { class: 'modal__quote', text: t('chapter.return.arrive.line2') }),
+        t('chapter.return.arrive.line3', { goal: formatCount(CYCLE_GOAL_LEVEL) }),
+      );
+      // Como la llegada a un bioma: se empieza a crecer y el foco va al núcleo.
+      actions.push({
+        label: t('chapter.begin'),
+        kind: 'primary',
+        autofocus: true,
+        onSelect: () => {
+          choice = 'begin';
+          return undefined;
+        },
+      });
+      break;
+    case 'returnClose': {
+      kicker = t('chapter.epilogue.kicker');
+      title = t('chapter.return.close.title');
+      biome = 'natal';
+      band = h('canvas', { class: 'modal__band', attrs: { 'aria-hidden': 'true' } });
+      body.push(
+        band,
+        t('chapter.return.close.line1'),
+        h('p', { class: 'modal__quote', text: t('chapter.return.close.line2') }),
+        t('chapter.return.close.line3'),
+      );
+      // El foco en «Seguir creciendo»: la lámina sale justo tras la esporulación que cumple.
+      actions.push({
+        label: t('chapter.close'),
+        kind: options.reread ? 'primary' : 'quiet',
+        autofocus: true,
+      });
+      if (!options.reread) {
+        actions.push({
+          label: t('chapter.toCycle'),
           kind: 'primary',
           onSelect: () => {
             choice = 'wind';
@@ -324,8 +392,30 @@ export function openChapter(
         } else if (choice === 'partner' && chapter.kind === 'partner') nav.toPartner(chapter.partner);
         else if (choice === 'nextPlate' && chapter.kind === 'plate')
           nav.toPartner('plasmodium', chapter.plate + 1);
-        else if (chapter.kind === 'arrive' && !options.reread) nav.toCore();
+        else if ((chapter.kind === 'arrive' || chapter.kind === 'returnArrive') && !options.reread) {
+          nav.toCore();
+        }
       });
     },
   });
+  // El lienzo de la red planetaria se dibuja una vez, ya con el modal abierto y medido.
+  if (band) paintBand(band, state);
+}
+
+/**
+ * La banda de la lámina de cierre: a lo ancho del cuerpo del modal y con el alto que le da el CSS.
+ * Sin tamaño o sin lienzo (pruebas sin navegador) no dibuja nada: es decorativa (aria-hidden).
+ */
+function paintBand(canvas: HTMLCanvasElement, state: GameState): void {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.round(rect.width * dpr);
+  const h = Math.round(rect.height * dpr);
+  if (w < 2 || h < 2) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  canvas.width = w;
+  canvas.height = h;
+  const strips = planetaryStrips(state).map((id) => SOIL_PALETTES[id]);
+  drawPlanetaryBand(ctx, { x: 0, y: 0, w, h }, strips, planetaryLit(state), { dpr, backdrop: true });
 }

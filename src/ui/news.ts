@@ -4,6 +4,7 @@
  * y anunciarla interrumpiría.
  */
 import { dispersalCount } from '../core/forest.ts';
+import { RETURN_LEG } from '../data/biomes.ts';
 import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { mappedCount } from '../partners/plasmodium/state.ts';
@@ -37,6 +38,8 @@ function unlocked(state: GameState, def: NewsDef): boolean {
       const p = state.partners[c.id];
       return p !== null && (c.mapped === undefined || mappedCount(p) >= c.mapped);
     }
+    case 'returned':
+      return state.forest.leg >= RETURN_LEG;
   }
 }
 

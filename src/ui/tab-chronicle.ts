@@ -1,12 +1,19 @@
 /**
- * Pestaña Crónica (docs/ROADMAP.md, fase 8): una entrada por bosque del viaje, del natal al
- * actual, con lo que costó cerrarlo y botones para releer sus láminas. Aparece con el Acto I.
- * La lista se rehace solo al cerrar un bosque o al viajar; lo que cambia dentro de una partida
- * (nivel, progreso) se actualiza con setText.
+ * Pestaña Crónica (docs/ROADMAP.md, fases 8 y 10): una entrada por bosque del viaje, del natal al
+ * actual y El regreso, con lo que costó cerrarlo y botones para releer sus láminas. Aparece con el
+ * Acto I. La lista se rehace solo al cerrar un bosque o al viajar; lo que cambia dentro de una
+ * partida (nivel, progreso) se actualiza con setText. El Acto I se reconoce por el tramo 0 y El
+ * regreso por el 5, no por el bioma: los dos son el natal.
  */
 import { colonizedCount, forestGoal, isActOneClosed, lineageFactor } from '../core/forest.ts';
 import type { ChronicleEntry, GameState } from '../core/state.ts';
-import { BIOME_ADAPTATIONS, HOME_BIOME, type BiomeId, type DestinationId } from '../data/biomes.ts';
+import {
+  BIOME_ADAPTATIONS,
+  HOME_BIOME,
+  RETURN_LEG,
+  type BiomeId,
+  type DestinationId,
+} from '../data/biomes.ts';
 import { formatDay, formatDuration, formatFactor } from '../i18n/format.ts';
 import { formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { biomeName, biomeRules } from './biome-text.ts';
@@ -136,7 +143,9 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
   }
 
   function colonizedEntry(state: GameState, entry: ChronicleEntry, biome: DestinationId): HTMLElement {
-    const here = state.forest.biome === biome;
+    // Actual solo en su tramo: un ciclo libre en el mismo bioma (fase 10) no pisa con su nivel en
+    // vivo el que se alcanzó en el viaje.
+    const here = entry.leg === state.forest.leg;
     const level = h('p', { class: 'tabular' });
     if (here) live.level = level;
     else setText(level, t('chronicle.level', { level: formatCount(entry.levelReached ?? 0) }));
@@ -185,6 +194,60 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     return entryRoot(biome, 'chronicle.status.current', true, lines, [arriveButton(biome)]);
   }
 
+  /** Releer las láminas de El regreso: la llegada siempre; «La red planetaria», ya cumplido. */
+  function returnButtons(closed: boolean): HTMLButtonElement[] {
+    const buttons = [
+      rereadButton(t('chronicle.reread.return.arrive'), null, () => {
+        openChapter(store, { kind: 'returnArrive' }, nav, { reread: true });
+      }),
+    ];
+    if (closed) {
+      buttons.push(
+        rereadButton(t('chronicle.reread.return.close'), null, () => {
+          openChapter(store, { kind: 'returnClose' }, nav, { reread: true });
+        }),
+      );
+    }
+    return buttons;
+  }
+
+  /** El regreso cumplido: la sexta entrada. Sin ciclos, el linaje sigue viviendo en ella. */
+  function returnEntry(state: GameState, entry: ChronicleEntry): HTMLElement {
+    const here = entry.leg === state.forest.leg && state.cycle.stays === 0;
+    const lines: Node[] = [
+      h('p', { text: t('chronicle.arrived', { date: day(entry.arrivedAt) }) }),
+      h('p', {
+        class: 'tabular',
+        text: tp('chronicle.returnIn', entry.sporulations, {
+          date: day(entry.colonizedAt ?? entry.arrivedAt),
+          time: duration(entry.playTime),
+        }),
+      }),
+    ];
+    // El nivel en vivo, mientras se viva aquí; la entrada no guarda uno propio (no se deja).
+    if (here) {
+      const level = h('p', { class: 'tabular' });
+      live.level = level;
+      lines.push(level);
+    }
+    return entryRoot(HOME_BIOME, 'chronicle.status.return', here, lines, returnButtons(true));
+  }
+
+  /** El regreso en curso: aún sin entrada, con su progreso hasta el nivel 500. */
+  function returnCurrentEntry(state: GameState): HTMLElement {
+    const progress = h('span', { class: 'tabular' });
+    const fill = h('span', { class: 'bar__fill' });
+    const bar = h('span', { class: 'bar bar--thin', attrs: { 'aria-hidden': 'true' } }, [fill]);
+    const here = h('p', { class: 'tabular' });
+    live = { level: null, progress, bar: fill, here };
+    const lines: Node[] = [
+      h('p', { text: t('chronicle.arrived', { date: day(state.forest.arrivedAt) }) }),
+      h('p', { class: 'chronicle__progress' }, [progress, bar]),
+      here,
+    ];
+    return entryRoot(HOME_BIOME, 'chronicle.return.current', true, lines, returnButtons(false));
+  }
+
   function build(state: GameState): void {
     // Si el foco estaba en un botón de la lista, se va con ella: pasa al panel de la pestaña,
     // que es enfocable (familia de BUG-JOURNAL #5 y #8).
@@ -195,12 +258,16 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     learned = [];
     const items: HTMLElement[] = [];
     for (const entry of state.chronicle) {
-      if (entry.biome === 'natal') items.push(natalEntry(state, entry));
-      else items.push(colonizedEntry(state, entry, entry.biome));
+      if (entry.leg === 0) items.push(natalEntry(state, entry));
+      else if (entry.leg === RETURN_LEG) items.push(returnEntry(state, entry));
+      else if (entry.biome !== HOME_BIOME) items.push(colonizedEntry(state, entry, entry.biome));
     }
-    // El destino que aún se coloniza no tiene entrada: se muestra en curso, con su progreso.
+    // El destino que aún se coloniza, y El regreso sin cumplir, no tienen entrada: se muestran en
+    // curso, con su progreso.
     const biome = state.forest.biome;
-    if (forestGoal(state).kind === 'colonize' && biome !== HOME_BIOME) items.push(currentEntry(state, biome));
+    const goal = forestGoal(state).kind;
+    if (goal === 'colonize' && biome !== HOME_BIOME) items.push(currentEntry(state, biome));
+    else if (goal === 'return') items.push(returnCurrentEntry(state));
     list.replaceChildren(...items);
     if (hadFocus) root.closest<HTMLElement>('[role="tabpanel"]')?.focus();
   }

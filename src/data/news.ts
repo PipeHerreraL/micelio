@@ -1,8 +1,8 @@
 /**
  * Noticias del sotobosque (PROMPT.md §12): una línea al pie que cambia cada 20 s. Cada
  * noticia se desbloquea con el progreso. El texto vive en src/i18n/news con el id como clave; las
- * que piden haber dispersado ('biome' y 'dispersals'), en src/i18n/news/biomes, que solo se
- * descarga entonces.
+ * que piden haber dispersado ('biome', 'dispersals' y 'returned'), en src/i18n/news/biomes, que
+ * solo se descarga entonces.
  */
 import type { DestinationId } from './biomes.ts';
 import type { GeneratorId } from './generators.ts';
@@ -18,7 +18,9 @@ export type NewsCondition =
   | { kind: 'biome'; biome: DestinationId; level?: number; owned?: { id: GeneratorId; count: number } }
   | { kind: 'dispersals'; count: number }
   /** Con un socio (fase 9), y si se pide, con un número de placas cartografiadas. */
-  | { kind: 'partner'; id: PartnerId; mapped?: number };
+  | { kind: 'partner'; id: PartnerId; mapped?: number }
+  /** De vuelta en el natal (fase 10): desde la llegada de El regreso. */
+  | { kind: 'returned' };
 
 export interface NewsDef {
   id: string;
@@ -171,6 +173,13 @@ export const NEWS: readonly NewsDef[] = [
   { id: 'wind.rust', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.buller', when: { kind: 'dispersals', count: 1 } },
   { id: 'wind.altitude', when: { kind: 'dispersals', count: 1 } },
+  // El regreso y el ciclo libre (fase 10).
+  { id: 'return.mycorrhizal', when: { kind: 'returned' } },
+  { id: 'return.rhynie', when: { kind: 'returned' } },
+  { id: 'return.sporeAir', when: { kind: 'returned' } },
+  { id: 'return.sugarcaneRust', when: { kind: 'returned' } },
+  { id: 'return.oldGrowth', when: { kind: 'returned' } },
+  { id: 'return.sporeBank', when: { kind: 'returned' } },
   { id: 'plasmodium.notFungus', when: { kind: 'partner', id: 'plasmodium' } },
   { id: 'plasmodium.speed', when: { kind: 'partner', id: 'plasmodium' } },
   { id: 'plasmodium.shuttle', when: { kind: 'partner', id: 'plasmodium' } },

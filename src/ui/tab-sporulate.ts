@@ -8,7 +8,7 @@
  * cuándo esporular, porque la regla del mejor ritmo no es la mejor para colonizar
  * (ARCHITECTURE.md §4.28).
  */
-import { canSporulate, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
+import { canSporulate, completesGoal, nutrientsToNextSpore, sporeGain, sporulate } from '../core/actions.ts';
 import * as num from '../core/num.ts';
 import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
 import { sporulateRequirement } from '../core/forest.ts';
@@ -93,6 +93,14 @@ export function createSporulateTab(store: Store): TabView {
     uiIcon('sporulate'),
     h('span', { text: t('sporulate.button') }),
   ]);
+  // Cuando esta esporulación cumple la meta de El regreso (fase 10), el botón lo dice: quien
+  // esperara a duplicar el nivel cargaría la última partida con casi todo el tramo.
+  const goalNote = h('p', {
+    class: 'spore__goal',
+    id: 'spore-goal',
+    text: t('sporulate.completesReturn'),
+    attrs: { hidden: true },
+  });
   const hint = createHint(store, 'hint.sporulate', t('hint.sporulate'));
   const wind = createWindSection(store);
 
@@ -110,6 +118,7 @@ export function createSporulateTab(store: Store): TabView {
       ]),
     ]),
     button,
+    goalNote,
     wind.root,
   ]);
 
@@ -121,6 +130,7 @@ export function createSporulateTab(store: Store): TabView {
       variant: 'modal--spore',
       body: [
         h('p', { class: 'modal__lead', text: tp('sporulate.confirm.gain', gained) }),
+        ...(completesGoal(state) ? [t('sporulate.completesReturn')] : []),
         t('sporulate.confirm.bonus', {
           current: bonusPercent(state.spores.level, derived(state).sporeThreshold),
           next: bonusPercent(state.spores.level + gained, derived(state).sporeThreshold),
@@ -200,6 +210,10 @@ export function createSporulateTab(store: Store): TabView {
     setHidden(requirement, fraction >= 1);
     setAttr(button, 'aria-disabled', ready ? 'false' : 'true');
     toggleClass(button, 'is-unaffordable', !ready);
+    const completes = completesGoal(state);
+    setHidden(goalNote, !completes);
+    // Un aviso oculto citado por id se lee igual: sin aviso, no se cita (tab-mutations.ts).
+    setAttr(button, 'aria-describedby', completes ? goalNote.id : null);
     hint.update(true);
     wind.update();
   }

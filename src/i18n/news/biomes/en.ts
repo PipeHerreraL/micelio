@@ -116,6 +116,18 @@ export const biomeNewsEn: Readonly<Record<BiomeNewsKey, string>> = {
   'wind.altitude':
     'Fungal spores have been collected kilometers up in the atmosphere. The wind carries passengers no map shows.',
   postcard: 'The home forest gets a postcard: "All well here. Lots of rain. Will write through the network."',
+  'return.mycorrhizal':
+    'Seven in ten plant species live with arbuscular mycorrhizal fungi, and only 8% have no mycorrhiza of any kind (Brundrett and Tedersoo, 2018).',
+  'return.rhynie':
+    'In the Rhynie chert, in Scotland, a plant from about 400 million years ago holds arbuscules inside its cells: mycorrhiza is almost as old as plants on land (Remy and colleagues, 1994).',
+  'return.sporeAir':
+    'Fungi release some 50 million tonnes of spores into the air every year (Elbert and colleagues, 2007). Your lineage came home in a few of them.',
+  'return.sugarcaneRust':
+    'In 1978 sugarcane rust appeared in the Dominican Republic. Its spores probably crossed the Atlantic from Cameroon on the wind, in about nine days (Purdy and colleagues, 1985).',
+  'return.oldGrowth':
+    'A forest takes centuries to grow old again: Douglas-fir forests need about 175–250 years to have huge trees, standing dead trunks and fallen wood (Franklin and Spies, 1991).',
+  'return.sporeBank':
+    'In California, Rhizopogon spores are buried in a 99-year experiment. In the first four years they lost none of their strength: more and more woke up beside the roots of a pine (Bruns and colleagues, 2009).',
   // En la taiga y la pradera llueve la mitad; en la tundra, un tercio.
   'postcard.taiga':
     'The home forest gets a postcard: "All well here. Cold, not much rain. Will write through the network."',

@@ -21,6 +21,10 @@
  * gana una fase: con la red ya disuelta, el suelo nuevo se pinta en la capa acumulada (vacía
  * en ese momento) y se funde sobre el viejo. Se descartó un tercer lienzo para el suelo
  * anterior: costaba memoria todo el tiempo para un momento que pasa una vez por bioma.
+ *
+ * En el natal del tramo 5 (El regreso, fase 10), la banda de la Red planetaria
+ * (render/planetary-band.ts) ocupa el sitio del bosque lejano en la capa acumulada; solo se
+ * rehornea cuando se enciende un enlace, es decir, al esporular.
  */
 import type { GameEvent } from '../core/events.ts';
 import { dispersalCount } from '../core/forest.ts';
@@ -39,6 +43,7 @@ import {
   type SoilThreads,
 } from './palettes.ts';
 import { createParticlePool, PARTICLE_CREAM, PARTICLE_GLOW } from './particles.ts';
+import { drawPlanetaryBand, planetaryLit, planetaryStrips, showsPlanetaryBand } from './planetary-band.ts';
 import { createSeededRandom, mixSeed } from './random.ts';
 
 export interface NetworkView {
@@ -161,6 +166,8 @@ const BUTTRESS_RISE = 0.4;
 const GRASS_BLADES = 5;
 /** El pingo de la tundra: centro y medio ancho (fracciones del ancho del lienzo). */
 const PINGO_X = 0.68;
+/** Alto mínimo de la banda de la Red planetaria (px CSS): en el móvil la hojarasca mide 11–29 px. */
+const BAND_MIN_CSS = 28;
 const PINGO_HALF = 0.11;
 
 // ---------------------------------------------------------------------------------------
@@ -462,6 +469,14 @@ export function createNetworkView(
   let wantTrees = 0;
   let wantForest = 0;
   let wantSeed = 0;
+  // La Red planetaria (fase 10) en lugar del bosque lejano, mientras el linaje vive en el natal del
+  // tramo 5: si se ve y cuántos enlaces lleva encendidos. Las franjas solo cambian con la Crónica.
+  let band = false;
+  let bandLit = 0;
+  let wantBand = false;
+  let wantBandLit = 0;
+  let bandChronicle = -1;
+  const bandStrips: SoilPalette[] = [];
   // Bioma y viajes que pide el estado, y el bioma que está pintado en el fondo. Difieren solo
   // durante la dispersión: hasta que la red vieja se disuelve, sigue sobre su suelo.
   let wantBiome: BiomeId = options.biome;
@@ -1188,7 +1203,13 @@ export function createNetworkView(
     // Las siluetas usan el suelo que se ve, no el que pide el estado: durante la dispersión
     // la red vieja se disuelve sobre su propio bosque.
     const p = SOIL_PALETTES[bgBiome];
-    drawForest(p);
+    if (band) {
+      // En la hojarasca, donde el bosque lejano; con un alto mínimo para que se lea en el móvil.
+      const tall = Math.max(surfaceY(0.5) * H * 0.85, BAND_MIN_CSS * dpr);
+      drawPlanetaryBand(layer, { x: 0, y: 0, w: W, h: tall }, bandStrips, bandLit, { dpr, backdrop: false });
+    } else {
+      drawForest(p);
+    }
     drawRingFronts();
     drawTrees(p);
 
@@ -1899,6 +1920,16 @@ export function createNetworkView(
     wantRings = ringsFor(state.owned.fairyRing);
     wantTrees = treesFor(state.owned.motherTree);
     wantForest = forestFor(state.owned.ancientForest);
+    wantBand = showsPlanetaryBand(state);
+    wantBandLit = wantBand ? planetaryLit(state) : 0;
+    if (wantBand && state.chronicle.length !== bandChronicle) {
+      bandChronicle = state.chronicle.length;
+      const ids = planetaryStrips(state);
+      bandStrips.length = ids.length;
+      ids.forEach((id, i) => {
+        bandStrips[i] = SOIL_PALETTES[id];
+      });
+    }
     // Una red por partida y, desde el primer viaje, otra familia de redes por viaje.
     const sporulations = state.stats.sporulations;
     wantSeed =
@@ -1933,7 +1964,9 @@ export function createNetworkView(
       mushCount !== wantMush ||
       ringCount !== wantRings ||
       treeCount !== wantTrees ||
-      forestCount !== wantForest;
+      forestCount !== wantForest ||
+      band !== wantBand ||
+      bandLit !== wantBandLit;
     reach = wantReach;
     spread = wantSpread;
     cordTier = wantCordTier;
@@ -1944,6 +1977,8 @@ export function createNetworkView(
     ringCount = wantRings;
     treeCount = wantTrees;
     forestCount = wantForest;
+    band = wantBand;
+    bandLit = wantBandLit;
     return changed;
   }
 

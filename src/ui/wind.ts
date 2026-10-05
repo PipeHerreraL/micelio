@@ -1,8 +1,9 @@
 /**
  * Sección «Viento de esporas» de la pestaña Esporular (docs/ROADMAP.md, fases 8 y 10): dónde vive
- * el linaje, cuánto falta para colonizar, los destinos que quedan y su confirmación. Aparece con
- * el Acto I. Las filas de destino se crean una vez y se ocultan al visitarlas o mientras su anillo
- * no se abre; el foco nunca se queda en un botón que desaparece (BUG-JOURNAL #5 y #8).
+ * el linaje, cuánto falta para colonizar, los destinos que quedan (y, tras el cuarto, El regreso)
+ * y su confirmación. Aparece con el Acto I. Las filas se crean una vez y se ocultan al visitarlas o
+ * mientras su anillo no se abre; el foco nunca se queda en un botón que desaparece (BUG-JOURNAL #5
+ * y #8).
  */
 import { canSporulate, disperse, disperseBlock, disperseFunds, sporeGain } from '../core/actions.ts';
 import {
@@ -12,11 +13,14 @@ import {
   forestGoal,
   isActOneClosed,
   lineageFactor,
+  windTargets,
   type ForestGoal,
+  type WindTargetKind,
 } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
-import { COLONIZE_LEVEL, DESTINATION_IDS, DISPERSE_COST, type DestinationId } from '../data/biomes.ts';
+import { COLONIZE_LEVEL, DESTINATION_IDS, DISPERSE_COST, HOME_BIOME, type BiomeId } from '../data/biomes.ts';
+import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
 import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
 import { formatFactor } from '../i18n/format.ts';
 import { formatBonus, formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
@@ -42,7 +46,7 @@ export function soilSwatch(biome: string, extra = ''): HTMLElement {
   );
 }
 
-/** Texto del progreso del bosque actual (`forestGoal`): Acto I, colonización o colonizado. */
+/** Texto del progreso del bosque actual (`forestGoal`): Acto I, colonización, El regreso o cumplido. */
 export function forestProgressText(goal: ForestGoal): string {
   const level = formatCount(goal.level);
   switch (goal.kind) {
@@ -64,11 +68,18 @@ export function forestGoalFill(goal: ForestGoal): number | null {
   return 'goal' in goal ? goal.level / goal.goal : null;
 }
 
-interface DestinationRow {
-  biome: DestinationId;
+/** Una fila de Viento: un destino del viaje o El regreso. */
+interface TargetRow {
+  biome: BiomeId;
+  kind: WindTargetKind;
   root: HTMLElement;
   button: HTMLButtonElement;
   why: HTMLElement;
+}
+
+/** La meta de El regreso: en su fila, en su confirmación y durante el tramo. */
+function returnGoalText(): string {
+  return t('wind.return.goal', { goal: formatCount(CYCLE_GOAL_LEVEL) });
 }
 
 export function createWindSection(store: Store): WindSection {
@@ -94,17 +105,20 @@ export function createWindSection(store: Store): WindSection {
   const ring2 = h('p', { class: 'wind__ring2', text: t('wind.ring2'), attrs: { hidden: true } });
   const end = h('p', { class: 'wind__end', attrs: { hidden: true } });
 
-  const rows: DestinationRow[] = DESTINATION_IDS.map((biome) => {
-    const label = t(`biome.${biome}.go` as MessageKey);
-    const whyId = `wind-${biome}-why`;
-    const why = h('p', { class: 'wind__why', id: whyId, attrs: { hidden: true } });
+  /** Una fila: el suelo y el nombre, una línea de estilo, sus reglas y el botón de partir. */
+  function targetRow(biome: BiomeId, kind: WindTargetKind): TargetRow {
+    const home = kind === 'return';
+    const label = home ? t('wind.return.go') : t(`biome.${biome}.go` as MessageKey);
+    const style = home ? t('wind.return.style') : t(`biome.${biome}.style` as MessageKey);
+    const rules = home ? [returnGoalText()] : biomeRules(biome);
+    const why = h('p', { class: 'wind__why', id: `wind-${kind}-${biome}-why`, attrs: { hidden: true } });
     const button = h('button', { class: 'button button--primary wind__go', attrs: { type: 'button' } }, [
       uiIcon('wind'),
       h('span', { text: label }),
     ]);
     disposer.listen(button, 'click', () => {
       if (button.getAttribute('aria-disabled') === 'true') return;
-      confirm(biome);
+      confirm(biome, kind);
     });
     const root = h('li', { class: 'wind__dest' }, [
       h('div', { class: 'wind__place' }, [
@@ -114,18 +128,23 @@ export function createWindSection(store: Store): WindSection {
           text: t('caption.place', { name: biomeName(biome), soil: biomeSoil(biome) }),
         }),
       ]),
-      h('p', { class: 'wind__style', text: t(`biome.${biome}.style` as MessageKey) }),
+      h('p', { class: 'wind__style', text: style }),
       h(
         'ul',
         { class: 'wind__rules' },
-        biomeRules(biome).map((rule) => h('li', { text: rule })),
+        rules.map((rule) => h('li', { text: rule })),
       ),
       button,
       why,
     ]);
     list.append(root);
-    return { biome, root, button, why };
-  });
+    return { biome, kind, root, button, why };
+  }
+
+  const rows: TargetRow[] = [
+    ...DESTINATION_IDS.map((biome) => targetRow(biome, 'journey')),
+    targetRow(HOME_BIOME, 'return'),
+  ];
 
   const root = h('section', { class: 'wind', attrs: { hidden: true, 'aria-labelledby': 'wind-title' } }, [
     title,
@@ -147,13 +166,14 @@ export function createWindSection(store: Store): WindSection {
     return formatBonus(sporeFactor(level, threshold, SPORE_SOFTCAP_EXPONENT) - 1);
   }
 
-  function confirm(to: DestinationId): void {
+  function confirm(to: BiomeId, kind: WindTargetKind): void {
     const state = store.state;
+    const home = kind === 'return';
     const gained = canSporulate(state) ? sporeGain(state) : 0;
     const left = disperseFunds(state) - DISPERSE_COST;
     let dispersed = false;
     openModal({
-      title: t('wind.confirm.title'),
+      title: home ? t('wind.return.confirmTitle') : t('wind.confirm.title'),
       variant: 'modal--wind',
       biome: to,
       body: [
@@ -164,20 +184,21 @@ export function createWindSection(store: Store): WindSection {
         h(
           'ul',
           { class: 'modal__rules' },
-          biomeRules(to).map((rule) => h('li', { text: rule })),
+          (home ? [returnGoalText()] : biomeRules(to)).map((rule) => h('li', { text: rule })),
         ),
         gained > 0 ? tp('wind.confirm.gain', gained) : t('wind.confirm.noGain'),
         tp('wind.confirm.cost', left, { cost: formatCount(DISPERSE_COST) }),
         t('wind.confirm.bonus', { current: bonusPercent(state.spores.level + gained) }),
         t('wind.confirm.lose'),
         t('wind.confirm.keep'),
-        t('wind.confirm.oneWay'),
+        // «No se puede volver a un bioma que dejaste» sería falso de camino a casa.
+        ...(home ? [] : [t('wind.confirm.oneWay')]),
       ],
       actions: [
         // El foco empieza en quedarse: dispersar no se deshace.
         { label: t('wind.confirm.no'), kind: 'quiet', autofocus: true },
         {
-          label: t('wind.confirm.yes'),
+          label: home ? t('wind.return.yes') : t('wind.confirm.yes'),
           kind: 'primary',
           onSelect: () => {
             store.dispatch(disperse, { to, now: Date.now() });
@@ -220,22 +241,27 @@ export function createWindSection(store: Store): WindSection {
         );
       }
 
+      // Los destinos que quedan se ven también antes de colonizar el bosque actual, con su motivo;
+      // El regreso, solo cuando el viento ya lo ofrece (el cuarto bioma colonizado).
       const remaining = destinations(state);
-      const none = remaining.length === 0;
+      const homeward = windTargets(state).some((target) => target.kind === 'return');
+      const none = remaining.length === 0 && !homeward;
       for (const el of [intro, cost, heading, list]) setHidden(el, none);
       // Desde el primer bosque colonizado y hasta abrirse. Sin destinos y con el anillo cerrado,
       // el bosque actual no es el último: falta colonizarlo, y esta línea lo dice.
       const ringAhead = count > 0 && closedRingAhead(state);
       setHidden(ring2, !ringAhead);
-      // Sin destinos ni anillo por abrir: o queda colonizar el último bioma, o ya no hay adónde ir.
-      const last = none && !ringAhead;
-      setHidden(end, !last);
-      if (last) setText(end, goal.kind === 'colonized' ? t('wind.none') : t('wind.last'));
+      // Al pie: en el cuarto bioma sin colonizar, que es el último; durante El regreso, su meta.
+      let endText: string | null = null;
+      if (goal.kind === 'return') endText = returnGoalText();
+      else if (none && !ringAhead && goal.kind === 'colonize') endText = t('wind.last');
+      setHidden(end, endText === null);
+      if (endText !== null) setText(end, endText);
 
       const block = disperseBlock(state);
       const missing = DISPERSE_COST - disperseFunds(state);
       for (const row of rows) {
-        setHidden(row.root, !remaining.includes(row.biome));
+        setHidden(row.root, row.kind === 'return' ? !homeward : !remaining.some((b) => b === row.biome));
         let reason: string | null = null;
         if (block === 'colonize') reason = t('wind.needColonize', { goal: formatCount(COLONIZE_LEVEL) });
         else if (block === 'spores') reason = tp('wind.needSpores', missing);
