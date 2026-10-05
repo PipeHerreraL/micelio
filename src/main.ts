@@ -218,6 +218,12 @@ registerServiceWorker();
 function rebuildApp(focusId?: string): void {
   app.destroy();
   applyLocale(store.state);
+  // El catálogo que no llegó a tiempo al arrancar puede llegar después (queda en la caché del
+  // cargador): entonces applyLocale ya pone el idioma pedido y el aviso de que no llegó mentiría.
+  if (localeFailed && getLocale() === wantedLocale(store.state)) {
+    localeFailed = false;
+    removeToast('locale-failed');
+  }
   liveRegion.setAttribute('aria-label', t('live.region'));
   app = buildApp();
   // Los textos de los socios del idioma nuevo; mientras llegan, siguen los del anterior.

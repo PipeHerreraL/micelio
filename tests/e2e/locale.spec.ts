@@ -56,6 +56,49 @@ test('si el inglés no llega, se juega en español con un aviso y la partida sig
   expect((await savedState(page)).settings.locale).toBe('en');
 });
 
+test('si el inglés llega pasado el plazo, la siguiente reconstrucción lo pone y quita el aviso', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  // El plazo del arranque (8 s) y lo que tarda en llegar el trozo retenido.
+  test.setTimeout(45_000);
+  const chunk = englishChunk();
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(
+    (url) => url.pathname.endsWith(`/${chunk}`),
+    async (route) => {
+      await held;
+      await route.continue();
+    },
+  );
+  await seedSave(page, englishGame());
+  // En Firefox y WebKit el trozo retenido también retiene el evento load.
+  await page.goto('./', { waitUntil: 'domcontentloaded' });
+  const failed = page.locator('.toast[data-id="locale-failed"]');
+  await expect(failed).toContainText('No se pudo cargar el inglés', { timeout: 15_000 });
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+  // El trozo llega tarde y queda en la caché del cargador; el arranque ya siguió en español.
+  const arrived = page.waitForResponse((response) => response.url().endsWith(`/${chunk}`));
+  release();
+  await arrived;
+  await page.getByRole('tab', { name: /Ajustes/ }).click();
+  // Cambiar la notación reconstruye la interfaz. El módulo se evalúa un instante después de
+  // llegar: se alterna hasta que la reconstrucción lo encuentra.
+  await expect(async () => {
+    const names = page.locator('#setting-notation-names');
+    const next =
+      (await names.getAttribute('aria-pressed')) === 'true'
+        ? page.locator('#setting-notation-suffix')
+        : names;
+    await next.click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en', { timeout: 500 });
+  }).toPass({ timeout: 10_000 });
+  await expect(failed).toHaveCount(0);
+});
+
 test('importar una partida en inglés pone la interfaz en inglés', async ({ page }, info) => {
   test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
   await seedSave(
