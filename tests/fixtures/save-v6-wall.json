@@ -1,0 +1,551 @@
+{
+  "version": 6,
+  "savedAt": 1791170493000,
+  "game": "1.5.0",
+  "state": {
+    "nutrients": 8952711545063925,
+    "runEarned": 12033013456910350,
+    "lifetimeEarned": 20189748416131136,
+    "owned": {
+      "hypha": 109,
+      "rhizomorph": 108,
+      "primordium": 107,
+      "mushroom": 117,
+      "fairyRing": 107,
+      "mycorrhiza": 95,
+      "motherTree": 87,
+      "ancientForest": 77,
+      "malheur": 70,
+      "planetary": 58
+    },
+    "upgrades": [
+      "fertileHumus",
+      "chemotropism",
+      "hypha.u1",
+      "rhizomorph.u1",
+      "primordium.u1",
+      "hypha.u2",
+      "mushroom.u1",
+      "rhizomorph.u2",
+      "fairyRing.u1",
+      "primordium.u2",
+      "hypha.u3",
+      "autumnLitter",
+      "electricImpulses",
+      "rhizomorph.u3",
+      "primordium.u3",
+      "mushroom.u2",
+      "fairyRing.u2",
+      "mycorrhiza.u1",
+      "mushroom.u3",
+      "fairyRing.u3",
+      "ancestralCompost",
+      "mycorrhiza.u2",
+      "motherTree.u1",
+      "mycorrhiza.u3",
+      "sugarExchange",
+      "motherTree.u2",
+      "hypha.u4",
+      "rhizomorph.u4",
+      "primordium.u4",
+      "motherTree.u3",
+      "ancientForest.u1",
+      "carbonCycle",
+      "witchesRing",
+      "fairyRing.u4",
+      "mushroom.u4",
+      "ancientForest.u2",
+      "malheur.u1",
+      "ancientForest.u3",
+      "mycorrhiza.u4",
+      "sensitiveTouch",
+      "malheur.u2",
+      "planetary.u1",
+      "malheur.u3",
+      "motherTree.u4",
+      "planetary.u2",
+      "planetary.u3",
+      "ancientForest.u4",
+      "malheur.u4"
+    ],
+    "spores": {
+      "level": 2011,
+      "available": 1512
+    },
+    "mutations": [
+      "soilMemory",
+      "lightChitin",
+      "deepAbsorption",
+      "rainScent",
+      "winterSleep",
+      "instinct",
+      "perfectStorm",
+      "ancientSymbiosis",
+      "beyondForest",
+      "wingedSpores",
+      "higherInstinct",
+      "inheritance"
+    ],
+    "achievements": [
+      "own.hypha.1",
+      "clicks.1",
+      "own.rhizomorph.1",
+      "lifetime.1",
+      "clicks.2",
+      "drops.1",
+      "own.primordium.1",
+      "production.1",
+      "own.mushroom.1",
+      "production.2",
+      "own.fairyRing.1",
+      "lifetime.2",
+      "production.3",
+      "own.mycorrhiza.1",
+      "drops.2",
+      "sporulations.1",
+      "clicks.3",
+      "own.motherTree.1",
+      "lifetime.3",
+      "own.ancientForest.1",
+      "production.4",
+      "own.hypha.50",
+      "own.rhizomorph.50",
+      "own.primordium.50",
+      "drops.3",
+      "sporulations.2",
+      "own.malheur.1",
+      "own.mushroom.50",
+      "production.5",
+      "own.fairyRing.50",
+      "lifetime.4",
+      "own.planetary.1",
+      "own.mycorrhiza.50",
+      "disperse.1",
+      "sporulations.3",
+      "own.motherTree.50",
+      "colonize.taiga",
+      "own.ancientForest.50",
+      "own.mushroom.100",
+      "own.malheur.50",
+      "lifetime.5",
+      "colonize.choco",
+      "own.hypha.100",
+      "own.planetary.50",
+      "own.rhizomorph.100",
+      "own.fairyRing.100",
+      "own.primordium.100",
+      "biomeLevel.1"
+    ],
+    "effects": [
+      {
+        "kind": "downpour",
+        "remaining": 68,
+        "duration": 100
+      }
+    ],
+    "rain": {
+      "nextIn": 72.26495477843743,
+      "drop": null
+    },
+    "autobuy": {
+      "generators": {
+        "hypha": false,
+        "rhizomorph": false,
+        "primordium": false,
+        "mushroom": false,
+        "fairyRing": false,
+        "mycorrhiza": false,
+        "motherTree": false,
+        "ancientForest": false,
+        "malheur": false,
+        "planetary": false
+      },
+      "threshold": 0.5,
+      "upgrades": false,
+      "mode": "threshold"
+    },
+    "stats": {
+      "runTime": 600,
+      "totalTime": 33693,
+      "startedAt": 1791136800000,
+      "runStartedAt": 1791169893000,
+      "maxNps": 10572805161686.842,
+      "clicks": 126615,
+      "drops": 220,
+      "sporulations": 22,
+      "idleClickTime": 1
+    },
+    "settings": {
+      "locale": null,
+      "notation": "names",
+      "sound": true,
+      "volume": 0.35,
+      "reducedMotion": false,
+      "buyAmount": 1
+    },
+    "seen": [
+      "tab.generators",
+      "tabVisited.generators",
+      "tab.stats",
+      "tabVisited.stats",
+      "tab.settings",
+      "tabVisited.settings",
+      "gen.hypha.silhouette",
+      "tab.upgrades",
+      "tabVisited.upgrades",
+      "tab.achievements",
+      "tabVisited.achievements",
+      "gen.hypha.full",
+      "hint.upgrades",
+      "hint.achievements",
+      "gen.rhizomorph.silhouette",
+      "gen.rhizomorph.full",
+      "hint.milestone",
+      "hint.rain",
+      "gen.primordium.full",
+      "gen.mushroom.silhouette",
+      "gen.mushroom.full",
+      "gen.fairyRing.silhouette",
+      "gen.fairyRing.full",
+      "gen.mycorrhiza.silhouette",
+      "gen.mycorrhiza.full",
+      "tab.sporulate",
+      "tabVisited.sporulate",
+      "hint.sporulate",
+      "gen.motherTree.silhouette",
+      "tab.mutations",
+      "tabVisited.mutations",
+      "hint.generators",
+      "gen.motherTree.full",
+      "hint.autobuy",
+      "gen.ancientForest.silhouette",
+      "gen.ancientForest.full",
+      "gen.malheur.silhouette",
+      "gen.malheur.full",
+      "hint.adaptations",
+      "gen.planetary.silhouette",
+      "gen.planetary.full",
+      "tab.chronicle",
+      "tabVisited.chronicle",
+      "hint.wind",
+      "hint.chronicle",
+      "chapter.act1",
+      "hint.biomeAdaptations",
+      "chapter.arrive.taiga",
+      "tab.partners",
+      "tabVisited.partners",
+      "hint.partners",
+      "chapter.partner.plasmodium",
+      "chapter.plate.log",
+      "chapter.plate.maze",
+      "chapter.colonize.taiga",
+      "chapter.arrive.choco",
+      "chapter.colonize.choco"
+    ],
+    "rngSeed": 533343823,
+    "history": [
+      {
+        "sporulation": 1,
+        "duration": 2194,
+        "spores": 15,
+        "endedAt": 1791138994000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 2,
+        "duration": 1619,
+        "spores": 15,
+        "endedAt": 1791140613000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 3,
+        "duration": 1907,
+        "spores": 30,
+        "endedAt": 1791142520000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 4,
+        "duration": 1885,
+        "spores": 60,
+        "endedAt": 1791144405000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 5,
+        "duration": 677,
+        "spores": 120,
+        "endedAt": 1791145082000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 6,
+        "duration": 1238,
+        "spores": 241,
+        "endedAt": 1791146320000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 7,
+        "duration": 904,
+        "spores": 481,
+        "endedAt": 1791147224000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 8,
+        "duration": 861,
+        "spores": 962,
+        "endedAt": 1791148085000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 9,
+        "duration": 851,
+        "spores": 1938,
+        "endedAt": 1791148936000,
+        "biome": "natal"
+      },
+      {
+        "sporulation": 10,
+        "duration": 1668,
+        "spores": 18,
+        "endedAt": 1791150604000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 11,
+        "duration": 1263,
+        "spores": 18,
+        "endedAt": 1791151867000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 12,
+        "duration": 1618,
+        "spores": 36,
+        "endedAt": 1791153485000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 13,
+        "duration": 1718,
+        "spores": 72,
+        "endedAt": 1791155203000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 14,
+        "duration": 2548,
+        "spores": 144,
+        "endedAt": 1791157751000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 15,
+        "duration": 3824,
+        "spores": 288,
+        "endedAt": 1791161575000,
+        "biome": "taiga"
+      },
+      {
+        "sporulation": 16,
+        "duration": 628,
+        "spores": 23,
+        "endedAt": 1791162203000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 17,
+        "duration": 826,
+        "spores": 23,
+        "endedAt": 1791163029000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 18,
+        "duration": 1574,
+        "spores": 50,
+        "endedAt": 1791164603000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 19,
+        "duration": 1758,
+        "spores": 96,
+        "endedAt": 1791166361000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 20,
+        "duration": 1654,
+        "spores": 196,
+        "endedAt": 1791168015000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 21,
+        "duration": 965,
+        "spores": 394,
+        "endedAt": 1791168980000,
+        "biome": "choco"
+      },
+      {
+        "sporulation": 22,
+        "duration": 913,
+        "spores": 1229,
+        "endedAt": 1791169893000,
+        "biome": "choco"
+      }
+    ],
+    "adaptations": {
+      "apicalBody": 3,
+      "sclerotium": 1,
+      "hydraulicLift": 1,
+      "deepTorpor": 1,
+      "foxfire": 0
+    },
+    "sporeFloor": 0,
+    "forest": {
+      "biome": "choco",
+      "leg": 2,
+      "earned": 20091120533745988,
+      "arrivedAt": 1791161575000,
+      "arrivalSporulations": 15,
+      "arrivalPlayTime": 24775
+    },
+    "chronicle": [
+      {
+        "biome": "natal",
+        "leg": 0,
+        "arrivedAt": 1791136800000,
+        "colonizedAt": null,
+        "sporulations": 8,
+        "playTime": 11991,
+        "leftAt": 1791148936000,
+        "levelReached": 3862
+      },
+      {
+        "biome": "taiga",
+        "leg": 1,
+        "arrivedAt": 1791148936000,
+        "colonizedAt": 1791161575000,
+        "sporulations": 6,
+        "playTime": 12639,
+        "leftAt": 1791161575000,
+        "levelReached": 576
+      },
+      {
+        "biome": "choco",
+        "leg": 2,
+        "arrivedAt": 1791161575000,
+        "colonizedAt": 1791168980000,
+        "sporulations": 6,
+        "playTime": 7405,
+        "leftAt": null,
+        "levelReached": null
+      }
+    ],
+    "biomeAdaptations": {
+      "rockEating": 2,
+      "seedlingNetwork": 1,
+      "trehalose": 1,
+      "gongylidia": 2,
+      "leafcutters": 1,
+      "rootMat": 1
+    },
+    "partners": {
+      "plasmodium": {
+        "pendingMs": 0,
+        "plate": 2,
+        "plates": [
+          {
+            "foods": [12, 18, 16, 14, 4, 2, 19],
+            "lamps": [],
+            "flow": 1,
+            "map": {
+              "score": 5.941867541528379,
+              "quality": 0.8488382202183399,
+              "cost": 1.1245316619931705,
+              "tolerance": 0.9090909090909091,
+              "alive": 11,
+              "joined": 7
+            }
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": {
+              "score": 1,
+              "quality": 0.5,
+              "cost": 1,
+              "tolerance": 0,
+              "alive": 11,
+              "joined": 2
+            }
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          },
+          {
+            "foods": [],
+            "lamps": [],
+            "flow": 1,
+            "map": null
+          }
+        ],
+        "conductivity": [
+          0.9853904238296672, 0.9912468779692426, 0.9959772018529475, 0.9977044556988404, 0.9905804376304149,
+          0.9866187047027052, 0.9858185373619199, 0.9890497778262943, 0.9943870079051703, 0.9923528260318563,
+          0.9947853461373597, 0.9863692160183564, 0.9807492012577131, 0.9995803260197863, 0.9835430818004534,
+          0.9840030861040577, 0.9930848307302221, 0.9881860744161531, 0.9924614736950025, 0.9806492777215317,
+          0.9938298409525305, 0.9925788397109137, 0.9807297494448721, 0.9838941762503236, 0.9869351167511194,
+          0.9996551857795566, 0.9948403179785237, 0.9930424752319231, 0.9829017707332969, 0.9901349723339081,
+          0.9933652081852778, 0.9816183259803801, 0.9852430141437799, 0.9989284843718633, 0.9936379567347466,
+          0.9981228988897055, 0.9825037803314626, 0.9918539590574801, 0.9979508102731779, 0.9852080353535712,
+          0.9832705738767982, 0.9851129018189385, 0.9918692693766207, 0.9871036903047934, 0.9851218969374895,
+          0.995911346487701, 0.9887404640670866, 0.9818770434940234, 0.9865702649392187
+        ],
+        "habituation": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        "trail": 1412741721.3602564,
+        "trailEarned": 1542613271.3603947,
+        "mapping": 1378254355.244098,
+        "stableFor": 0,
+        "goalMet": false,
+        "pulseIn": 0,
+        "moistFor": 0,
+        "lingerFor": 0,
+        "pulsedHere": false,
+        "upgrades": {
+          "agar": 21,
+          "oats": 3,
+          "lamps": 2,
+          "humidity": 1,
+          "dormancy": 0,
+          "chemotaxis": 0,
+          "memory": 0
+        },
+        "achievements": ["firstOat", "log", "maze"],
+        "clockMs": 0,
+        "step": 0,
+        "stats": {
+          "pulses": 1309,
+          "placements": 9,
+          "modelSeconds": 21258
+        },
+        "rngSeed": 32255868
+      }
+    }
+  }
+}

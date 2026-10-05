@@ -1,0 +1,11 @@
+{
+  "game": "1.5.0",
+  "commit": "38fb27f12161bea191ad4f5890bc7fb47a3ce660",
+  "production": 8791253576089.459,
+  "clickValue": 497618126950.34674,
+  "sporeGain": 585,
+  "sporulateRequirement": 700000000000,
+  "sporeScale": 700000000000,
+  "offlineCapSeconds": 108000,
+  "disperseBlock": "noDestination"
+}
