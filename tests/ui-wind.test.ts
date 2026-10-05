@@ -8,6 +8,7 @@ import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { checkActOne, checkColonization } from '../src/systems/journey.ts';
 import { createBiomeAdaptations } from '../src/ui/biome-adaptations.ts';
 import { createBiomeCaption } from '../src/ui/biome-caption.ts';
+import { createGeneratorsTab } from '../src/ui/tab-generators.ts';
 import { pendingChapter, type ChapterNav } from '../src/ui/chapter.ts';
 import { h } from '../src/ui/dom.ts';
 import { createStore, type Store } from '../src/ui/store.ts';
@@ -281,23 +282,73 @@ describe('Crónica y adaptaciones aprendidas después de colonizar', () => {
   });
 });
 
-describe('un bioma sin adaptaciones todavía (la pradera y la tundra, hasta las suyas)', () => {
-  it('no tiene grupo en Mutaciones ni línea de adaptaciones en la Crónica', () => {
+describe('adaptaciones de la pradera y la tundra (fase 10)', () => {
+  it('la tundra tiene su grupo en Mutaciones, primero, y su línea en la Crónica; el Liquen dice su tope', () => {
     const state = inChocoSecond();
     colonize(state, NOW + 20_000);
     disperse(state, { to: 'tundra', now: NOW + 30_000 });
-    colonize(state, NOW + 40_000);
     const store = createStore(state);
     const view = createBiomeAdaptations(store);
     mount(view.root);
     view.update();
-    expect(view.root.querySelector('#badapt-tundra-title')).toBeNull();
+    const visible = Array.from(view.root.querySelectorAll<HTMLElement>('.badapt__group')).filter(
+      (g) => !g.hidden,
+    );
+    expect(visible.map((g) => g.querySelector('.badapt__title')?.textContent)).toEqual([
+      'Aprendidas en la tundra',
+      'Aprendidas en la taiga',
+      'Aprendidas en la selva del Chocó',
+    ]);
+    // La pradera, sin visitar, no se ve.
+    expect(view.root.querySelector<HTMLElement>('#badapt-prairie-title')?.closest('section')?.hidden).toBe(
+      true,
+    );
+    const lichen = view.root.querySelector<HTMLButtonElement>('[aria-label="Adaptar: Liquen"]');
+    if (!lichen) throw new Error('Falta el botón del Liquen');
+    lichen.click();
+    view.update();
+    expect(state.biomeAdaptations.lichen).toBe(1);
+    expect(document.getElementById('badapt-lichen-effect')?.textContent).toBe(
+      'El tope sin conexión sube 12 h.',
+    );
+    // El rango 2 pide nivel 150 en la tundra.
+    expect(document.getElementById('badapt-lichen-why')?.textContent).toBe(
+      'El siguiente rango se abre en el nivel 150 de la tundra, o al colonizarla.',
+    );
+    colonize(state, NOW + 40_000);
     const tab = createChronicleTab(store, nav);
     mount(tab.root);
     tab.update();
     const tundra = Array.from(tab.root.querySelectorAll('.chronicle__entry')).at(-1);
     expect(tundra?.textContent).toContain('Tundra · colonizado');
-    expect(tundra?.textContent).not.toContain('Adaptaciones de este bioma');
+    expect(tundra?.textContent).toContain('Adaptaciones de este bioma: 1 de 3');
+  });
+
+  it('en la pradera, la pista de la cantidad «Hito» sale una vez, con el Anillo de hadas a la vista', () => {
+    const state = inChocoSecond();
+    colonize(state, NOW + 20_000);
+    // Un jugador del viaje ya vio el Anillo de hadas en el natal.
+    state.seen.push('gen.fairyRing.full');
+    const store = createStore(state);
+    const tab = createGeneratorsTab(store);
+    mount(tab.root);
+    const hint = (): HTMLElement | undefined =>
+      Array.from(tab.root.querySelectorAll<HTMLElement>('.hint')).find((el) =>
+        el.textContent.includes('cantidad «Hito»'),
+      );
+    tab.update();
+    // En el Chocó, no.
+    expect(hint()?.hidden).toBe(true);
+    disperse(state, { to: 'prairie', now: NOW + 30_000 });
+    tab.update();
+    expect(hint()?.hidden).toBe(false);
+    expect(hint()?.querySelector('.hint__text')?.textContent).toBe(
+      'En la pradera, prueba la cantidad «Hito» con el Anillo de hadas: cada hito duplica su producción.',
+    );
+    hint()?.querySelector<HTMLButtonElement>('.hint__dismiss')?.click();
+    tab.update();
+    expect(hint()?.hidden).toBe(true);
+    tab.destroy();
   });
 });
 
@@ -340,6 +391,28 @@ describe('cola de láminas', () => {
     state.spores.level = 500;
     checkColonization(state, NOW + 5000);
     expect(pendingChapter(state)).toEqual({ kind: 'colonize', biome: 'taiga' });
+  });
+
+  it('la colonización que cierra el primer anillo trae la lámina «Donde acaban los árboles», una sola vez', () => {
+    const state = inTaiga();
+    const store = createStore(state);
+    for (const key of ['chapter.act1', 'chapter.arrive.taiga']) store.dispatch(markSeen, { key });
+    colonize(state, NOW + 5000);
+    expect(pendingChapter(state)).toEqual({ kind: 'colonize', biome: 'taiga' });
+    store.dispatch(markSeen, { key: 'chapter.colonize.taiga' });
+    // Con un solo bosque colonizado, el anillo 2 sigue cerrado: ninguna lámina.
+    expect(pendingChapter(state)).toBeNull();
+    disperse(state, { to: 'choco', now: NOW + 9000 });
+    store.dispatch(markSeen, { key: 'chapter.arrive.choco' });
+    colonize(state, NOW + 20_000);
+    expect(pendingChapter(state)).toEqual({ kind: 'colonize', biome: 'choco' });
+    store.dispatch(markSeen, { key: 'chapter.colonize.choco' });
+    expect(pendingChapter(state)).toEqual({ kind: 'ring2' });
+    store.dispatch(markSeen, { key: 'chapter.ring2' });
+    expect(pendingChapter(state)).toBeNull();
+    // En el anillo 2 la cola sigue con la llegada, sin volver a la del anillo.
+    disperse(state, { to: 'prairie', now: NOW + 30_000 });
+    expect(pendingChapter(state)).toEqual({ kind: 'arrive', biome: 'prairie' });
   });
 
   it('antes del Acto I no hay ninguna lámina pendiente', () => {

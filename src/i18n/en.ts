@@ -429,6 +429,13 @@ export const en: Catalog = {
     'But a finished forest has nowhere left to grow. The mushrooms ripen all at once, and the wind picks up.',
   'chapter.act1.line4': 'Spores carry what you are. The soil stays behind: that will have to be won again.',
   'chapter.act2.kicker': 'Act II · Spore wind',
+  'chapter.act3.kicker': 'Act III · Past the treeline',
+  'chapter.ring2.title': 'Grass and ice',
+  'chapter.ring2.line1':
+    'Your lineage now lives in the taiga and in the Chocó rainforest. Beyond them, the wind reaches lands that trees cannot hold: where too little rain falls, or where the ground never fully thaws.',
+  'chapter.ring2.line2': 'Where the trees end, the network goes on.',
+  'chapter.ring2.line3':
+    'The prairie and the tundra are open, in whatever order you like. What you learn there will travel with you too.',
   'chapter.colonize.kicker': 'Biome colonized',
   'chapter.taiga.arrive.title': 'The taiga',
   'chapter.taiga.arrive.line1':
@@ -520,6 +527,35 @@ export const en: Catalog = {
   'badapt.rootMat.desc':
     'On poor tropical soils, a mat of fine roots and fungi catches nutrients before the rain washes them away; in an Amazon experiment it held on to more than 99.9% (Stark and Jordan, 1978). Dew yields ×{factor} per rank.',
   'badapt.rootMat.effect': 'Dew ×{factor}.',
+  'badapt.group.prairie': 'Learned on the prairie',
+  'badapt.group.tundra': 'Learned in the tundra',
+  'badapt.needLevel.prairie': 'The next rank opens at level {level} on the prairie, or once you colonize it.',
+  'badapt.needLevel.tundra': 'The next rank opens at level {level} in the tundra, or once you colonize it.',
+  'badapt.ringFront.name': 'Ring front',
+  'badapt.ringFront.desc':
+    'Each year the ring creeps a little outward and leaves the greenest grass at its edge. Choi and colleagues (2010) isolated 2-azahypoxanthine, a molecule that makes turf grow, from Lepista sordida, a ring-forming fungus. Fairy rings yield ×{factor} per rank.',
+  'badapt.ringFront.effect': 'Fairy rings ×{factor}.',
+  'badapt.glomalin.name': 'Glomalin',
+  'badapt.glomalin.desc':
+    'Wright and Upadhyaya (1996) gave the name glomalin to a soil protein tied to arbuscular mycorrhizal fungi, thought to help glue prairie soil into crumbs; what exactly it is remains debated. Mycorrhizal networks yield ×{factor} per rank.',
+  'badapt.glomalin.effect': 'Mycorrhizal networks ×{factor}.',
+  'badapt.pilobolus.name': 'Pilobolus',
+  'badapt.pilobolus.desc':
+    "In herbivore dung, Pilobolus kleinii aims at the light and fires its spore sac up to about 2.5 m, one of the fastest launches in nature (Yafetto and colleagues, 2008). Each rank adds one automatic click per second; Thunderstorms don't multiply it.",
+  'badapt.pilobolus.effect.one': '{count} automatic click per second.',
+  'badapt.pilobolus.effect.other': '{count} automatic clicks per second.',
+  'badapt.dwarfBirch.name': 'Dwarf birch',
+  'badapt.dwarfBirch.desc':
+    'The dwarf birch, Betula nana, lives with ectomycorrhizal fungi. In the Alaskan tundra, mycorrhizal fungi were estimated to supply plants with 61 to 86% of their nitrogen (Hobbie and Hobbie, 2006). Mycorrhizal networks and ancient forests yield ×{factor} per rank.',
+  'badapt.dwarfBirch.effect': 'Mycorrhizal networks and ancient forests ×{factor}.',
+  'badapt.snowMold.name': 'Snow mold',
+  'badapt.snowMold.desc':
+    'Typhula and other snow molds grow under the snow, close to 0 °C, when almost nothing else moves: your network reaches each spring with work already done. Each run starts with {count} more mother trees per rank.',
+  'badapt.snowMold.effect': 'Each run starts with {count} more mother trees.',
+  'badapt.lichen.name': 'Lichen',
+  'badapt.lichen.desc':
+    'A lichen is a fungus living with an alga. Xanthoria elegans was still alive after 18 months outside the International Space Station (Brandt and colleagues, 2015). The offline cap rises by {time} per rank, in every biome.',
+  'badapt.lichen.effect': 'The offline cap rises by {time}.',
   // Estadísticas del viaje
   'stats.biome': 'Current biome',
   'stats.dispersals': 'Dispersals',
@@ -532,6 +568,17 @@ export const en: Catalog = {
   'upg.motherTree.u4.name.choco': 'Memory of the tree',
   'upg.motherTree.u4.flavor.choco': 'Centuries of roots know where the soil stays above water.',
   'upg.autumnLitter.name.choco': 'Year-round leaf litter',
+  // Textos que cambian en la pradera y la tundra: no hay abetos ni bosque
+  'gen.motherTree.flavor.prairie':
+    'A lone oak in the middle of the grass, the only tree for miles. Its roots share the network with the whole prairie.',
+  'gen.motherTree.flavor.tundra':
+    'A dwarf birch that never gets past your knee. Underground, its network is bigger than it is.',
+  'gen.ancientForest.flavor.prairie':
+    'A forest the prairie never lets grow: here the ancient network lives in the roots of the grass.',
+  'gen.ancientForest.flavor.tundra':
+    'Willows and birches a finger tall: in the tundra, an ancient forest fits under a boot.',
+  'upg.motherTree.u3.flavor.prairie': 'In the shade of the oak, the grass gets through the summer better.',
+  'upg.motherTree.u3.flavor.tundra': 'Sheltered by a dwarf birch, the snow takes longer to go.',
   'dev.actOne': 'Close Act I',
   'dev.colonize': 'Colonize this biome',
 
@@ -753,6 +800,8 @@ export const en: Catalog = {
   'hint.generators': "Buy a Hypha: it absorbs for you, even when you're not looking.",
   'hint.upgrades': "An upgrade is available. Upgrades multiply; they don't just add.",
   'hint.milestone': 'At 25 units, a generator doubles its production.',
+  'hint.prairieMilestone':
+    'On the prairie, try the “Milestone” amount with the fairy ring: each milestone doubles its output.',
   'hint.rain': 'A raindrop. Tap it before it evaporates.',
   'hint.achievements': 'Each achievement adds 1% to all your production.',
   'hint.sporulate': 'Sporulating starts you over, but with spores that make you stronger.',

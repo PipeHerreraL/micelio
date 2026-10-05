@@ -187,6 +187,9 @@ export function createGeneratorsTab(store: Store): TabView {
   const intro = createHint(store, 'hint.generators', t('hint.generators'));
   const autobuyHint = createHint(store, 'hint.autobuy', t('hint.autobuy'));
   const milestoneHint = createHint(store, 'hint.milestone', t('hint.milestone'));
+  // En la pradera (fase 10) el motor es el Anillo de hadas, un generador barato: comprarlo de hito
+  // en hito es lo que más rinde, y la cantidad «Hito» ya existe pero casi nadie la mira.
+  const prairieHint = createHint(store, 'hint.prairieMilestone', t('hint.prairieMilestone'));
   const root = h('div', { class: 'tab tab--generators' }, [
     h('div', { class: 'tab__toolbar' }, [
       h('h2', { class: 'tab__title', text: t('generators.title') }),
@@ -194,6 +197,7 @@ export function createGeneratorsTab(store: Store): TabView {
     ]),
     intro.root,
     milestoneHint.root,
+    prairieHint.root,
     autobuyHint.root,
     autobuyBar,
     list,
@@ -455,6 +459,7 @@ export function createGeneratorsTab(store: Store): TabView {
     autobuyHint.update(autobuy);
     // Avisa del primer hito cuando ya se ve cerca: algún generador con 10 a 24 unidades.
     milestoneHint.update(GENERATORS.some((g) => state.owned[g.id] >= 10 && state.owned[g.id] < 25));
+    prairieHint.update(state.forest.biome === 'prairie' && revealState(state, 'fairyRing') === 'full');
     for (const row of rows) updateRow(row, state);
   }
 
@@ -467,6 +472,7 @@ export function createGeneratorsTab(store: Store): TabView {
       intro.destroy();
       autobuyHint.destroy();
       milestoneHint.destroy();
+      prairieHint.destroy();
     },
   };
 }

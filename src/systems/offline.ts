@@ -4,7 +4,6 @@
  */
 import { TORPOR_OFFLINE_HOURS } from '../data/adaptations.ts';
 import { AWAY_ACHIEVEMENT_SECONDS } from '../data/achievements.ts';
-import { getBiome } from '../data/biomes.ts';
 import {
   OFFLINE_CAP_BASE_SECONDS,
   OFFLINE_CAP_WINTER_SECONDS,
@@ -12,6 +11,7 @@ import {
   OFFLINE_EFFICIENCY_WINTER,
 } from '../data/mutations.ts';
 import { gain } from '../core/economy.ts';
+import { offlineHoursBonus } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import type { Num } from '../core/num.ts';
 import { derived, invalidate } from '../core/selectors.ts';
@@ -31,14 +31,14 @@ export function offlineEfficiency(state: GameState): number {
 
 /**
  * Tope de lo que se cobra fuera del juego. Vive aquí y no en los derivados: solo se lee al cobrar
- * una ausencia. Las horas del bioma (tundra, +24 h) se suman, no fijan el tope: así le dan algo
- * también a quien tiene Letargo profundo.
+ * una ausencia. Las horas del bioma (tundra, +24 h) y las del Liquen se suman, no fijan el tope:
+ * así le dan algo también a quien tiene Letargo profundo.
  */
 export function offlineCapSeconds(state: GameState): number {
   const base = hasMutation(state, 'winterSleep') ? OFFLINE_CAP_WINTER_SECONDS : OFFLINE_CAP_BASE_SECONDS;
   // Letargo profundo: +6 h de tope por rango.
   const torpor = TORPOR_OFFLINE_HOURS * 3600 * state.adaptations.deepTorpor;
-  return base + torpor + getBiome(state.forest.biome).offlineHours * 3600;
+  return base + torpor + offlineHoursBonus(state) * 3600;
 }
 
 export interface ElapsedOptions {

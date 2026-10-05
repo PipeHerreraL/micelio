@@ -1,13 +1,21 @@
 /**
- * Láminas del viaje (docs/ROADMAP.md, fase 8): el fin del Acto I, la llegada a cada bioma y su
- * colonización; y las de los socios (fase 9): su llegada y cada placa cartografiada. La cola se calcula del estado, no de los eventos: así sale igual tras el
- * progreso offline, una migración o una recarga con la lámina abierta (vuelve a salir hasta que
+ * Láminas del viaje (docs/ROADMAP.md, fases 8 y 10): el fin del Acto I, la llegada a cada bioma y
+ * su colonización, y la apertura del segundo anillo; y las de los socios (fase 9): su llegada y
+ * cada placa cartografiada. La cola se calcula del estado, no de los eventos: así sale igual tras
+ * el progreso offline, una migración o una recarga con la lámina abierta (vuelve a salir hasta que
  * se cierra, y entonces queda en `seen`).
  */
 import { markSeen } from '../core/actions.ts';
-import { destinations, isActOneClosed, isColonized } from '../core/forest.ts';
+import { destinations, isActOneClosed, isColonized, openRing } from '../core/forest.ts';
 import { hasSeen, type GameState } from '../core/state.ts';
-import { BIOME_ADAPTATIONS, COLONIZE_LEVEL, LINEAGE_FACTOR, type DestinationId } from '../data/biomes.ts';
+import {
+  COLONIZE_LEVEL,
+  LINEAGE_FACTOR,
+  getBiome,
+  isDestinationId,
+  type BiomeId,
+  type DestinationId,
+} from '../data/biomes.ts';
 import { PLATES } from '../data/plasmodium-plates.ts';
 import { formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatCount, getLocale, t, type MessageKey } from '../i18n/index.ts';
@@ -22,6 +30,8 @@ export type Chapter =
   | { kind: 'act1' }
   | { kind: 'arrive'; biome: DestinationId }
   | { kind: 'colonize'; biome: DestinationId }
+  /** «Donde acaban los árboles»: el primer anillo colonizado entero abre la pradera y la tundra. */
+  | { kind: 'ring2' }
   | { kind: 'partner'; partner: PartnerId }
   | { kind: 'plate'; plate: number };
 
@@ -29,6 +39,8 @@ export function chapterSeenKey(chapter: Chapter): string {
   switch (chapter.kind) {
     case 'act1':
       return 'chapter.act1';
+    case 'ring2':
+      return 'chapter.ring2';
     case 'partner':
       return `chapter.partner.${chapter.partner}`;
     case 'plate':
@@ -48,13 +60,29 @@ function legBiomes(state: GameState): DestinationId[] {
   return out;
 }
 
-/** La primera lámina sin ver, en el orden del viaje: Acto I, y por bioma, llegada y colonización. */
+/**
+ * El bosque cuya colonización abrió el segundo anillo (el último del primero en la Crónica), o
+ * null si sigue cerrado. Se deduce de la Crónica, como `destinations`: así quien llega de la 1.5
+ * con los dos bosques colonizados ve la lámina del anillo sin ninguna marca de la migración.
+ */
+function ringOneCloser(state: GameState): BiomeId | null {
+  if (openRing(state) < 2) return null;
+  const forests = state.chronicle.filter((e) => isDestinationId(e.biome) && getBiome(e.biome).ring === 1);
+  return forests.at(-1)?.biome ?? null;
+}
+
+/**
+ * La primera lámina sin ver, en el orden del viaje: Acto I; por bioma, llegada y colonización; y,
+ * tras la colonización que cierra el primer anillo, la de «Donde acaban los árboles».
+ */
 export function pendingChapter(state: GameState): Chapter | null {
   if (!isActOneClosed(state)) return null;
   const queue: Chapter[] = [{ kind: 'act1' }];
   for (const biome of legBiomes(state)) {
     queue.push({ kind: 'arrive', biome });
-    if (isColonized(state, biome)) queue.push({ kind: 'colonize', biome });
+    if (!isColonized(state, biome)) continue;
+    queue.push({ kind: 'colonize', biome });
+    if (biome === ringOneCloser(state)) queue.push({ kind: 'ring2' });
   }
   // Socios: su llegada y, por orden, cada placa cartografiada (calculado del estado: sale igual
   // tras el progreso offline o una recarga).
@@ -123,12 +151,30 @@ export function openChapter(
         },
       });
       break;
+    case 'ring2':
+      kicker = t('chapter.act3.kicker');
+      title = t('chapter.ring2.title');
+      biome = undefined;
+      body.push(
+        t('chapter.ring2.line1'),
+        h('p', { class: 'modal__quote', text: t('chapter.ring2.line2') }),
+        t('chapter.ring2.line3'),
+      );
+      // Como la del Acto I: el foco en «Seguir creciendo», porque puede salir justo tras una compra.
+      actions.push({ label: t('chapter.close'), kind: 'quiet', autofocus: true });
+      actions.push({
+        label: t('chapter.toWind'),
+        kind: 'primary',
+        onSelect: () => {
+          choice = 'wind';
+          return undefined;
+        },
+      });
+      break;
     case 'arrive': {
       const b = chapter.biome;
-      // Un bioma cuyas adaptaciones aún no llegaron (la pradera y la tundra, fase 10) no promete
-      // ninguna ni lleva a un grupo que no existe.
-      const learns = BIOME_ADAPTATIONS.some((a) => a.biome === b);
-      kicker = t('chapter.act2.kicker');
+      // Los biomas sin bosque son el Acto III, como la lámina que los abre.
+      kicker = getBiome(b).ring === 2 ? t('chapter.act3.kicker') : t('chapter.act2.kicker');
       title = t(`chapter.${b}.arrive.title` as MessageKey);
       biome = b;
       body.push(
@@ -141,18 +187,16 @@ export function openChapter(
           biomeRules(b).map((rule) => h('li', { text: rule })),
         ),
         t('chapter.goal', { goal: formatCount(COLONIZE_LEVEL) }),
+        t('chapter.adaptHint'),
       );
-      if (learns) {
-        body.push(t('chapter.adaptHint'));
-        actions.push({
-          label: t('chapter.toAdaptations'),
-          kind: 'quiet',
-          onSelect: () => {
-            choice = 'adaptations';
-            return undefined;
-          },
-        });
-      }
+      actions.push({
+        label: t('chapter.toAdaptations'),
+        kind: 'quiet',
+        onSelect: () => {
+          choice = 'adaptations';
+          return undefined;
+        },
+      });
       actions.push({
         label: t('chapter.begin'),
         kind: 'primary',
@@ -178,8 +222,11 @@ export function openChapter(
         t(`chapter.${b}.colonize.line2` as MessageKey),
         t('chapter.lineage', { factor: formatFactor(LINEAGE_FACTOR ** leg, getLocale()) }),
       );
-      const more = !options.reread && destinations(state).length > 0;
-      if (!options.reread) body.push(more ? t('chapter.next') : t('wind.none'));
+      const ahead = !options.reread && destinations(state).length > 0;
+      // La colonización que cierra el primer anillo no lleva al viento: la lámina siguiente, la del
+      // anillo 2, lo presenta y lleva allí (dos «Ver el viento» seguidos).
+      const more = ahead && !(b === ringOneCloser(state) && !hasSeen(state, 'chapter.ring2'));
+      if (!options.reread) body.push(ahead ? t('chapter.next') : t('wind.none'));
       actions.push({ label: t('chapter.close'), kind: more ? 'quiet' : 'primary', autofocus: true });
       if (more) {
         actions.push({

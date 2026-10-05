@@ -116,10 +116,11 @@ export const BIOMES: readonly BiomeDef[] = [
     // con el pasivo (2,23–2,42 veces el activo). Con ×10 la partida más corta bajaba a 9:22, y con
     // ×25 se colonizaba en 1,19 h con partidas de 8 min. La lluvia es la palanca del pasivo: con la
     // espera ×1 tardaba 3,3–3,8 veces el activo (la pradera existe donde llueve demasiado poco
-    // para un bosque). Escala: con 9e10, la pradera tercera colonizaba en 3,24–3,40 h y la cuarta,
-    // en 2,98–2,99 h.
+    // para un bosque). Escala: con 9e10 (C7) la pradera tercera tenía la partida más larga en
+    // 1:00:17–1:03:02, por encima de la hora; con 8,1e10 queda en 58:13–58:49 y coloniza en
+    // 3,11–3,13 h, y la cuarta en 2,91–2,96 h (simulador).
     id: 'prairie',
-    scale: 9e10,
+    scale: 8.1e10,
     production: { fairyRing: 6 },
     rainInterval: 2,
     rainEffects: null,
@@ -184,10 +185,7 @@ export const MAX_LEG = DESTINATION_IDS.length;
  */
 export const ACT_ONE_ACHIEVEMENT = 'own.planetary.1';
 
-/**
- * Las de la pradera y la tundra (fase 10) tienen su clave en el guardado desde la v7 y valen 0
- * hasta que llegue su definición: un id sin definición en BIOME_ADAPTATIONS no se puede comprar.
- */
+/** Las de la pradera y la tundra (fase 10) tienen su clave en el guardado desde la v7. */
 export const BIOME_ADAPTATION_IDS = [
   'rockEating',
   'seedlingNetwork',
@@ -214,7 +212,9 @@ export type BiomeAdaptationEffect =
   /** Clics automáticos por segundo, sin Tormenta: perRank · rango. */
   | { kind: 'autoClicks'; perRank: number }
   /** Rocío × perRank^rango. */
-  | { kind: 'dew'; perRank: number };
+  | { kind: 'dew'; perRank: number }
+  /** Horas de tope sin conexión, en todos los biomas: perRank · rango. */
+  | { kind: 'offlineHours'; perRank: number };
 
 export interface BiomeAdaptationDef {
   id: BiomeAdaptationId;
@@ -298,6 +298,66 @@ export const BIOME_ADAPTATIONS: readonly BiomeAdaptationDef[] = [
     max: 2,
     rankLevels: [0, 150],
     effect: { kind: 'dew', perRank: 2 },
+  },
+  // Pradera y tundra (fase 10): los efectos medidos en el prototipo C7, con los mismos costes y
+  // niveles que las de los bosques. Cambiar un efecto invalida la calibración de los tramos 3 y 4.
+  {
+    // El motor de la pradera es el Anillo de hadas: su adaptación lo empuja como los Gongilidios.
+    id: 'ringFront',
+    biome: 'prairie',
+    baseCost: 150,
+    growth: 2,
+    max: 3,
+    rankLevels: [0, 75, 300],
+    effect: { kind: 'generators', targets: ['fairyRing'], perRank: 1.5 },
+  },
+  {
+    // Con +10 s de Aguacero por rango, como la Trehalosa, el pasivo pasaba de 2,5 veces el activo.
+    id: 'glomalin',
+    biome: 'prairie',
+    baseCost: 100,
+    growth: 2,
+    max: 3,
+    rankLevels: [0, 75, 300],
+    effect: { kind: 'generators', targets: ['mycorrhiza'], perRank: 1.25 },
+  },
+  {
+    id: 'pilobolus',
+    biome: 'prairie',
+    baseCost: 200,
+    growth: 2,
+    max: 2,
+    rankLevels: [0, 150],
+    effect: { kind: 'autoClicks', perRank: 1 },
+  },
+  {
+    id: 'dwarfBirch',
+    biome: 'tundra',
+    baseCost: 100,
+    growth: 2,
+    max: 3,
+    rankLevels: [0, 75, 300],
+    effect: { kind: 'generators', targets: ['mycorrhiza', 'ancientForest'], perRank: 1.25 },
+  },
+  {
+    id: 'snowMold',
+    biome: 'tundra',
+    baseCost: 150,
+    growth: 2,
+    max: 3,
+    rankLevels: [0, 75, 300],
+    effect: { kind: 'startUnits', target: 'motherTree', perRank: 2 },
+  },
+  {
+    // No acelera el perfil activo: es la adaptación del que vuelve de vez en cuando, y vale en
+    // todos los biomas como las demás (llevarla solo a la tundra rompería esa regla).
+    id: 'lichen',
+    biome: 'tundra',
+    baseCost: 200,
+    growth: 2,
+    max: 2,
+    rankLevels: [0, 150],
+    effect: { kind: 'offlineHours', perRank: 12 },
   },
 ];
 

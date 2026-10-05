@@ -10,6 +10,7 @@ import {
 } from '../src/core/actions.ts';
 import { drain, type GameEvent } from '../src/core/events.ts';
 import {
+  autoClicksPerSecond,
   biomeAdaptationGate,
   colonizedCount,
   destinations,
@@ -25,7 +26,15 @@ import { DISPERSE_RESET, SPORULATE_RESET } from '../src/core/resets.ts';
 import { computeDerived, derived, invalidate } from '../src/core/selectors.ts';
 import { createState, emptyOwned, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
-import { BIOMES, DESTINATION_IDS, LEG_SCALE, getBiome, getBiomeAdaptation } from '../src/data/biomes.ts';
+import {
+  BIOME_ADAPTATION_IDS,
+  BIOME_ADAPTATIONS,
+  BIOMES,
+  DESTINATION_IDS,
+  LEG_SCALE,
+  getBiome,
+  getBiomeAdaptation,
+} from '../src/data/biomes.ts';
 import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { RAIN_EFFECTS } from '../src/data/rain.ts';
 import { checkAchievements } from '../src/systems/achievements.ts';
@@ -189,9 +198,11 @@ describe('consultas del viaje', () => {
     const stormNatal = RAIN_EFFECTS.find((e) => e.kind === 'storm')?.chance;
     const stormChoco = getBiome('choco').rainEffects?.find((e) => e.kind === 'storm')?.chance;
     expect(stormChoco).toBe((stormNatal ?? 0) / 2);
-    // badapt.leafcutters dice «un clic automático por segundo».
-    const leafcutters = getBiomeAdaptation('leafcutters').effect;
-    expect(leafcutters.kind === 'autoClicks' && leafcutters.perRank).toBe(1);
+    // badapt.leafcutters y badapt.pilobolus dicen «un clic automático por segundo».
+    for (const id of ['leafcutters', 'pilobolus'] as const) {
+      const effect = getBiomeAdaptation(id).effect;
+      expect(effect.kind === 'autoClicks' && effect.perRank, id).toBe(1);
+    }
     // Solo la taiga y la pradera cambian la producción de un generador en concreto.
     expect(BIOMES.filter((b) => Object.keys(b.production).length > 0).map((b) => b.id)).toEqual([
       'taiga',
@@ -778,12 +789,12 @@ describe('el segundo anillo: la pradera y la tundra (fase 10)', () => {
     expect(destinations(s)).toEqual(['prairie']);
   });
 
-  it('la R de los tramos 3 y 4: pradera 1,1025e12 y 5,5125e12; tundra 4,2875e10 y 2,14375e11', () => {
-    // 9e10 · 12,25 y 9e10 · 61,25; 3,5e9 · 12,25 y 3,5e9 · 61,25 (×3,5 y luego ×5).
+  it('la R de los tramos 3 y 4: pradera 9,9225e11 y 4,96125e12; tundra 4,2875e10 y 2,14375e11', () => {
+    // 8,1e10 · 12,25 y 8,1e10 · 61,25; 3,5e9 · 12,25 y 3,5e9 · 61,25 (×3,5 y luego ×5).
     expect(LEG_SCALE).toEqual([1, 1, 3.5, 12.25, 61.25]);
     const prairie = arrivedInRingTwo('prairie');
-    expect(sporulateRequirement(prairie)).toBe(1.1025e12);
-    expect(sporeScale(prairie)).toBe(1.1025e12);
+    expect(sporulateRequirement(prairie)).toBe(9.9225e11);
+    expect(sporeScale(prairie)).toBe(9.9225e11);
     colonize(prairie, NOW + 30_000);
     disperse(prairie, { to: 'tundra', now: NOW + 40_000 });
     expect(sporulateRequirement(prairie)).toBe(2.14375e11);
@@ -791,7 +802,7 @@ describe('el segundo anillo: la pradera y la tundra (fase 10)', () => {
     expect(sporulateRequirement(tundra)).toBe(4.2875e10);
     colonize(tundra, NOW + 30_000);
     disperse(tundra, { to: 'prairie', now: NOW + 40_000 });
-    expect(sporeScale(tundra)).toBe(5.5125e12);
+    expect(sporeScale(tundra)).toBe(4.96125e12);
   });
 
   it('en la pradera 10 Anillos de hadas rinden 320 · 10 · 6 · 4 (linaje) = 76 800 N/s', () => {
@@ -860,7 +871,16 @@ describe('el segundo anillo: la pradera y la tundra (fase 10)', () => {
     expect(lineageFactor(s)).toBe(16);
   });
 
-  it('un bioma sin adaptaciones no cumple «todas sus adaptaciones al máximo» en vacío', () => {
+  it('cada destino tiene sus tres adaptaciones, y cada id del guardado su definición', () => {
+    // La interfaz (un grupo por destino en Mutaciones, «n de 3» en la Crónica) y «Aclimatación»
+    // cuentan con ello: un destino sin adaptaciones daría el logro en vacío.
+    for (const biome of DESTINATION_IDS) {
+      expect(BIOME_ADAPTATIONS.filter((a) => a.biome === biome).length, biome).toBe(3);
+    }
+    expect(BIOME_ADAPTATIONS.map((a) => a.id)).toEqual([...BIOME_ADAPTATION_IDS]);
+  });
+
+  it('«Aclimatación» no se da en vacío: una partida nueva no la cumple y las tres de la taiga al máximo sí', () => {
     const fresh = createState(61, NOW);
     checkAchievements(fresh);
     expect(fresh.achievements).not.toContain('adapt.biomeFull');
@@ -871,5 +891,59 @@ describe('el segundo anillo: la pradera y la tundra (fase 10)', () => {
     s.biomeAdaptations.trehalose = 2;
     checkAchievements(s);
     expect(s.achievements).toContain('adapt.biomeFull');
+  });
+});
+
+describe('adaptaciones de la pradera y la tundra (fase 10)', () => {
+  it('Frente del anillo en rango 2 y Glomalina en rango 1: Anillos 320 · 10 · 6 · 2,25 · 4 y Red 1800 · 1,25 · 4', () => {
+    const s = arrivedInRingTwo('prairie');
+    s.owned.fairyRing = 10;
+    s.owned.mycorrhiza = 1;
+    s.biomeAdaptations.ringFront = 2;
+    s.biomeAdaptations.glomalin = 1;
+    invalidate(s);
+    expect(derived(s).generatorProduction.fairyRing).toBe(172_800);
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(9000);
+  });
+
+  it('Pilobolus en rango 2 suma dos clics automáticos a los de las Hormigas cortadoras', () => {
+    const s = arrivedInRingTwo('prairie');
+    s.biomeAdaptations.leafcutters = 1;
+    s.biomeAdaptations.pilobolus = 2;
+    s.owned.hypha = 10;
+    invalidate(s);
+    expect(autoClicksPerSecond(s)).toBe(3);
+    expect(derived(s).workerProduction).toBeCloseTo(3 * derived(s).clickValue, 12);
+  });
+
+  it('Abedul enano en rango 1, en la tundra: Red 1800 · 10 · 0,5 · 1,25 · 4 y Bosque milenario 65 000 · 0,5 · 1,25 · 4', () => {
+    const s = arrivedInRingTwo('tundra');
+    s.owned.mycorrhiza = 10;
+    s.owned.ancientForest = 1;
+    s.biomeAdaptations.dwarfBirch = 1;
+    invalidate(s);
+    expect(derived(s).generatorProduction.mycorrhiza).toBe(45_000);
+    expect(derived(s).generatorProduction.ancientForest).toBe(162_500);
+  });
+
+  it('Moho de nieve en rango 3 empieza cada partida con 6 Árboles madre', () => {
+    const s = arrivedInRingTwo('tundra');
+    s.biomeAdaptations.snowMold = 3;
+    s.forest.earned = 4e11;
+    s.runEarned = 1e11;
+    sporulate(s, { now: NOW + 30_000 });
+    expect(s.owned.motherTree).toBe(6);
+  });
+
+  it('el Liquen suma 12 h de tope por rango en todos los biomas: 72 h en la tundra y 48 h en la pradera con el rango 2', () => {
+    const tundra = arrivedInRingTwo('tundra');
+    tundra.biomeAdaptations.lichen = 2;
+    // Sueño invernal 24 h + tundra 24 h + Liquen 24 h; con Letargo profundo 4, 24 h más.
+    expect(offlineCapSeconds(tundra)).toBe(72 * 3600);
+    tundra.adaptations.deepTorpor = 4;
+    expect(offlineCapSeconds(tundra)).toBe(96 * 3600);
+    const prairie = arrivedInRingTwo('prairie');
+    prairie.biomeAdaptations.lichen = 2;
+    expect(offlineCapSeconds(prairie)).toBe(48 * 3600);
   });
 });

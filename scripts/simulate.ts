@@ -22,7 +22,7 @@ import {
   type RunRecord,
 } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
-import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
+import { SEEDS, clock, hours, median, row, writeBlock, type Metric } from './sim-report.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
 setLocale('es');
@@ -259,43 +259,68 @@ const legRunMedians = (results: readonly Journey[], leg: number): number[] => {
   }
   return out;
 };
+/**
+ * Objetivos de un tramo del viaje. Los del segundo anillo (fase 10) suman la partida más larga:
+ * en la pradera tercera, sin calibrar, la última partida pasaba de una hora (1:01–1:04), y una
+ * partida de más de una hora es el muro que la fase resuelve.
+ */
+function legMetrics(order: readonly DestinationId[], results: readonly Journey[], leg: number): void {
+  const biome = order[leg];
+  if (biome === undefined) return;
+  const label = `Viento ${orderName(order)}, ${BIOME_NAMES[biome]} (${ordinal(leg)} destino)`;
+  const medians = legRunMedians(results, leg);
+  metrics.push({
+    name: `${label}: partidas hasta colonizar (todas)`,
+    target: '20–33 min',
+    values: results.flatMap((w) => w.legs[leg]?.runs ?? [null]),
+    format: clock,
+    pass: (m) => m >= 20 * 60 && m <= 33 * 60,
+  });
+  metrics.push({
+    name: `${label}: partida más corta (mediana por partida)`,
+    target: '≥ 10 min',
+    values: [Math.min(...medians)],
+    format: clock,
+    pass: (m) => m >= 600,
+  });
+  if (leg >= PREFIX_LEGS) {
+    metrics.push({
+      name: `${label}: partida más larga (mediana por partida)`,
+      target: '≤ 60 min',
+      values: [Math.max(...medians)],
+      format: clock,
+      pass: (m) => m <= 3600,
+    });
+  }
+  metrics.push({
+    name: `${label}: tiempo para colonizar`,
+    target: '2–3,5 h',
+    values: results.map((w) => w.legs[leg]?.colonizeTime ?? null),
+    format: hours,
+    pass: (m) => m >= 2 * 3600 && m <= 3.5 * 3600,
+  });
+  metrics.push({
+    name: `${label}: pasivo hasta colonizar`,
+    target: '≤ 2,5 × el activo',
+    values: results.map((w) => {
+      const l = w.legs[leg];
+      return l?.passiveTime && l.colonizeTime ? l.passiveTime / l.colonizeTime : null;
+    }),
+    format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+    pass: (m) => m <= 2.5,
+  });
+}
 // Tramos del primer anillo: los de cada prefijo, que se juegan una vez por semilla y sirven a todas
 // sus ramas. Son los 16 objetivos de la 1.3–1.5, con sus mismos nombres.
 PREFIXES.forEach((prefix, p) => {
-  const results = prefixes[p] ?? [];
-  prefix.forEach((biome, leg) => {
-    const label = `Viento ${orderName(prefix)}, ${BIOME_NAMES[biome]} (${ordinal(leg)} destino)`;
-    metrics.push({
-      name: `${label}: partidas hasta colonizar (todas)`,
-      target: '20–33 min',
-      values: results.flatMap((w) => w.legs[leg]?.runs ?? [null]),
-      format: clock,
-      pass: (m) => m >= 20 * 60 && m <= 33 * 60,
-    });
-    metrics.push({
-      name: `${label}: partida más corta (mediana por partida)`,
-      target: '≥ 10 min',
-      values: [Math.min(...legRunMedians(results, leg))],
-      format: clock,
-      pass: (m) => m >= 600,
-    });
-    metrics.push({
-      name: `${label}: tiempo para colonizar`,
-      target: '2–3,5 h',
-      values: results.map((w) => w.legs[leg]?.colonizeTime ?? null),
-      format: hours,
-      pass: (m) => m >= 2 * 3600 && m <= 3.5 * 3600,
-    });
-    metrics.push({
-      name: `${label}: pasivo hasta colonizar`,
-      target: '≤ 2,5 × el activo',
-      values: results.map((w) => {
-        const l = w.legs[leg];
-        return l?.passiveTime && l.colonizeTime ? l.passiveTime / l.colonizeTime : null;
-      }),
-      format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
-      pass: (m) => m <= 2.5,
-    });
+  prefix.forEach((_, leg) => {
+    legMetrics(prefix, prefixes[p] ?? [], leg);
+  });
+});
+// Tramos del segundo anillo (fase 10), en cada orden.
+ORDERS.forEach((order, o) => {
+  order.forEach((_, leg) => {
+    if (leg >= PREFIX_LEGS) legMetrics(order, winds[o] ?? [], leg);
   });
 });
 metrics.push({
@@ -349,14 +374,6 @@ const afterTable = [
   '| Orden | Partidas tras el último bioma (mediana de cada una) |',
   '| ----- | --------------------------------------------------- |',
 ];
-/**
- * Tramos del segundo anillo (fase 10), informativos hasta que lleguen las adaptaciones de la
- * pradera y la tundra: con ellas pasan a objetivo, con estas columnas.
- */
-const ringTwoTable = [
-  '| Orden | Bioma | Partidas (todas, mediana) | Más corta | Más larga | Colonizar | Pasivo |',
-  '| ----- | ----- | ------------------------- | --------- | --------- | --------- | ------ |',
-];
 /** Una fila de la tabla del viaje: el tramo `leg` de los viajes `results`. */
 function windRow(name: string, biome: DestinationId, results: readonly Journey[], leg: number): string {
   const perRun = legRunMedians(results, leg).map(clock).join(', ');
@@ -376,18 +393,6 @@ ORDERS.forEach((order, o) => {
   order.forEach((biome, leg) => {
     if (leg < PREFIX_LEGS) return;
     windTable.push(windRow(orderName(order), biome, results, leg));
-    const medians = legRunMedians(results, leg);
-    const colonize = present(results.map((w) => w.legs[leg]?.colonizeTime ?? null));
-    const passive = present(
-      results.map((w) => {
-        const l = w.legs[leg];
-        return l?.passiveTime && l.colonizeTime ? l.passiveTime / l.colonizeTime : null;
-      }),
-    );
-    const colonized = `${colonize.length} de ${results.length}`;
-    ringTwoTable.push(
-      `| ${orderName(order)} | ${BIOME_NAMES[biome]} (${ordinal(leg)} destino) | ${clock(median(results.flatMap((w) => w.legs[leg]?.runs ?? [])))} | ${clock(medians.length > 0 ? Math.min(...medians) : null)} | ${clock(medians.length > 0 ? Math.max(...medians) : null)} | ${hours(median(colonize))} (${colonized}) | ${passive.length > 0 ? `${median(passive).toFixed(2)} ×` : '—'} |`,
-    );
   });
   const after: string[] = [];
   for (let i = 0; i < AFTER_RUNS; i += 1) {
@@ -496,10 +501,6 @@ const block = [
   `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay destino por delante.`,
   '',
   ...windTable,
-  '',
-  `Tramos del segundo anillo (informativos hasta que lleguen las adaptaciones de la pradera y la tundra; sus objetivos serán: partidas de 20–33 min, la más corta ≥ 10 min, la más larga ≤ 60 min, colonizar en 2–3,5 h y el pasivo ≤ 2,5 × el activo). «Más corta» y «más larga» son medianas por partida; entre paréntesis, las semillas que colonizaron.`,
-  '',
-  ...ringTwoTable,
   '',
   `Tras colonizar el último bioma no quedan destinos en esta versión; las ${AFTER_RUNS} partidas siguientes son informativas:`,
   '',

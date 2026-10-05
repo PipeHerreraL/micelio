@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { disperseBlock, sporeGain } from '../src/core/actions.ts';
+import { disperseBlock, markSeen, sporeGain } from '../src/core/actions.ts';
 import { destinations, isActOneClosed, sporeScale, sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
 import type { GameState } from '../src/core/state.ts';
@@ -9,6 +9,7 @@ import { SPORE_SOFTCAP_BASE } from '../src/data/prestige.ts';
 import { mappedCount } from '../src/partners/plasmodium/state.ts';
 import { offlineCapSeconds } from '../src/systems/offline.ts';
 import { parseSave, serializeSave } from '../src/systems/save.ts';
+import { pendingChapter } from '../src/ui/chapter.ts';
 import { GAME_VERSION } from '../src/version.ts';
 import { withV7Additions } from './save-v7-additions.ts';
 
@@ -158,6 +159,16 @@ describe('cada guardado de la 1.5 es la partida que dice su nombre', () => {
       expect(destinations(state)).toEqual(['prairie', 'tundra']);
       expect(disperseBlock(state)).toBeNull();
     }
+  });
+
+  it('en el muro, la lámina «Donde acaban los árboles» sale al cargar, sin marca de la migración, y una sola vez', () => {
+    const state = load('wall');
+    // Las láminas de la 1.5 ya se vieron (también la colonización del Chocó).
+    expect(state.seen).toContain('chapter.colonize.choco');
+    expect(state.seen).not.toContain('chapter.ring2');
+    expect(pendingChapter(state)).toEqual({ kind: 'ring2' });
+    markSeen(state, { key: 'chapter.ring2' });
+    expect(pendingChapter(state)).toBeNull();
   });
 
   it('en el muro: taiga y Chocó colonizados, nivel > 1000, linaje ×4 y el plasmodio con dos placas', () => {

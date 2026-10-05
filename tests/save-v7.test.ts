@@ -95,8 +95,9 @@ describe('validación de las claves de la v7 antes de sus reglas', () => {
     expect(loads((s) => Reflect.deleteProperty(s.adaptations as object, 'waxcaps'))).toBe(false);
   });
 
-  it('las adaptaciones sin definición todavía solo valen 0; Cuerpo apical sigue sin tope', () => {
+  it('las cosméticas sin definición todavía solo valen 0, y la pradera sin visitar no enseña nada; Cuerpo apical sigue sin tope', () => {
     expect(loads((s) => Object.assign(s.adaptations as object, { sporePrint: 1 }))).toBe(false);
+    // Las de la pradera y la tundra ya tienen definición (fase 10): rigen las reglas de siempre.
     expect(loads((s) => Object.assign(s.biomeAdaptations as object, { ringFront: 1 }))).toBe(false);
     // Cuerpo apical no tiene tope (max: null): un rango alto es legítimo.
     expect(loads((s) => Object.assign(s.adaptations as object, { apicalBody: 40 }))).toBe(true);

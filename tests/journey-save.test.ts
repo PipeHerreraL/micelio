@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canSporulate, disperse, sporeGain } from '../src/core/actions.ts';
+import { buyBiomeAdaptation, canSporulate, disperse, sporeGain } from '../src/core/actions.ts';
 import { drain } from '../src/core/events.ts';
 import { sporulateRequirement } from '../src/core/forest.ts';
 import { derived } from '../src/core/selectors.ts';
@@ -296,6 +296,16 @@ describe('validación de los anillos del viaje (fase 10)', () => {
         if (taiga) taiga.biome = 'prairie';
       }),
     ).toBe(false);
+  });
+
+  it('las adaptaciones de la tundra compradas allí van y vuelven; por encima del máximo o de la pradera sin visitar, no', () => {
+    const state = inTundra();
+    buyBiomeAdaptation(state, { id: 'lichen' });
+    buyBiomeAdaptation(state, { id: 'dwarfBirch' });
+    expect(state.biomeAdaptations).toMatchObject({ lichen: 1, dwarfBirch: 1 });
+    expect(parseSave(serializeSave(state, SAVED_AT))).toMatchObject({ ok: true, save: { state } });
+    expect(loadsTundra((s) => (s.biomeAdaptations.lichen = 3))).toBe(false);
+    expect(loadsTundra((s) => (s.biomeAdaptations.ringFront = 1))).toBe(false);
   });
 
   it('acepta el otro bioma del anillo 2 de tercer destino y rechaza un bosque', () => {

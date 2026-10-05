@@ -83,6 +83,8 @@ export function biomeAdaptationDesc(id: BiomeAdaptationId): string {
       return t(`badapt.${id}.desc` as MessageKey, { count: formatCount(effect.perRank) });
     case 'downpourSeconds':
       return t(`badapt.${id}.desc` as MessageKey, { time: formatDuration(effect.perRank, locale) });
+    case 'offlineHours':
+      return t(`badapt.${id}.desc` as MessageKey, { time: formatDuration(effect.perRank * 3600, locale) });
     case 'autoClicks':
       return t(`badapt.${id}.desc` as MessageKey);
   }
@@ -102,6 +104,10 @@ export function biomeAdaptationEffect(state: GameState, id: BiomeAdaptationId): 
       return t(`badapt.${id}.effect` as MessageKey, { count: formatCount(effect.perRank * rank) });
     case 'downpourSeconds':
       return t(`badapt.${id}.effect` as MessageKey, { time: formatDuration(effect.perRank * rank, locale) });
+    case 'offlineHours':
+      return t(`badapt.${id}.effect` as MessageKey, {
+        time: formatDuration(effect.perRank * rank * 3600, locale),
+      });
     case 'autoClicks':
       return tp(`badapt.${id}.effect` as PluralKey, effect.perRank * rank);
   }

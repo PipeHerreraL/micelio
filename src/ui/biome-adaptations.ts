@@ -51,10 +51,7 @@ export function createBiomeAdaptations(store: Store): BiomeAdaptationsView {
   const hint = createHint(store, 'hint.biomeAdaptations', t('hint.biomeAdaptations'));
   const root = h('div', { class: 'badapt' }, [hint.root]);
 
-  // Un grupo por bioma con adaptaciones: uno sin ellas (la pradera y la tundra hasta que lleguen
-  // las suyas, fase 10) sería un título sin nada debajo.
-  const learnable = DESTINATION_IDS.filter((biome) => BIOME_ADAPTATIONS.some((def) => def.biome === biome));
-  const groups: Group[] = learnable.map((biome) => {
+  const groups: Group[] = DESTINATION_IDS.map((biome) => {
     const rows = BIOME_ADAPTATIONS.filter((def) => def.biome === biome).map((def): Row => {
       const label = t('adapt.buy', { name: biomeAdaptationName(def.id) });
       const rank = h('span', { class: 'adapt__rank tabular' });

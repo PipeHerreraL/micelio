@@ -162,7 +162,10 @@ export function generatorBiomeFactor(state: GameState, id: GeneratorId): number 
 }
 
 /** Suma de `perRank · rango` de las adaptaciones de bioma con este tipo de efecto. */
-function linearEffect(state: GameState, kind: 'startUnits' | 'downpourSeconds' | 'autoClicks'): number {
+function linearEffect(
+  state: GameState,
+  kind: 'startUnits' | 'downpourSeconds' | 'autoClicks' | 'offlineHours',
+): number {
   let total = 0;
   for (const def of BIOME_ADAPTATIONS) {
     if (def.effect.kind === kind) total += def.effect.perRank * state.biomeAdaptations[def.id];
@@ -203,12 +206,21 @@ export function downpourBonusSeconds(state: GameState): number {
   return linearEffect(state, 'downpourSeconds');
 }
 
-/** Clics automáticos por segundo (Hormigas cortadoras). */
+/** Clics automáticos por segundo (Hormigas cortadoras y Pilobolus). */
 export function autoClicksPerSecond(state: GameState): number {
   return linearEffect(state, 'autoClicks');
 }
 
-/** Unidades de regalo al empezar partida (Plántulas conectadas), por generador. */
+/**
+ * Horas que se suman al tope sin conexión: las del bioma actual (tundra, solo mientras se vive
+ * allí) y las del Liquen (en todos los biomas). Sin ninguna de las dos, 0 + 0: el tope de los
+ * demás biomas no cambia.
+ */
+export function offlineHoursBonus(state: GameState): number {
+  return getBiome(state.forest.biome).offlineHours + linearEffect(state, 'offlineHours');
+}
+
+/** Unidades de regalo al empezar partida (Plántulas conectadas y Moho de nieve), por generador. */
 export function startUnits(state: GameState): readonly { id: GeneratorId; count: number }[] {
   const out: { id: GeneratorId; count: number }[] = [];
   for (const def of BIOME_ADAPTATIONS) {

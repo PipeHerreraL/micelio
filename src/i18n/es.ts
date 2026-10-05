@@ -434,6 +434,13 @@ export const es = {
     'Pero un bosque completo no tiene adónde crecer. Las setas maduran todas a la vez y el viento empieza a soplar.',
   'chapter.act1.line4': 'Las esporas llevan lo que eres. El suelo se queda: ese habrá que ganarlo otra vez.',
   'chapter.act2.kicker': 'Acto II · Viento de esporas',
+  'chapter.act3.kicker': 'Acto III · Donde acaban los árboles',
+  'chapter.ring2.title': 'Hierba y hielo',
+  'chapter.ring2.line1':
+    'Tu linaje ya vive en la taiga y en la selva del Chocó. Más allá, el viento llega a tierras donde los árboles no alcanzan: donde llueve demasiado poco, o donde el suelo no se deshiela nunca del todo.',
+  'chapter.ring2.line2': 'Donde acaban los árboles, la red sigue.',
+  'chapter.ring2.line3':
+    'Se abren la pradera y la tundra, en el orden que quieras. Lo que aprendas en ellas también viajará contigo.',
   'chapter.colonize.kicker': 'Bioma colonizado',
   'chapter.taiga.arrive.title': 'La taiga',
   'chapter.taiga.arrive.line1':
@@ -525,6 +532,36 @@ export const es = {
   'badapt.rootMat.desc':
     'En suelos tropicales pobres, una alfombra de raíces finas y hongos atrapa los nutrientes antes de que la lluvia los lave; en un experimento en la Amazonía retuvo más del 99,9 % (Stark y Jordan, 1978). El Rocío rinde ×{factor} por rango.',
   'badapt.rootMat.effect': 'Rocío ×{factor}.',
+  'badapt.group.prairie': 'Aprendidas en la pradera',
+  'badapt.group.tundra': 'Aprendidas en la tundra',
+  'badapt.needLevel.prairie':
+    'El siguiente rango se abre en el nivel {level} de la pradera, o al colonizarla.',
+  'badapt.needLevel.tundra': 'El siguiente rango se abre en el nivel {level} de la tundra, o al colonizarla.',
+  'badapt.ringFront.name': 'Frente del anillo',
+  'badapt.ringFront.desc':
+    'El anillo avanza cada año un poco hacia fuera y deja en su borde la hierba más verde. Choi y colegas (2010) aislaron de Lepista sordida, un hongo de anillos, la 2-azahipoxantina, una molécula que hace crecer el césped. El Anillo de hadas rinde ×{factor} por rango.',
+  'badapt.ringFront.effect': 'Anillo de hadas ×{factor}.',
+  'badapt.glomalin.name': 'Glomalina',
+  'badapt.glomalin.desc':
+    'Wright y Upadhyaya (1996) llamaron glomalina a una proteína del suelo ligada a los hongos micorrícicos arbusculares, que ayudaría a pegar los grumos de la tierra de pradera; qué es exactamente se sigue discutiendo. La Red micorrícica rinde ×{factor} por rango.',
+  'badapt.glomalin.effect': 'Red micorrícica ×{factor}.',
+  'badapt.pilobolus.name': 'Pilobolus',
+  'badapt.pilobolus.desc':
+    'En las boñigas de los herbívoros, Pilobolus kleinii apunta a la luz y dispara su saco de esporas hasta unos 2,5 m, uno de los lanzamientos más rápidos de la naturaleza (Yafetto y colegas, 2008). Cada rango suma un clic automático por segundo; la Tormenta eléctrica no lo multiplica.',
+  'badapt.pilobolus.effect.one': '{count} clic automático por segundo.',
+  'badapt.pilobolus.effect.other': '{count} clics automáticos por segundo.',
+  'badapt.dwarfBirch.name': 'Abedul enano',
+  'badapt.dwarfBirch.desc':
+    'El abedul enano, Betula nana, vive con hongos ectomicorrícicos. En la tundra de Alaska se estimó que los hongos micorrícicos dan a las plantas entre el 61 y el 86 % de su nitrógeno (Hobbie y Hobbie, 2006). La Red micorrícica y el Bosque milenario rinden ×{factor} por rango.',
+  'badapt.dwarfBirch.effect': 'Red micorrícica y Bosque milenario ×{factor}.',
+  'badapt.snowMold.name': 'Moho de nieve',
+  'badapt.snowMold.desc':
+    'Typhula y otros mohos de nieve crecen bajo la nieve, cerca de 0 °C, cuando casi nada más se mueve: tu red llega a cada primavera con trabajo hecho. Cada partida empieza con {count} Árboles madre más por rango.',
+  'badapt.snowMold.effect': 'Cada partida empieza con {count} Árboles madre más.',
+  'badapt.lichen.name': 'Liquen',
+  'badapt.lichen.desc':
+    'Un liquen es un hongo que vive con un alga. Xanthoria elegans siguió viva tras 18 meses fuera de la Estación Espacial Internacional (Brandt y colegas, 2015). El tope sin conexión sube {time} por rango, en todos los biomas.',
+  'badapt.lichen.effect': 'El tope sin conexión sube {time}.',
   // Estadísticas del viaje
   'stats.biome': 'Bioma actual',
   'stats.dispersals': 'Dispersiones',
@@ -537,6 +574,17 @@ export const es = {
   'upg.motherTree.u4.name.choco': 'Memoria del árbol',
   'upg.motherTree.u4.flavor.choco': 'Siglos de raíces saben dónde no se encharca el suelo.',
   'upg.autumnLitter.name.choco': 'Hojarasca de todo el año',
+  // Textos que cambian en la pradera y la tundra: no hay abetos ni bosque
+  'gen.motherTree.flavor.prairie':
+    'Un roble solo en mitad de la hierba, el único árbol en kilómetros. Sus raíces comparten la red con toda la pradera.',
+  'gen.motherTree.flavor.tundra':
+    'Un abedul enano que no pasa de la rodilla. Bajo tierra, su red es más grande que él.',
+  'gen.ancientForest.flavor.prairie':
+    'Un bosque que la pradera no deja crecer: aquí la red milenaria vive en las raíces de la hierba.',
+  'gen.ancientForest.flavor.tundra':
+    'Sauces y abedules del alto de un dedo: en la tundra, un bosque milenario cabe bajo una bota.',
+  'upg.motherTree.u3.flavor.prairie': 'A la sombra del roble, la hierba aguanta mejor el verano.',
+  'upg.motherTree.u3.flavor.tundra': 'Al abrigo de un abedul enano, la nieve tarda más en irse.',
   'dev.actOne': 'Cerrar el Acto I',
   'dev.colonize': 'Colonizar este bioma',
 
@@ -764,6 +812,8 @@ export const es = {
   'hint.generators': 'Compra una Hifa: absorbe por ti, también cuando no miras.',
   'hint.upgrades': 'Hay una mejora disponible. Las mejoras multiplican, no suman.',
   'hint.milestone': 'Al llegar a 25 unidades, la producción de un generador se duplica.',
+  'hint.prairieMilestone':
+    'En la pradera, prueba la cantidad «Hito» con el Anillo de hadas: cada hito duplica su producción.',
   'hint.rain': 'Una gota de lluvia. Tócala antes de que se evapore.',
   'hint.achievements': 'Cada logro suma un 1 % a toda tu producción.',
   'hint.sporulate': 'Al esporular empiezas de nuevo, pero con esporas que te hacen más fuerte.',

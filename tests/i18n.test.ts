@@ -70,16 +70,14 @@ describe('catálogos de idioma', () => {
       required.push(`ach.${a.id}.name`);
       if (a.secret || a.reveal) required.push(`ach.${a.id}.desc`);
     }
-    // Viento de esporas (fases 8 y 10): cada bioma y cada adaptación de bioma con sus textos. El
-    // grupo de adaptaciones de un bioma solo existe si el bioma tiene alguna (ui/biome-adaptations).
+    // Viento de esporas (fases 8 y 10): cada bioma y cada adaptación de bioma con sus textos.
     for (const b of BIOMES) required.push(`biome.${b.id}.name`, `biome.${b.id}.soil`, `biome.${b.id}.here`);
-    for (const b of new Set(BIOME_ADAPTATIONS.map((a) => a.biome))) {
-      required.push(`badapt.group.${b}`, `badapt.needLevel.${b}`);
-    }
     for (const b of DESTINATION_IDS) {
       required.push(
         `biome.${b}.go`,
         `biome.${b}.style`,
+        `badapt.group.${b}`,
+        `badapt.needLevel.${b}`,
         `chapter.${b}.arrive.title`,
         `chapter.${b}.arrive.line1`,
         `chapter.${b}.arrive.line2`,
