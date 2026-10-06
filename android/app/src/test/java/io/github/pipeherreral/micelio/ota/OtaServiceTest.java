@@ -729,27 +729,96 @@ public class OtaServiceTest {
         assertEquals("1.6.2", store.read().pending.version);
     }
 
-    /** Un paquete que pide otro .apk no se descarga, y su aviso sale una sola vez por versión. */
+    /** Un manifiesto de un formato que este Java no entiende (`minFormat` va fuera de lo firmado). */
+    private static OtaService.Fetched newerFormat() {
+        return new OtaService.Fetched(200, "{\"format\":2,\"minFormat\":2}".getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** La búsqueda sola de 15 s después de volver al primer plano, hasta el final. */
+    private void searchByItself(OtaService.Session session) {
+        service.paused(session);
+        service.resumed(session);
+        serial.advance(OtaService.CHECK_DELAY_MILLIS);
+        settle();
+    }
+
+    /** El aviso que queda guardado para el arranque siguiente, como «tipo versión», o null. */
+    private String storedNotice() {
+        OtaState.Notice notice = store.read().notice;
+        return notice == null ? null : notice.kind + " " + notice.version;
+    }
+
+    /**
+     * Un paquete que pide otro .apk no se descarga. Si lo encuentra una búsqueda sola, su aviso queda
+     * para el arranque siguiente (status() al montar; ready() lo da por visto), una sola vez por versión;
+     * lo mismo el de un formato que pide otra app, una sola vez.
+     */
     @Test
     public void aVersionThatNeedsANewApkIsAnnouncedOnce() throws Exception {
         Fixtures.Release release = Fixtures.release("1.6.2", 2);
         http.publish(release, release.manifest(key));
-        start("1.6.1");
+        start("1.6.1", config(0));
         OtaService.Session session = service.select(host);
-        assertEquals(Collections.singletonList("needsApk 1.6.2"), checkNow());
+        searchByItself(session);
         assertEquals(Collections.singletonList(MANIFEST_URL), http.requests);
-        OtaState.Notice notice = store.read().notice;
-        assertEquals(OtaState.NOTICE_NEEDS_APK + " 1.6.2", notice.kind + " " + notice.version);
+        assertEquals(OtaState.NOTICE_NEEDS_APK + " 1.6.2", storedNotice());
         OtaService.Session latest = service.select(host);
         assertEquals("un arranque que ya no es el último no los da por vistos",
                 Collections.singletonList(OtaService.NOT_TRIAL), ready(session));
-        assertNotNull(store.read().notice);
+        assertNotNull(storedNotice());
         assertEquals(Collections.singletonList("notTrial needsApk 1.6.2"), ready(latest));
-        assertNull(store.read().notice);
+        assertNull(storedNotice());
 
-        assertEquals(Collections.singletonList("needsApk 1.6.2"), checkNow());
-        assertNull("una vez por versión", store.read().notice);
+        searchByItself(latest);
+        assertEquals(2, http.requests.size());
+        assertNull("una vez por versión", storedNotice());
         assertEquals(Collections.singletonList("1.6.2"), store.read().needsApkShown);
+
+        http.manifest = newerFormat();
+        searchByItself(latest);
+        assertEquals(OtaState.NOTICE_NEEDS_APK_FORMAT + " ", storedNotice());
+        assertEquals(Collections.singletonList("notTrial needsApkFormat "), ready(latest));
+        searchByItself(latest);
+        assertEquals(4, http.requests.size());
+        assertNull("una sola vez", storedNotice());
+    }
+
+    /**
+     * Si lo encuentra «Buscar ahora», el aviso lo da el JS con la respuesta (§5.3 de la especificación) y
+     * no queda guardado: el arranque siguiente lo volvería a sacar. Tampoco queda el que una búsqueda sola
+     * hubiera guardado ya para la misma versión, y lo mismo con el formato que pide otra app.
+     */
+    @Test
+    public void aNewApkFoundByCheckNowIsShownByItsAnswerAndNotStored() throws Exception {
+        Fixtures.Release release = Fixtures.release("1.6.2", 2);
+        http.publish(release, release.manifest(key));
+        start("1.6.1", config(0));
+        service.select(host);
+        assertEquals(Collections.singletonList("needsApk 1.6.2"), checkNow());
+        assertNull(storedNotice());
+        assertEquals(Collections.singletonList("1.6.2"), store.read().needsApkShown);
+        OtaService.Session next = service.select(host);
+        assertEquals("nada que mostrar al arrancar", Collections.singletonList(OtaService.NOT_TRIAL), ready(next));
+
+        Fixtures.Release newer = Fixtures.release("1.6.3", 2);
+        byte[] newerManifest = newer.manifest(key);
+        http.publish(newer, newerManifest);
+        searchByItself(next);
+        assertEquals(OtaState.NOTICE_NEEDS_APK + " 1.6.3", storedNotice());
+        Fixtures.Release other = Fixtures.release("1.6.4", 2);
+        http.publish(other, other.manifest(key));
+        assertEquals(Collections.singletonList("needsApk 1.6.4"), checkNow());
+        assertEquals("el de otra versión aún no se dio", OtaState.NOTICE_NEEDS_APK + " 1.6.3", storedNotice());
+        http.publish(newer, newerManifest);
+        assertEquals(Collections.singletonList("needsApk 1.6.3"), checkNow());
+        assertNull("ya lo dio la respuesta", storedNotice());
+
+        http.manifest = newerFormat();
+        assertEquals(Collections.singletonList(OtaService.NEEDS_APK), checkNow());
+        assertTrue(store.read().needsApkFormatShown);
+        assertNull(storedNotice());
+        searchByItself(next);
+        assertNull("y ya se dio", storedNotice());
     }
 
     /** Sin respuesta, reintenta a los 10 min, no antes; un 404 cuenta como respuesta. */

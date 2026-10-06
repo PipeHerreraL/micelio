@@ -703,18 +703,17 @@ final class OtaService {
         // Un rechazo no marca nada como fallido: si no, quien sirviera un zip roto vetaría una versión buena.
         String result = FAILED;
         String version = null;
+        boolean answered = !current.waiting.isEmpty();
         if ("minFormat".equals(verdict.reason)) {
-            if (!next.needsApkFormatShown) {
-                next.needsApkFormatShown = true;
-                next.notice = new OtaState.Notice(OtaState.NOTICE_NEEDS_APK_FORMAT, "");
-            }
+            noteNeedsApk(next, new OtaState.Notice(OtaState.NOTICE_NEEDS_APK_FORMAT, ""), !next.needsApkFormatShown,
+                    answered);
+            next.needsApkFormatShown = true;
             result = NEEDS_APK;
         } else if ("minNative".equals(verdict.reason)) {
             version = verdict.version;
-            if (!next.needsApkShown.contains(version)) {
-                next.needsApkShown.add(version);
-                next.notice = new OtaState.Notice(OtaState.NOTICE_NEEDS_APK, version);
-            }
+            boolean first = !next.needsApkShown.contains(version);
+            noteNeedsApk(next, new OtaState.Notice(OtaState.NOTICE_NEEDS_APK, version), first, answered);
+            if (first) next.needsApkShown.add(version);
             result = NEEDS_APK;
         } else if ("version".equals(verdict.reason)) {
             result = NONE;
@@ -723,6 +722,21 @@ final class OtaService {
         save(next);
         log.log("Manifiesto rechazado: " + verdict.reason, null);
         finishCheck(current, result, version);
+    }
+
+    /**
+     * El aviso de que hace falta otro .apk, una vez por versión (o por formato). Lo que encuentra la
+     * búsqueda sola queda guardado para el arranque siguiente, la primera vez. Si hay un JS esperando
+     * («Buscar ahora»), lo muestra él con la respuesta: no se guarda, porque el arranque siguiente lo
+     * volvería a sacar, y se quita el mismo aviso si una búsqueda sola lo había dejado sin mostrar.
+     */
+    private static void noteNeedsApk(OtaState next, OtaState.Notice notice, boolean first, boolean answered) {
+        if (!answered) {
+            if (first) next.notice = notice;
+        } else if (next.notice != null && next.notice.kind.equals(notice.kind)
+                && next.notice.version.equals(notice.version)) {
+            next.notice = null;
+        }
     }
 
     /**

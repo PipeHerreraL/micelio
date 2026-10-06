@@ -23,7 +23,10 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *               mostrar ahora (`updated` al confirmar), y desde aquí los avisos cuentan como vistos.
  *               Una versión ya confirmada responde `confirmed` otra vez (una recarga de la página).
  *   reject({ reason: 'save' | 'error' })  la versión a prueba no entiende la partida o falló antes.
- *   checkNow()  { result: 'ready' | 'none' | 'needsApk' | 'failed', version? }
+ *   checkNow()  { result: 'ready' | 'none' | 'needsApk' | 'failed', version? }. Con `needsApk`, el aviso
+ *               lo da el JS con esta respuesta (ota.needsApk con `version`; sin ella, ota.needsApkFormat):
+ *               no queda en el `notice` de status() del arranque siguiente, que es para lo que encuentra
+ *               la búsqueda sola.
  *   applyNow()  «Usar ahora», con la partida ya guardada: corta la descarga y recrea si hay versión.
  *   evento 'downloaded' { version }
  *
