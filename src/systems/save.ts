@@ -542,6 +542,14 @@ function validateVows(raw: unknown, biome: BiomeId): VowId[] | null {
  * empezado y sin cumplir: sembrar los jura con el nivel en 0 y la esporulación que llega a la meta
  * los levanta. Las mutaciones despiertas, solo con «sin mutaciones»: compradas, con sus requisitos
  * despiertos y sin costar más que las esporas del ciclo (el nivel, que empezó en 0).
+ *
+ * Con el ciclo en curso sin cumplir (nivel por debajo de la meta), como mucho uno menos cumplido que
+ * empezados: sembrar pone el nivel en 0 y suma un empezado, y cumplir suma uno al cruzar la meta,
+ * una vez por ciclo. Tantos como empezados solo sale de un guardado editado o importado, y se repara
+ * al cargar en lugar de rechazarlo: `done` es solo presentación (el contador de la Crónica y de
+ * Estadísticas, y el logro de un ciclo, que ya se ganó). Cargado tal cual, cumplir el ciclo dejaba
+ * más cumplidos que empezados y este mismo validador rechazaba cada guardado siguiente hasta la
+ * próxima siembra, y otra vez al cumplir cada ciclo después (BUG-JOURNAL #29; precedente, #18).
  */
 function validateCycle(
   raw: unknown,
@@ -561,7 +569,8 @@ function validateCycle(
     spent += def.cost;
   }
   if (spent > level) return null;
-  return { stays: raw.stays, done: raw.done, vows, woken };
+  const done = raw.stays > 0 && level < CYCLE_GOAL_LEVEL ? Math.min(raw.done, raw.stays - 1) : raw.done;
+  return { stays: raw.stays, done, vows, woken };
 }
 
 /**

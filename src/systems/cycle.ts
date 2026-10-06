@@ -52,7 +52,9 @@ export function checkCycleDone(state: GameState, gained: number, now: number): b
     runs: state.stats.sporulations - forest.arrivalSporulations,
     at: now,
   });
-  cycle.done += 1;
+  // Nunca más cumplidos que empezados, aunque llegara un estado que el guardado no repara: el
+  // validador rechazaría cada guardado siguiente (BUG-JOURNAL #29).
+  cycle.done = Math.min(cycle.done + 1, cycle.stays);
   cycle.vows = [];
   cycle.woken = [];
   invalidate(state);

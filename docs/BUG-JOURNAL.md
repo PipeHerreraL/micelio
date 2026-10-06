@@ -46,6 +46,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [26](#26) | `src/i18n/` (`caption.compact`)                                           | En el móvil, la cartela partía «Selva del Chocó · 312/500» con el «·» al principio         |
 | [27](#27) | `src/ui/wind.ts`, `src/core/forest.ts`                                    | Viento daba como récord del bioma el de otros votos                                        |
 | [28](#28) | `scripts/sim-report.ts`                                                   | El simulador escondía partidas de más de una hora en el Chocó del ciclo libre              |
+| [29](#29) | `src/systems/save.ts`, `src/systems/cycle.ts`                             | Un guardado con tantos ciclos cumplidos como empezados dejaba de guardarse al cumplir      |
 
 ---
 
@@ -700,6 +701,44 @@ salía en 50 min en vez de 64,5).
 **Qué aprender.** Una mediana por índice solo compara lo mismo si el índice significa lo mismo en
 todas las series. Cuando una cifra cambia mucho por algo que no debería moverla, primero hay que
 sospechar de la medida.
+
+---
+
+<a id="29"></a>
+
+## 29. Un guardado con tantos ciclos cumplidos como empezados dejaba de guardarse al cumplir
+
+**Zona:** `src/systems/save.ts` (`validateCycle`) y `src/systems/cycle.ts` (`checkCycleDone`) (familia
+de #18)
+
+**Síntoma.** Lo encontró la revisión final de la 1.6.0 con un buscador de estados (perturbaciones
+que el validador acepta seguidas de acciones legales): `tests/fixtures/save-v7.json` (ciclo 3, dos
+cumplidos, nivel 184) editado con tres cumplidos se importaba sin aviso y se guardaba. Al cumplir ese
+ciclo quedaban cuatro cumplidos de tres empezados, y desde ahí cada autoguardado y el de `pagehide`
+devolvían `'invalid'` (el aviso de guardado dañado) hasta la siguiente siembra, y otra vez al cumplir
+cada ciclo después. Quien seguía esporulando en el bosque cumplido y cerraba la pestaña perdía lo
+hecho desde el último guardado bueno. En una partida jugada no pasa: los buscadores sin
+perturbaciones validaron en cada paso.
+
+**Causa.** El validador solo pedía `done ≤ stays`. En el juego, con el ciclo en curso sin cumplir,
+`done ≤ stays − 1`: sembrar pone el nivel en 0 y suma un empezado, y cumplir suma uno al cruzar 500,
+una vez por ciclo. El validador aceptaba un estado desde el que el juego no podía seguir guardando, y
+su prueba lo daba por bueno.
+
+**Arreglo.** Al cargar, con un ciclo empezado y el nivel por debajo de la meta, `done` se repara a
+`stays − 1` como mucho, sin rechazar el guardado: es solo presentación (el contador de la Crónica y
+de Estadísticas, y el logro del primer ciclo, que ya se ganó). Si con eso un récord se queda sin
+ciclo cumplido, el guardado se rechaza: repararlo dejaría otro estado que no se puede guardar.
+Además, `checkCycleDone` nunca deja más cumplidos que empezados.
+
+**Qué lo sostiene.** `tests/cycle.test.ts` → «un guardado con tantos cumplidos como empezados y el
+ciclo en curso sin cumplir carga con uno menos y, al cumplirlo, se sigue guardando» y «el primer
+ciclo sin cumplir con uno cumplido y un récord no carga: el récord pide un ciclo cumplido». Fallan sin
+el arreglo (comprobado: cargaba con dos cumplidos de dos, y el segundo caso cargaba).
+
+**Qué aprender.** Como en #18: un validador que comprueba cada campo en su rango puede aceptar un
+estado que el juego nunca produce y desde el que ya no puede guardar. Hay que validar contra lo que
+el juego hace, no solo contra los límites de cada campo.
 
 ---
 

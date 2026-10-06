@@ -674,9 +674,12 @@ Resuelve el muro de la 1.5: tras el último bioma no quedaba destino y cada part
   que llegue en un guardado (un reloj que retrocedió, una partida importada de otro dispositivo) se
   repara a 0 al cargar en vez de rechazarse: es solo presentación, y rechazarlo bloquearía el
   guardado para siempre, porque ese récord sería el mejor y nunca se reemplazaría (precedente:
-  BUG-JOURNAL #18). Los récords son personales: quien atrasa el reloj se engaña a sí mismo y el juego
-  no se rompe por ello. `cycle` y `records` son `custom` en las dos tablas de reinicio: esporular y
-  sembrar pueden escribirlos.
+  BUG-JOURNAL #18). Igual con los ciclos cumplidos: con el ciclo en curso sin cumplir son como mucho
+  uno menos que los empezados, y un guardado editado con tantos como empezados se repara al cargar;
+  cargado tal cual, cumplir dejaba más cumplidos que empezados y ningún guardado siguiente validaba
+  (BUG-JOURNAL #29). Los récords son personales: quien atrasa el reloj se engaña a sí mismo y el
+  juego no se rompe por ello. `cycle` y `records` son `custom` en las dos tablas de reinicio:
+  esporular y sembrar pueden escribirlos.
 - **Avisos y no láminas en el ciclo.** Las láminas tienen claves fijas (`chapter.ring2`,
   `chapter.return.arrive`, `chapter.return.close`); cumplir un ciclo o batir un récord da aviso,
   anuncio y acorde, para que `seen` no crezca con los ciclos.

@@ -297,6 +297,14 @@ function secondCycle(): GameState {
   return s;
 }
 
+/** El mismo, con la taiga también cumplida: dos ciclos empezados y dos cumplidos. */
+function secondCycleDone(): GameState {
+  const s = secondCycle();
+  reachLevel(s, 520, NOW + 65 * HOUR);
+  drain();
+  return s;
+}
+
 describe('guardado del ciclo libre (fase 10)', () => {
   it('un ciclo empezado y uno cumplido con su récord se guardan y vuelven idénticos', () => {
     for (const state of [sownIn('tundra'), secondCycle()]) {
@@ -330,11 +338,42 @@ describe('guardado del ciclo libre (fase 10)', () => {
   });
 
   it('los ciclos son enteros y nunca hay más cumplidos que empezados', () => {
-    expect(loadsAfter(secondCycle, (s) => (s.cycle.done = 2))).toBe(true);
+    // Con el ciclo en curso cumplido hay tantos cumplidos como empezados; uno más, nunca.
+    expect(loadsAfter(secondCycleDone, () => undefined)).toBe(true);
+    expect(loadsAfter(secondCycleDone, (s) => (s.cycle.done = 3))).toBe(false);
     expect(loadsAfter(secondCycle, (s) => (s.cycle.done = 3))).toBe(false);
     expect(loadsAfter(secondCycle, (s) => (s.cycle.stays = 1.5))).toBe(false);
     expect(loadsAfter(secondCycle, (s) => (s.cycle.done = -1))).toBe(false);
     expect(loadsAfter(secondCycle, (s) => Object.assign(s.cycle, { stays: '2' }))).toBe(false);
+  });
+
+  it('un guardado con tantos cumplidos como empezados y el ciclo en curso sin cumplir carga con uno menos y, al cumplirlo, se sigue guardando', () => {
+    // Solo sale de un guardado editado: en la taiga, nivel 200, dos ciclos empezados y dos cumplidos.
+    const edited = secondCycle();
+    edited.cycle.done = 2;
+    const result = parseSave(textOf(edited));
+    if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+    const s = result.save.state;
+    expect(s.cycle).toEqual({ stays: 2, done: 1, vows: [], woken: [] });
+    // Cumplir la taiga: dos de dos, y el guardado sigue escribiéndose (antes, tres de dos y 'invalid').
+    reachLevel(s, 520, NOW + 65 * HOUR);
+    drain();
+    expect(s.cycle).toMatchObject({ stays: 2, done: 2 });
+    expect(saveGame(memoryStorage(), s, SAVED_AT)).toBe('saved');
+    expect(saveGame(memoryStorage(), s, SAVED_AT + HOUR)).toBe('saved');
+  });
+
+  it('el primer ciclo sin cumplir con uno cumplido y un récord no carga: el récord pide un ciclo cumplido', () => {
+    // Repararlo a 0 cumplidos dejaría el récord sin ciclo, y ese estado tampoco se podría guardar.
+    expect(
+      loadsAfter(
+        () => sownIn('taiga'),
+        (s) => {
+          s.cycle.done = 1;
+          s.records = [{ biome: 'prairie', vows: [], time: HOUR, runs: 1, at: NOW }];
+        },
+      ),
+    ).toBe(false);
   });
 
   it('un ciclo empezado admite votos; las mutaciones despiertas, solo con «sin mutaciones» (las reglas, en tests/vows.test.ts)', () => {
