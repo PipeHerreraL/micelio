@@ -12,6 +12,7 @@
 import {
   BIOME_IDS,
   DESTINATION_IDS,
+  DISPERSE_COST,
   HOME_BIOME,
   getBiome,
   type BiomeId,
@@ -856,7 +857,7 @@ const block = [
   '',
   '### Viento de esporas (perfil activo, regla de §17)',
   '',
-  `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando 300 esporas para el viaje cuando hay algo por delante (otro destino o El regreso) y en todo el tramo 5.`,
+  `Natal hasta el Acto I y después ${journeyShape}; mediana de ${SEEDS.length} semillas. El bot dispersa al empezar partida, compra al llegar las adaptaciones de bioma abiertas y, entre partidas, mutaciones y adaptaciones guardando ${DISPERSE_COST} esporas para el viaje en cuanto el bosque está colonizado y hay algo por delante (otro destino o El regreso) y, en el ciclo libre, para la siembra siguiente. Durante El regreso no guarda nada: la primera siembra puede esperar una partida.`,
   '',
   ...windTable,
   '',

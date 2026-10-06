@@ -172,7 +172,8 @@ export const BIOMES: readonly BiomeDef[] = [
     // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
     // invernal (24 h) y el bioma suma 24; sumar y no fijar en 48 deja algo también a quien tiene
     // Letargo profundo. Llueve un tercio (desierto polar): el pasivo queda en 1,90–2,01 veces el
-    // activo. Escala: la tundra tercera colonizaba en 2,81–2,95 h y la cuarta, en 2,18–2,46 h.
+    // activo. Escala: la tundra tercera coloniza en 2,81–2,95 h y la cuarta, en 2,18–2,41 h
+    // (simulador; en C7, la cuarta en 2,18–2,46 h).
     //
     // Deshielo tras 8 h: sin él, la tundra fuera del juego rinde 0,5 · min(H, tope), nunca más que
     // otro bioma, y quien vuelve cada día tardaba 3 días en colonizarla frente a 2 de la pradera;

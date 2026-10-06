@@ -434,11 +434,16 @@ function saveIsValid(state: GameState, now: number): boolean {
 
 /**
  * Reserva para el próximo viaje: con el bosque cerrado y algo por delante (otro destino o, tras el
- * cuarto, El regreso). Durante El regreso, nada mientras no se cumple la meta, como en el prototipo
- * que lo midió: con la reserva el bot compraba menos adaptaciones y lo cumplía en 2,96–3,20 h en vez
- * de 2,94–3,12 h (simulador, con R 6,3e13). En el ciclo libre, todo el ciclo: el bosque está cerrado
- * (El regreso cumplido) y siempre hay adónde sembrar. Con un ciclo de unas 500 esporas brutas, las
- * 300 guardadas pagan la siembra siguiente sin partidas de espera.
+ * cuarto, El regreso). En el ciclo libre, todo el ciclo: el bosque está cerrado (El regreso
+ * cumplido) y siempre hay adónde sembrar; con un ciclo de unas 500 esporas brutas, las 300
+ * guardadas pagan la siembra siguiente sin partidas de espera.
+ *
+ * Durante El regreso, nada mientras no se cumple la meta, y la primera siembra espera una partida
+ * (12–22 min) en casi todas las semillas: las partidas de espera quedan en 1 de mediana, justo en su
+ * objetivo. Guardando también entonces bajaban a 0 y El regreso se cumplía en 2,37–2,70 h en vez de
+ * 2,36–2,66 h, pero el bot empezaba la primera vuelta con menos adaptaciones de bioma y sin esa
+ * partida corta, y dos objetivos dejaban de cumplirse: la partida más larga del Chocó pasaba de
+ * 56:52 a 1:08:01 y la mediana de las de la tundra, de 33:55 a 35:56 (simulador, fase 10).
  */
 function journeyReserve(state: GameState): number {
   return isForestColonized(state) && windTargets(state).length > 0 ? DISPERSE_COST : 0;
