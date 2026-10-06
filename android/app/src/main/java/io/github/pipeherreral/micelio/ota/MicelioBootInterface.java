@@ -8,20 +8,22 @@ import android.webkit.JavascriptInterface;
  * guardado. El complemento lo añade en su `load()`, que el `Bridge` llama antes de cargar la página: un
  * objeto inyectado antes de la carga está desde el primer script.
  *
- * Devuelve un texto ya hecho al arrancar, sin E/S: el WebView lo llama desde un hilo suyo, en segundo
- * plano. Solo dice qué versión corre; el WebView solo carga https://localhost (las URL de fuera las abre
- * Android aparte), así que no hay otra página que pueda leerlo.
+ * Sigue ahí en cada recarga de la página dentro de la misma actividad, así que responde lo de ahora y
+ * no lo del arranque: tras confirmar la versión a prueba dice `trial: false`, y una recarga ya no
+ * retiene el guardado. Sin E/S: el WebView lo llama desde un hilo suyo, en segundo plano. Solo dice
+ * qué versión corre; el WebView solo carga https://localhost (las URL de fuera las abre Android aparte),
+ * así que no hay otra página que pueda leerlo.
  */
 public final class MicelioBootInterface {
-    private final String boot;
+    private final OtaService.Session session;
 
-    MicelioBootInterface(String boot) {
-        this.boot = boot;
+    MicelioBootInterface(OtaService.Session session) {
+        this.session = session;
     }
 
     /** JSON: `{ trial, version, builtin, apk, nativeLevel }` de este arranque. */
     @JavascriptInterface
     public String boot() {
-        return boot;
+        return OtaAndroid.bootJson(session);
     }
 }

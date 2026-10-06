@@ -966,6 +966,9 @@ rama cumple una parte.
   `confirmed`, `tooLate` o `notTrial`, decidido en el ejecutor junto con su escritura: confirmar y
   vencer el reloj no pueden pasar los dos. Si la confirmación no se puede escribir (disco lleno),
   responde `tooLate` y la actividad vuelve a arrancar con la base, sin dar la versión por fallida.
+  Una versión ya confirmada en el proceso vuelve a responder `confirmed`: una recarga de la página en
+  la misma actividad, o la actividad nueva de una recreación cuyo `ready()` llega después del de la
+  vieja, también guardan.
   La versión a prueba vuelve atrás sola si no confirma en 30 s de primer plano (medidos con
   `elapsedRealtime`; el arranque ya espera hasta 8 s el catálogo del idioma), tras dos arranques sin
   confirmar, si se cae su renderizador o si el JS avisa de un error. Una versión fallida no se vuelve
@@ -981,7 +984,8 @@ rama cumple una parte.
   1. **Una versión a prueba no escribe nada del guardado**, ni la copia de respaldo, y lo sabe antes
      de leer la partida, sin esperar a nadie: `MicelioBoot`, un `@JavascriptInterface` que el
      complemento añade en su `load()` (el `Bridge` lo llama antes de `loadWebView()`), se lee de
-     forma síncrona al evaluar `main.ts`. A prueba, o si `MicelioBoot` no responde, `loadGame` lee
+     forma síncrona al evaluar `main.ts` y responde lo de ahora, no lo del arranque: tras confirmar,
+     una recarga ya no retiene. A prueba, o si `MicelioBoot` no responde, `loadGame` lee
      con un almacén de solo lectura y `saveNow()` solo anota que se pidió un guardado, hasta
      `confirmed` o `notTrial`: falla cerrada. Si no se suelta sin estar a prueba (el puente y
      `MicelioBoot` rotos a la vez, un fallo nuestro), a los 10 s un aviso fijo dice que no guarda.

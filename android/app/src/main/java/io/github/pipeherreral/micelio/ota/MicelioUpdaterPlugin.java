@@ -21,6 +21,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *   ready()     { result: 'confirmed' | 'tooLate' | 'notTrial', notice }: tras el primer frame. El JS
  *               solo vuelve a guardar con `confirmed` o `notTrial`; `notice` es el aviso que toca
  *               mostrar ahora (`updated` al confirmar), y desde aquí los avisos cuentan como vistos.
+ *               Una versión ya confirmada responde `confirmed` otra vez (una recarga de la página).
  *   reject({ reason: 'save' | 'error' })  la versión a prueba no entiende la partida o falló antes.
  *   checkNow()  { result: 'ready' | 'none' | 'needsApk' | 'failed', version? }
  *   applyNow()  «Usar ahora», con la partida ya guardada: corta la descarga y recrea si hay versión.
@@ -39,8 +40,7 @@ public class MicelioUpdaterPlugin extends Plugin {
         session = OtaAndroid.session(getActivity());
         OtaService service = OtaAndroid.service();
         try {
-            getBridge().getWebView().addJavascriptInterface(
-                    new MicelioBootInterface(OtaAndroid.bootJson(session)), "MicelioBoot");
+            getBridge().getWebView().addJavascriptInterface(new MicelioBootInterface(session), "MicelioBoot");
         } catch (RuntimeException error) {
             // Sin MicelioBoot el JS no guarda nada (falla cerrada) y, a prueba, el reloj retira la versión.
             Log.e(OtaAndroid.TAG, "No se pudo añadir MicelioBoot", error);

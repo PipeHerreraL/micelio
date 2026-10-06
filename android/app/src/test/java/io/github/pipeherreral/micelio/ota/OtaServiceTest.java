@@ -371,6 +371,60 @@ public class OtaServiceTest {
     }
 
     /**
+     * Una recarga de la página tras confirmar, en la misma actividad («Recargar» del aviso del idioma, o
+     * el de los socios), vuelve a leer MicelioBoot y vuelve a llamar a ready(): lee que ya no está a
+     * prueba, y ready() vuelve a responder «confirmed», así que guarda. Con «tooLate» no guardaría nunca
+     * más en esa actividad (ningún reloj actúa ya, y Atrás no la cierra).
+     */
+    @Test
+    public void aReloadAfterConfirmingIsNoLongerOnTrialAndMaySave() throws Exception {
+        onDisk(Fixtures.release("1.6.2", 1), false, 0);
+        start("1.6.1");
+        OtaService.Session session = service.select(host);
+        assertTrue(service.bootJson(session).startsWith("{\"trial\":true,"));
+        service.resumed(session);
+        serial.advance(2_000);
+        assertEquals(Collections.singletonList("confirmed updated 1.6.2"), ready(session));
+
+        assertTrue(service.bootJson(session), service.bootJson(session).startsWith("{\"trial\":false,"));
+        assertEquals("el aviso ya se dio", Collections.singletonList(OtaService.CONFIRMED), ready(session));
+        List<Boolean> trial = new ArrayList<>();
+        service.status(session, status -> trial.add(status.trial));
+        serial.runDue();
+        assertEquals(Collections.singletonList(false), trial);
+        serial.advance(10 * MINUTE);
+        assertEquals(0, host.recreated);
+        assertEquals("1.6.2", store.read().active.version);
+        assertTrue(store.read().failed.isEmpty());
+    }
+
+    /**
+     * La actividad se recrea (otro tamaño de letra) justo cuando su JS llama a ready(). Si ese ready()
+     * llega después de elegir el arranque de la nueva, confirma la versión, y la nueva, que la sirvió a
+     * prueba, también puede guardar: lee que ya no está a prueba, y su ready() da el aviso.
+     */
+    @Test
+    public void aStaleReadyAfterTheRecreationLetsTheNewStartSave() throws Exception {
+        onDisk(Fixtures.release("1.6.2", 1), false, 0);
+        start("1.6.1");
+        OtaService.Session stale = service.select(host);
+        service.resumed(stale);
+        serial.advance(2_000);
+        service.paused(stale);
+        OtaService.Session live = service.select(host);
+        assertTrue(live.trial);
+        assertEquals("el arranque viejo no da por visto el aviso",
+                Collections.singletonList(OtaService.CONFIRMED), ready(stale));
+
+        assertTrue(service.bootJson(live), service.bootJson(live).startsWith("{\"trial\":false,"));
+        service.resumed(live);
+        assertEquals(Collections.singletonList("confirmed updated 1.6.2"), ready(live));
+        serial.advance(10 * MINUTE);
+        assertEquals(0, host.recreated);
+        assertEquals("1.6.2", store.read().active.version);
+    }
+
+    /**
      * Disco lleno: una confirmación que no se puede escribir responde «tooLate» y recrea, sin dar la
      * versión por fallida; el selector no empieza una prueba cuyo intento no se puede anotar, y la
      * vuelve a probar cuando se puede.
@@ -383,6 +437,9 @@ public class OtaServiceTest {
         File blocker = blockWrites();
         assertEquals(Collections.singletonList(OtaService.TOO_LATE), ready(session));
         assertEquals(1, host.recreated);
+        assertTrue("una recarga antes de recrear sigue sin guardar",
+                service.bootJson(session).startsWith("{\"trial\":true,"));
+        assertEquals(Collections.singletonList(OtaService.TOO_LATE), ready(session));
 
         OtaService.Session base = service.select(host);
         assertFalse(base.trial);

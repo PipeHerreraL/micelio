@@ -168,6 +168,11 @@ final class OtaService {
         /** Si se sirvió a prueba. Que siga sin decidir lo dice el servicio. */
         final boolean trial;
         final Host host;
+        /**
+         * Su versión a prueba ya se confirmó en este proceso, por este arranque o por el de la actividad
+         * que se recreó en él. Lo escribe el hilo del servicio y lo lee MicelioBoot desde el del WebView.
+         */
+        private volatile boolean confirmed;
 
         Session(int number, String version, File folder, boolean trial, Host host) {
             this.number = number;
@@ -175,6 +180,11 @@ final class OtaService {
             this.folder = folder;
             this.trial = trial;
             this.host = host;
+        }
+
+        /** Si su JS debe seguir sin guardar: a prueba y sin confirmar (también si la prueba ya falló). */
+        boolean holdsSave() {
+            return trial && !confirmed;
         }
     }
 
@@ -207,6 +217,8 @@ final class OtaService {
     private static final class Trial {
         final String version;
         final OtaTrialWatch watch = new OtaTrialWatch(TRIAL_MILLIS);
+        /** Los arranques que la sirvieron: más de uno si la actividad se recreó durante la prueba. */
+        final List<Session> sessions = new ArrayList<>();
         Cancellable timer;
 
         Trial(String version) {
@@ -306,10 +318,12 @@ final class OtaService {
 
     /**
      * El JS arrancó bien (tras su primer frame). Con una versión a prueba sin decidir, la confirma, y
-     * solo responde `confirmed` si la confirmación quedó escrita; si el reloj ganó, `tooLate`. Sin
-     * prueba, `notTrial`, y el activo deja de contar arranques sin `ready()`. Con `confirmed` o
-     * `notTrial`, los avisos quedan vistos: los de `status()` los mostró el JS al montar, y el que
-     * haya ahora (`updated` al confirmar) va en la respuesta.
+     * solo responde `confirmed` si la confirmación quedó escrita; si el reloj ganó, `tooLate`. Si ya la
+     * confirmó otro ready() de este proceso (la página se recargó, o es la actividad vieja o la nueva
+     * de una recreación), vuelve a responder `confirmed`. Sin prueba, `notTrial`. En los dos últimos
+     * casos el activo deja de contar arranques sin `ready()`. Con `confirmed` o `notTrial`, los avisos
+     * quedan vistos: los de `status()` los mostró el JS al montar, y el que haya ahora (`updated` al
+     * confirmar) va en la respuesta.
      */
     void ready(Session session, ReadyCallback callback) {
         serial.execute(() -> {
@@ -327,8 +341,8 @@ final class OtaService {
                 }
             } catch (Throwable error) {
                 log.log("ready() falló", error);
-                // Sin prueba, el JS puede guardar; a prueba, sigue sin guardar y el reloj decide.
-                result = session.trial ? TOO_LATE : NOT_TRIAL;
+                // Sin prueba o ya confirmada, el JS puede guardar; a prueba, sigue sin guardar y el reloj decide.
+                result = session.holdsSave() ? TOO_LATE : session.trial ? CONFIRMED : NOT_TRIAL;
             }
             callback.done(result, notice);
         });
@@ -421,10 +435,14 @@ final class OtaService {
         listeners.remove(listener);
     }
 
-    /** Lo que el JS lee de forma síncrona al evaluar main.ts (`MicelioBoot.boot()`), sin E/S. */
+    /**
+     * Lo que el JS lee de forma síncrona al evaluar main.ts (`MicelioBoot.boot()`), sin E/S. Se pide en
+     * cada carga de la página, desde el hilo del WebView, así que solo lee campos finales o `volatile`:
+     * tras confirmar dice `trial: false`, y una recarga ya no retiene el guardado.
+     */
     String bootJson(Session session) {
         Map<String, Object> info = new LinkedHashMap<>();
-        info.put("trial", session.trial);
+        info.put("trial", session.holdsSave());
         info.put("version", session.version);
         info.put("builtin", builtin == null ? "" : builtin);
         info.put("apk", apk);
@@ -461,6 +479,7 @@ final class OtaService {
         }
         Session session = new Session(++sessions, decision.version,
                 decision.fromBundle ? store.bundleDir(decision.version) : null, decision.trial, host);
+        if (decision.trial) trial.sessions.add(session);
         latest = session;
         log.log("Arranque " + session.number + ": " + (decision.fromBundle ? "paquete " : "integrado ")
                 + session.version + (decision.trial ? ", a prueba" : ""), null);
@@ -505,7 +524,7 @@ final class OtaService {
     }
 
     private String readyNow(Session session) {
-        if (!session.trial) {
+        if (!session.holdsSave()) {
             OtaState.Bundle active = state.active;
             if (writable() && active != null && active.version.equals(session.version)
                     && active.bootsWithoutReady != 0) {
@@ -517,7 +536,7 @@ final class OtaService {
             // checkEveryBoot sigue: si el activo dejó de arrancar con sus archivos intactos, el fallo es
             // de su código y suele depender de la partida (llegar a la tundra); que esta vez arranque no
             // lo arregla. Solo lo apaga otra versión activa, o perder esta.
-            return NOT_TRIAL;
+            return session.trial ? CONFIRMED : NOT_TRIAL;
         }
         if (!isUndecidedTrial(session)) return TOO_LATE;
         OtaState.Bundle pending = state.pending;
@@ -547,6 +566,9 @@ final class OtaService {
             session.host.recreate();
             return TOO_LATE;
         }
+        // Todos los arranques que la sirvieron pueden guardar ya: también la actividad nueva de una
+        // recreación, cuyo ready() puede llegar después del de la vieja.
+        for (Session served : trial.sessions) served.confirmed = true;
         endTrial();
         if (previous != null && !previous.equals(pending.version)) store.delete(previous);
         log.log("Confirmada la versión " + pending.version, null);
