@@ -823,7 +823,9 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
   la combinación marcada, `recordFor`: los récords no se mezclan; BUG-JOURNAL #27), y bajo el
   progreso los vigentes con su botón de romper: la confirmación empieza en «Mantener el voto», y al
   romper el foco pasa al siguiente o al estado del ciclo, nunca a `<body>` (BUG-JOURNAL #5, #8 y
-  #15). El árbol dormido se atenúa y cada nodo dice «dormida» y se despierta desde sí mismo.
+  #15), y a la vista: antes de mover el foco tras romper o sembrar, Viento repinta la pestaña entera,
+  porque la interfaz se refresca cada 100 ms y lo que cambiaba después movía la página en WebKit y
+  dejaba el foco bajo la franja fija (BUG-JOURNAL #30). El árbol dormido se atenúa y cada nodo dice «dormida» y se despierta desde sí mismo.
   Estadísticas cuenta los votos como número (la lista vive en Viento, para no aplastar la columna de
   etiquetas a 375 px), la Crónica dice los votos de cada récord y las cosméticas van bajo las
   Adaptaciones, cerradas con su motivo.

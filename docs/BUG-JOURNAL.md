@@ -47,6 +47,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [27](#27) | `src/ui/wind.ts`, `src/core/forest.ts`                                    | Viento daba como récord del bioma el de otros votos                                        |
 | [28](#28) | `scripts/sim-report.ts`                                                   | El simulador escondía partidas de más de una hora en el Chocó del ciclo libre              |
 | [29](#29) | `src/systems/save.ts`, `src/systems/cycle.ts`                             | Un guardado con tantos ciclos cumplidos como empezados dejaba de guardarse al cumplir      |
+| [30](#30) | `src/ui/wind.ts`, `src/ui/tab-sporulate.ts`                               | En WebKit, tras romper un voto o sembrar, el foco quedaba debajo de la franja fija         |
 
 ---
 
@@ -739,6 +740,40 @@ el arreglo (comprobado: cargaba con dos cumplidos de dos, y el segundo caso carg
 **Qué aprender.** Como en #18: un validador que comprueba cada campo en su rango puede aceptar un
 estado que el juego nunca produce y desde el que ya no puede guardar. Hay que validar contra lo que
 el juego hace, no solo contra los límites de cada campo.
+
+---
+
+<a id="30"></a>
+
+## 30. En WebKit, tras romper un voto o sembrar, el foco quedaba debajo de la franja fija
+
+**Zona:** `src/ui/wind.ts` (`renounce`, `confirm`) y `src/ui/tab-sporulate.ts` (familia de #5, #8,
+#15 y #20)
+
+**Síntoma.** Lo encontró la revisión final de la 1.6.0 en WebKit (el motor de Safari) a 375 y 412 px:
+tras romper un voto con el teclado, el botón de romper el siguiente (o el estado del ciclo, tras el
+último) quedaba enfocado debajo de la franja fija de arriba (#20), y la página saltaba 76 px; al
+sembrar con votos, el título de Viento quedaba bajo la franja o a mil píxeles por encima de la vista.
+En Chromium no pasaba, y en Firefox solo tras romper el último. Las pruebas de navegador solo
+miraban que el foco no cayera en `<body>`.
+
+**Causa.** Viento enfocaba en el cuadro siguiente al cierre del diálogo, pero la interfaz solo se
+repinta cada 100 ms (`main.ts`) y despachar no repinta nada (un comentario decía lo contrario). El
+foco llegaba sobre el DOM de antes; cuando el refresco ocultaba el botón roto o añadía la línea de los
+votos, el anclaje del desplazamiento de WebKit movía la página y el elemento enfocado se quedaba
+debajo de lo fijo o fuera de la vista.
+
+**Arreglo.** Al cerrarse el diálogo, Viento repinta la pestaña Esporular entera (lo de arriba también
+cambia: el nivel, el requisito) y, en el cuadro siguiente, enfoca y trae a la vista lo justo
+(`revealFocus` en `src/ui/dom.ts`: `scrollIntoView` con `nearest`, que respeta el margen de lo fijo).
+
+**Qué lo sostiene.** `tests/e2e/cycle.spec.ts` → «a 375 px (y a 412 px), tras sembrar con votos y
+tras romperlos lo enfocado se ve: ni bajo la franja fija ni fuera de la vista», en los cinco
+perfiles: `focusCover` (`tests/e2e/helpers.ts`) mira con `elementFromPoint` que en los bordes de
+arriba y de abajo del elemento enfocado no haya otra cosa encima. Falla sin el arreglo (comprobado:
+en WebKit y en el iPhone 14, a 375 y 412 px, y también en Firefox, el botón de romper o el estado del
+ciclo quedaban bajo el escenario fijo; en el iPhone 14, tras sembrar, el título quedaba de 300 a 800
+px por encima de la vista). En Chromium pasaba también sin él.
 
 ---
 

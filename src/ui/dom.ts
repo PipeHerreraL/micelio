@@ -106,6 +106,17 @@ export function setProgress(el: HTMLElement, fraction: number): void {
   el.style.transform = value;
 }
 
+/**
+ * Pone el foco en `el` y lo trae a la vista lo justo: con `nearest`, lo que ya se ve no se mueve, y
+ * lo que no, queda junto al borde más cercano respetando el margen de lo fijo (styles.css,
+ * `.tabs__panels *`). WebKit no desplaza al enfocar un elemento fuera de la vista y Chromium lo
+ * centra: así los dos hacen lo mismo.
+ */
+export function revealFocus(el: HTMLElement): void {
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'nearest' });
+}
+
 /** Reinicia una animación CSS quitando y volviendo a poner su clase en el mismo nodo. */
 export function restartAnimation(el: HTMLElement, className: string): void {
   el.classList.remove(className);

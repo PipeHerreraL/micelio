@@ -44,7 +44,7 @@ import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
 import { formatDuration, formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatBonus, formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { biomeName, biomeRules, biomeSoil } from './biome-text.ts';
-import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
+import { Disposer, h, revealFocus, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { createHint } from './hint.ts';
 import { uiIcon } from './icons.ts';
 import { openModal } from './modal.ts';
@@ -223,7 +223,11 @@ export function departureText(
   }
 }
 
-export function createWindSection(store: Store): WindSection {
+/**
+ * `repaint` repinta lo que contiene la sección (la pestaña Esporular, cuyo resumen de arriba también
+ * cambia al sembrar o al romper un voto); sin él, solo la sección.
+ */
+export function createWindSection(store: Store, repaint?: () => void): WindSection {
   const disposer = new Disposer();
   const hint = createHint(store, 'hint.wind', t('hint.wind'));
   const title = h('h3', {
@@ -442,7 +446,7 @@ export function createWindSection(store: Store): WindSection {
           kind: 'primary',
           onSelect: () => {
             // Jurados, ya no son una elección: el próximo ciclo empieza otra vez sin votos marcados.
-            // Antes de despachar, que refresca la sección.
+            // Despachar no repinta nada; la pestaña se repinta al cerrarse el diálogo.
             if (kind === 'cycle') chosen.clear();
             store.dispatch(disperse, { to, now: Date.now(), vows });
             dispersed = true;
@@ -455,9 +459,7 @@ export function createWindSection(store: Store): WindSection {
         // El <dialog> devuelve el foco al botón del destino, que el siguiente refresco oculta (ya
         // está visitado): sin esto el foco caería en <body> y el siguiente Espacio absorbería. Al
         // sembrar la fila sigue, pero el foco va al mismo sitio: arriba, al bosque nuevo.
-        requestAnimationFrame(() => {
-          title.focus();
-        });
+        settleThenFocus(() => title);
       },
     });
   }
@@ -496,10 +498,9 @@ export function createWindSection(store: Store): WindSection {
         const next =
           remaining.find((v) => VOW_IDS.indexOf(v) > after) ??
           (remaining.length > 0 ? remaining[0] : undefined);
-        requestAnimationFrame(() => {
+        settleThenFocus(() => {
           const target = next === undefined ? undefined : breakButtons.get(next);
-          if (target && !target.hidden) target.focus();
-          else progress.focus();
+          return target && !target.hidden ? target : progress;
         });
       },
     });
@@ -508,6 +509,20 @@ export function createWindSection(store: Store): WindSection {
   /** La elección de votos no pasa por el estado: se pinta en el acto. */
   function refresh(): void {
     section.update();
+  }
+
+  /**
+   * Tras sembrar o romper un voto, el foco va a `target` sobre la pestaña ya repintada. La interfaz
+   * se refresca cada 100 ms (main.ts) y el foco llegaba antes: al ocultarse el botón roto o salir la
+   * línea de los votos, el anclaje del desplazamiento de WebKit movía la página hasta 76 px (o más
+   * al sembrar) y el foco quedaba bajo la franja fija o fuera de la vista (BUG-JOURNAL #30). En el
+   * cuadro siguiente, para llegar después de que el <dialog> devuelva el suyo.
+   */
+  function settleThenFocus(target: () => HTMLElement): void {
+    (repaint ?? refresh)();
+    requestAnimationFrame(() => {
+      revealFocus(target());
+    });
   }
   /** Votos con que se escribió la línea de los vigentes: ListFormat en cada refresco sería basura. */
   let vowsShown = '';

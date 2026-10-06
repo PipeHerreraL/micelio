@@ -12,10 +12,12 @@ import {
   PHONES,
   collectErrors,
   cutOff,
+  focusCover,
   gotoPseudo,
   isMobile,
   savedState,
   seedSave,
+  settle,
   windState,
 } from './helpers.ts';
 
@@ -338,6 +340,58 @@ for (const phone of PHONES) {
     await page.keyboard.press('Enter');
     await expect(page.locator('#wind-status')).toBeFocused();
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+    expect((await savedState(page)).cycle.vows).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, tras sembrar con votos y tras romperlos lo enfocado se ve: ni bajo la franja fija ni fuera de la vista`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const errors = collectErrors(page);
+    const now = Date.now();
+    await seedSave(page, taigaCycleDone(now), now);
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Esporular/ }).click();
+    const group = page.getByRole('group', { name: 'Votos para el próximo ciclo' });
+    for (const name of ['Sin lluvia', 'Solo autocompra', 'Sin mutaciones']) {
+      await group.getByRole('button', { name }).click();
+    }
+    // Sembrar con el teclado (BUG-JOURNAL #30): en WebKit, el título quedaba bajo la franja o mil
+    // píxeles por encima de la vista al salir, ya con el foco puesto, la línea de los votos.
+    await page.getByRole('button', { name: 'Sembrar en la tundra' }).focus();
+    await page.keyboard.press('Enter');
+    await dialog(page).getByRole('button', { name: 'Sembrar', exact: true }).click();
+    await expect(page.locator('#wind-title')).toBeFocused();
+    await expect(page.locator('.wind__vowsnow')).toBeVisible();
+    await settle(page);
+    expect(await focusCover(page)).toBeNull();
+
+    // Romper los tres, con el botón justo bajo la franja: al ocultarse el roto, la página saltaba
+    // y el foco del siguiente (o el estado del ciclo, tras el último) quedaba bajo la franja.
+    const steps = [
+      ['sin lluvia', page.getByRole('button', { name: 'Romper el voto «solo autocompra»' })],
+      ['solo autocompra', page.getByRole('button', { name: 'Romper el voto «sin mutaciones»' })],
+      ['sin mutaciones', page.locator('#wind-status')],
+    ] as const;
+    for (const [vow, next] of steps) {
+      const broken = page.getByRole('button', { name: `Romper el voto «${vow}»` });
+      await broken.evaluate((el) => {
+        const band = document.querySelector('.layout__top')?.getBoundingClientRect().bottom ?? 0;
+        window.scrollBy(0, el.getBoundingClientRect().top - band - 60);
+      });
+      await broken.focus();
+      await page.keyboard.press('Enter');
+      await expect(dialog(page).getByRole('button', { name: 'Mantener el voto' })).toBeFocused();
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Enter');
+      await expect(next).toBeFocused();
+      await expect(broken).toBeHidden();
+      await settle(page);
+      expect(await focusCover(page), vow).toBeNull();
+    }
     expect((await savedState(page)).cycle.vows).toEqual([]);
     expect(errors).toEqual([]);
   });

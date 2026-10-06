@@ -181,3 +181,32 @@ export function cutOff(page: Page, selector: string): Promise<string[]> {
     return out;
   }, selector);
 }
+
+/** Tres refrescos de la interfaz (uno cada 100 ms, src/main.ts): lo que tenga que moverse, ya se movió. */
+export function settle(page: Page): Promise<void> {
+  return page.waitForTimeout(350);
+}
+
+/**
+ * Por qué no se ve el elemento con el foco, o null si se ve (BUG-JOURNAL #30): sus bordes de
+ * arriba y de abajo, a media anchura, deben caer dentro de la ventana y ser suyos, no de lo fijo que
+ * los tape (la franja de arriba, la barra de pestañas del móvil). Con el foco en <body>, 'body'.
+ */
+export function focusCover(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const el = document.activeElement;
+    if (!(el instanceof HTMLElement) || el === document.body) return 'body';
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    for (const y of [r.top + 2, r.bottom - 2]) {
+      if (y < 0 || y > window.innerHeight)
+        return `${el.id || el.className} fuera de la vista (${Math.round(r.top)}–${Math.round(r.bottom)})`;
+      const hit = document.elementFromPoint(x, y);
+      if (!hit || (hit !== el && !el.contains(hit))) {
+        const by = hit instanceof HTMLElement ? hit.className || hit.tagName : 'nada';
+        return `${el.id || el.className} tapado por ${by} (${Math.round(r.top)}–${Math.round(r.bottom)})`;
+      }
+    }
+    return null;
+  });
+}

@@ -102,7 +102,11 @@ export function createSporulateTab(store: Store): TabView {
   // quien esperara a duplicar el nivel cargaría la última partida con casi todo el tramo.
   const goalNote = h('p', { class: 'spore__goal', id: 'spore-goal', attrs: { hidden: true } });
   const hint = createHint(store, 'hint.sporulate', t('hint.sporulate'));
-  const wind = createWindSection(store);
+  // Al sembrar o romper un voto, Viento repinta la pestaña entera antes de mover el foco: lo de
+  // arriba (el nivel, el requisito) también cambia y movería la página.
+  const wind = createWindSection(store, () => {
+    update();
+  });
 
   const root = h('div', { class: 'tab tab--sporulate' }, [
     h('div', { class: 'tab__toolbar' }, [h('h2', { class: 'tab__title', text: t('sporulate.title') })]),
