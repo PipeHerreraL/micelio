@@ -12,6 +12,7 @@ import {
   ignoreMatcher,
   packFiles,
   verifyZip,
+  type Inflate,
   type PackFile,
   type ZipReason,
 } from '../scripts/ota-pack.ts';
@@ -206,6 +207,30 @@ describe('lo que la app comprueba de un zip descargado', () => {
       const verdict = verifyZip(readFileSync(new URL(item.zip, fixtures)), item.payload);
       expect(verdict.ok ? 'ok' : verdict.reason, item.name).toBe(item.verdict);
     }
+  });
+
+  it('una bomba se corta un byte después de lo firmado: nunca se descomprime entera', () => {
+    // Se cuenta lo que la descompresión llega a devolver: sin el tope, la bomba da sus 31 MiB enteros
+    // antes de que nadie compare el tamaño, y el veredicto sería el mismo.
+    const bomb = cases.find(({ name }) => name === 'bomb');
+    if (!bomb) throw new Error('Falta el caso bomb en las fixtures.');
+    const produced: number[] = [];
+    let cut = 0;
+    const counting: Inflate = (data, options) => {
+      try {
+        const out = inflateRawSync(data, options);
+        produced.push(out.byteLength);
+        return out;
+      } catch (error) {
+        cut += 1;
+        throw error;
+      }
+    };
+    const verdict = verifyZip(readFileSync(new URL(bomb.zip, fixtures)), bomb.payload, counting);
+    expect(verdict).toEqual({ ok: false, reason: 'files' });
+    expect(cut).toBe(1);
+    const biggest = Math.max(...bomb.payload.files.map(([, size]) => size));
+    expect(Math.max(0, ...produced)).toBeLessThanOrEqual(biggest + 1);
   });
 
   it('el payload de cada caso pasa la comprobación del manifiesto: el zip es lo único que falla', () => {

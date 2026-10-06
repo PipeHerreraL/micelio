@@ -53,6 +53,8 @@ final class OtaStore implements OtaSelector.Disk {
         File temp = new File(dir, STATE + ".tmp");
         try (FileOutputStream out = new FileOutputStream(temp)) {
             out.write(state.toJson());
+            // Ninguna prueba falla si se quita (aceptado: JUnit no puede simular un corte de luz). Sin él,
+            // el renameTo podría llegar al disco antes que los datos y dejar un state.json vacío.
             out.getFD().sync();
         }
         if (!temp.renameTo(new File(dir, STATE))) throw new IOException("No se pudo renombrar " + temp);

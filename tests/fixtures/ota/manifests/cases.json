@@ -1,7 +1,7 @@
 {
   "app": "io.github.pipeherreral.micelio",
   "nativeLevel": 1,
-  "keyRoles": { "test": "fb107a2a", "new": "a1169a83", "other": "6d087d6e" },
+  "keyRoles": { "test": "11edcfae", "new": "90ad257c", "other": "9d094987" },
   "cases": [
     {
       "name": "ok-one-key",
@@ -9,7 +9,7 @@
       "description": "Firmado con la clave de la app.",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["fb107a2a"]
+      "keyIds": ["11edcfae"]
     },
     {
       "name": "ok-unknown-and-known",
@@ -17,7 +17,7 @@
       "description": "Una firma de una clave ajena y otra de la de la app: basta la conocida.",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["fb107a2a"]
+      "keyIds": ["11edcfae"]
     },
     {
       "name": "ok-two-keys",
@@ -25,7 +25,7 @@
       "description": "Firmado con las dos claves que conoce la app (rotación): se anotan las dos, en orden.",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["fb107a2a", "a1169a83"]
+      "keyIds": ["11edcfae", "90ad257c"]
     },
     {
       "name": "ok-new-key-only",
@@ -33,7 +33,23 @@
       "description": "Firmado solo con la clave nueva de la rotación.",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["a1169a83"]
+      "keyIds": ["90ad257c"]
+    },
+    {
+      "name": "ok-same-key-twice",
+      "file": "ok-same-key-twice.json",
+      "description": "Dos firmas válidas de la misma clave: se anota una vez.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-eight-signatures",
+      "file": "ok-eight-signatures.json",
+      "description": "Ocho firmas, el tope: siete de una clave ajena y la última de la app.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
     },
     {
       "name": "ok-size-at-limit",
@@ -41,7 +57,7 @@
       "description": "El zip mide justo el tope (10 MiB).",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["fb107a2a"]
+      "keyIds": ["11edcfae"]
     },
     {
       "name": "ok-unpacked-at-limit",
@@ -49,7 +65,7 @@
       "description": "Descomprimido mide justo el tope (30 MiB).",
       "verdict": "ok",
       "version": "1.6.2",
-      "keyIds": ["fb107a2a"]
+      "keyIds": ["11edcfae"]
     },
     {
       "name": "unknown-key",
@@ -92,6 +108,12 @@
       "file": "no-signatures.json",
       "description": "Sin firmas.",
       "verdict": "signature"
+    },
+    {
+      "name": "too-many-signatures",
+      "file": "too-many-signatures.json",
+      "description": "Nueve firmas, una más que el tope, aunque la última sea buena.",
+      "verdict": "format"
     },
     {
       "name": "not-json",
@@ -200,6 +222,24 @@
       "name": "files-long-entry",
       "file": "files-long-entry.json",
       "description": "Un archivo con un cuarto campo.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-fraction-size",
+      "file": "files-fraction-size.json",
+      "description": "Un archivo que mide 1,5 bytes.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-negative-size",
+      "file": "files-negative-size.json",
+      "description": "Un archivo que mide -1 bytes.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-empty-path",
+      "file": "files-empty-path.json",
+      "description": "Un archivo sin ruta.",
       "verdict": "files"
     }
   ]

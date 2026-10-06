@@ -126,6 +126,12 @@ function manifestCases(keys: Record<'test' | 'new' | 'other', KeyObject>, good: 
   // Un payload con un campo cambiado, en el orden de siempre (también con tipos que Payload no admite).
   const variant = (changes: Record<string, unknown>): Buffer =>
     Buffer.from(JSON.stringify({ ...good, ...changes }), 'utf8');
+  // `files` con un campo del primer archivo cambiado (0: la ruta, 1: el tamaño).
+  const withFirstFile = (field: 0 | 1, value: unknown): Record<string, unknown> => ({
+    files: good.files.map((entry, i) =>
+      i === 0 ? entry.map((item, j) => (j === field ? value : item)) : entry,
+    ),
+  });
   const signed = (payload: Uint8Array, signers: KeyObject[] = [keys.test]): Manifest =>
     signPayload(payload, signers);
   const withSignatures = (signatures: SignatureEntry[]): Manifest => ({ ...signed(bytes), signatures });
@@ -193,6 +199,18 @@ function manifestCases(keys: Record<'test' | 'new' | 'other', KeyObject>, good: 
       keyIdOf(keys.new),
     ]),
     ok(
+      'ok-same-key-twice',
+      'Dos firmas válidas de la misma clave: se anota una vez.',
+      signed(bytes, [keys.test, keys.test]),
+      [keyIdOf(keys.test)],
+    ),
+    ok(
+      'ok-eight-signatures',
+      'Ocho firmas, el tope: siete de una clave ajena y la última de la app.',
+      signed(bytes, [...Array<KeyObject>(LIMITS.signatures - 1).fill(keys.other), keys.test]),
+      [keyIdOf(keys.test)],
+    ),
+    ok(
       'ok-size-at-limit',
       'El zip mide justo el tope (10 MiB).',
       signed(variant({ size: LIMITS.zipBytes })),
@@ -236,6 +254,12 @@ function manifestCases(keys: Record<'test' | 'new' | 'other', KeyObject>, good: 
       withSignatures([{ ...signatureFor(bytes, keys.other), keyId: keyIdOf(keys.test) }]),
     ),
     bad('no-signatures', 'Sin firmas.', 'signature', withSignatures([])),
+    bad(
+      'too-many-signatures',
+      'Nueve firmas, una más que el tope, aunque la última sea buena.',
+      'format',
+      signed(bytes, [...Array<KeyObject>(LIMITS.signatures).fill(keys.other), keys.test]),
+    ),
     bad(
       'not-json',
       'JSON cortado a la mitad.',
@@ -328,6 +352,19 @@ function manifestCases(keys: Record<'test' | 'new' | 'other', KeyObject>, good: 
       'files',
       signed(variant({ files: [[...(good.files[0] ?? []), 'x'], ...good.files.slice(1)] })),
     ),
+    bad(
+      'files-fraction-size',
+      'Un archivo que mide 1,5 bytes.',
+      'files',
+      signed(variant(withFirstFile(1, 1.5))),
+    ),
+    bad(
+      'files-negative-size',
+      'Un archivo que mide -1 bytes.',
+      'files',
+      signed(variant(withFirstFile(1, -1))),
+    ),
+    bad('files-empty-path', 'Un archivo sin ruta.', 'files', signed(variant(withFirstFile(0, '')))),
   ];
 }
 
@@ -357,6 +394,19 @@ function zipCases(good: PackFile[], goodZip: Buffer, goodPayload: Payload): (Zip
   };
   const entries = (files: readonly PackFile[]): RawZipEntry[] =>
     files.map(({ path, data }) => rawEntry(path, data));
+  // good.zip con 4 bytes cambiados en `at` (que recibe dónde empieza el directorio central): lo que
+  // `readZip` (y `OtaZip.readEntries`) no deben leer como un zip, aunque el resto se pueda leer.
+  const patched = (
+    name: string,
+    description: string,
+    at: (directoryStart: number) => number,
+    value: (directoryStart: number) => number,
+  ): ZipCase & { data: Buffer } => {
+    const data = Buffer.from(goodZip);
+    const start = data.readUInt32LE(data.byteLength - 22 + 16);
+    data.writeUInt32LE(value(start), at(start));
+    return { name, zip: `${name}.zip`, description, verdict: 'files', payload: payloadFor(data, good), data };
+  };
   const extra = (path: string): PackFile => ({ path, data: Buffer.from('export {};\n') });
   const index = good.find(({ path }) => path === 'index.html');
   if (!index) throw new Error('El paquete bueno no tiene index.html.');
@@ -517,6 +567,18 @@ function zipCases(good: PackFile[], goodZip: Buffer, goodPayload: Payload): (Zip
       good,
     ),
     crafted('too-many', `${String(LIMITS.files + 1)} entradas vacías.`, 'size', tooMany, good),
+    patched(
+      'local-header-signature',
+      'La cabecera local de la primera entrada sin su firma; todo lo demás se lee bien.',
+      () => 0,
+      () => 0,
+    ),
+    patched(
+      'data-past-directory',
+      'Los datos de la primera entrada, según el directorio central, se meten en el propio directorio.',
+      (start) => start + 20,
+      (start) => start,
+    ),
     crafted('no-index', 'Sin index.html.', 'bundle', entries(withoutIndex), withoutIndex),
     crafted(
       'bundle-version',

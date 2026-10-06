@@ -614,6 +614,70 @@
       }
     },
     {
+      "name": "local-header-signature",
+      "zip": "local-header-signature.zip",
+      "description": "La cabecera local de la primera entrada sin su firma; todo lo demás se lee bien.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "6fb5a8382d63e0813bff904ea1b430e843cf6ac2d2a98aab4f28f2cef15a175d",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "data-past-directory",
+      "zip": "data-past-directory.zip",
+      "description": "Los datos de la primera entrada, según el directorio central, se meten en el propio directorio.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "978c255e69683df37cd1c1076ec4faae096731e8a10247e4ba63e11594946fa7",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
       "name": "no-index",
       "zip": "no-index.zip",
       "description": "Sin index.html.",

@@ -60,6 +60,16 @@ final class Fixtures {
         return OtaConfig.parse(bytes("config.json"));
     }
 
+    /**
+     * El keyId de una de las claves de las fixtures (`test`, `new` u `other`): cambian en cada corrida
+     * de scripts/ota-fixtures.ts, así que ninguna prueba los escribe a mano.
+     */
+    static String keyRole(String role) throws Exception {
+        String keyId = OtaJson.asString(OtaJson.asObject(object("manifests/cases.json").get("keyRoles")).get(role));
+        assertNotNull(role, keyId);
+        return keyId;
+    }
+
     /** El payload de una fixture tal cual, sin las comprobaciones de OtaManifest (como `verifyZip`). */
     static OtaManifest.Payload payload(Map<String, Object> json) {
         List<OtaManifest.FileEntry> files = new ArrayList<>();

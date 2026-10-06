@@ -68,6 +68,8 @@ export interface ZipEntryInfo {
 }
 
 export type ZipReason = 'size' | 'sha256' | 'files' | 'zipPath' | 'bundle';
+/** Lo que hace `inflateRawSync`: lanza en cuanto la salida pasaría de `maxOutputLength`. */
+export type Inflate = (data: Buffer, options: { maxOutputLength: number }) => Buffer;
 export type ZipVerdict = { ok: true } | { ok: false; reason: ZipReason };
 
 const LOCAL_HEADER = 0x04034b50;
@@ -292,8 +294,10 @@ export function readZip(zip: Buffer): ZipEntryInfo[] | null {
  *   5. `index.html` y `micelio-bundle.json` están en la raíz, y este dice la `version` y el
  *      `minNative` del payload (`bundle`).
  * Java añade lo que solo existe en disco: cada ruta canónica dentro del destino y el fsync.
+ *
+ * `inflate` solo lo cambian las pruebas, para medir cuánto llega a descomprimirse.
  */
-export function verifyZip(zip: Buffer, payload: Payload): ZipVerdict {
+export function verifyZip(zip: Buffer, payload: Payload, inflate: Inflate = inflateRawSync): ZipVerdict {
   const fail = (reason: ZipReason): ZipVerdict => ({ ok: false, reason });
   if (zip.byteLength !== payload.size) return fail('size');
   if (sha256Hex(zip) !== payload.sha256) return fail('sha256');
@@ -315,7 +319,7 @@ export function verifyZip(zip: Buffer, payload: Payload): ZipVerdict {
     let data: Buffer;
     try {
       if (entry.method === 0) data = entry.data;
-      else if (entry.method === 8) data = inflateRawSync(entry.data, { maxOutputLength: want.size + 1 });
+      else if (entry.method === 8) data = inflate(entry.data, { maxOutputLength: want.size + 1 });
       else return fail('files');
     } catch {
       // Datos rotos, o más de lo firmado: inflateRawSync se corta en maxOutputLength.

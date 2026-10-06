@@ -130,6 +130,7 @@ final class OtaZip {
                 for (File dir = parent; !dir.equals(dest); dir = dir.getParentFile()) dirs.add(dir);
                 try (FileOutputStream out = new FileOutputStream(target)) {
                     if (!copy(file, entry, want, out)) return "files";
+                    // Sin prueba que falle si se quita, como el de OtaStore: JUnit no simula un corte de luz.
                     out.getFD().sync();
                 }
             }
