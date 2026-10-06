@@ -912,7 +912,10 @@ rama cumple una parte.
   partida». La lógica pura (configuración, base64, versiones, manifiesto, selector y reloj de
   búsqueda) se prueba con JUnit. `OtaService`, uno por proceso, es el único dueño del estado y del
   disco, con un solo hilo ejecutor: `recreate()` vuelve a pasar por `onCreate` en el mismo proceso,
-  y sin un dueño único la limpieza del arranque y una descarga en curso se pisarían. El estado
+  y sin un dueño único la limpieza del arranque y una descarga en curso se pisarían. También es Java
+  sin Android: JUnit lo prueba entero con el reloj, los hilos y la red simulados (la carrera entre
+  `ready()` y el reloj, «Usar ahora» con una descarga en curso, el disco lleno), y `OtaAndroid` le da
+  los de verdad y lo une a `MainActivity` y al complemento `MicelioUpdater`. El estado
   (`state.json`, escrito con un temporal, `fsync` y `renameTo`) y los paquetes viven en
   `getNoBackupFilesDir()/ota/`, fuera de la copia de Android: una restauración no apunta a carpetas
   que no existen. Arranca en Android 7 (API 24, el mínimo de la app): base64 propio, porque
@@ -947,9 +950,9 @@ rama cumple una parte.
   pasó el intervalo (`checkIntervalSeconds`: 3600 en la release, lo comprueba `android.yml`; 0 en
   las pruebas). Lo mide con la hora de pared, `elapsedRealtime` y el número de arranque del sistema:
   una hora que retrocede cuenta como caducada, para que adelantar y devolver el reloj no apague las
-  búsquedas. Tras un fallo de red, reintenta a los 10 min; «Buscar ahora» no mira el intervalo. Cada
-  GET lleva un `User-Agent` fijo, `Micelio`, sin cookies ni identificadores (§5), y nunca sigue una
-  redirección de HTTPS a HTTP.
+  búsquedas. Tras un fallo de red, también a mitad de la descarga o si «Usar ahora» la corta,
+  reintenta a los 10 min; «Buscar ahora» no mira el intervalo. Cada GET lleva un `User-Agent` fijo,
+  `Micelio`, sin cookies ni identificadores (§5), y nunca sigue una redirección de HTTPS a HTTP.
 - **Al arrancar, la regla del mayor:** se sirve la mayor versión compatible entre la del .apk y la
   confirmada, así que instalar un .apk más viejo no hace retroceder el juego. Se descarta todo
   paquete con un archivo que falta o no mide lo anotado, con `minNative` mayor que el nivel del .apk
@@ -961,11 +964,13 @@ rama cumple una parte.
   nada, y la app abre igual.
 - **Confirmar y volver atrás.** Tras el primer frame, el JS llama a `ready()`, que responde
   `confirmed`, `tooLate` o `notTrial`, decidido en el ejecutor junto con su escritura: confirmar y
-  vencer el reloj no pueden pasar los dos. La versión a prueba vuelve atrás sola si no confirma en
-  30 s de primer plano (medidos con `elapsedRealtime`; el arranque ya espera hasta 8 s el catálogo
-  del idioma), tras dos arranques sin confirmar, si se cae su renderizador o si el JS avisa de un
-  error. Una versión fallida no se vuelve a probar; las siguientes sí, una por una. **El
-  actualizador nunca mata el proceso:** cambia de paquete con `recreate()`, y ante un renderizador
+  vencer el reloj no pueden pasar los dos. Si la confirmación no se puede escribir (disco lleno),
+  responde `tooLate` y la actividad vuelve a arrancar con la base, sin dar la versión por fallida.
+  La versión a prueba vuelve atrás sola si no confirma en 30 s de primer plano (medidos con
+  `elapsedRealtime`; el arranque ya espera hasta 8 s el catálogo del idioma), tras dos arranques sin
+  confirmar, si se cae su renderizador o si el JS avisa de un error. Una versión fallida no se vuelve
+  a probar; las siguientes sí, una por una. **El actualizador nunca mata el proceso:** cambia de
+  paquete con `recreate()`, y ante un renderizador
   caído un `WebViewListener` devuelve `true` (con `false`, Android cierra la app), porque Chromium
   tarda hasta un minuto en llevar `localStorage` a disco y matar el proceso podría perder el último
   guardado. Una versión confirmada que falla después (tres arranques seguidos sin `ready()`) no se

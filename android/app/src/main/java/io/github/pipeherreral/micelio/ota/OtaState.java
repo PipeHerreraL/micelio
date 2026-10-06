@@ -98,6 +98,8 @@ final class OtaState {
     Notice notice;
     /** Versiones cuyo aviso `needsApk` ya se dio: una vez por versión. */
     final List<String> needsApkShown = new ArrayList<>();
+    /** Si ya se dio el aviso `needsApkFormat`, que no es de una versión: una sola vez. */
+    boolean needsApkFormatShown;
     /** La última respuesta del servidor (200 o 404). */
     OtaClock.Stamp lastCheck;
     /** El último fallo al pedir el manifiesto desde esa respuesta: se reintenta 10 min después. */
@@ -115,6 +117,7 @@ final class OtaState {
         copy.failed.addAll(failed);
         copy.notice = notice;
         copy.needsApkShown.addAll(needsApkShown);
+        copy.needsApkFormatShown = needsApkFormatShown;
         copy.lastCheck = lastCheck;
         copy.failedCheck = failedCheck;
         copy.checkEveryBoot = checkEveryBoot;
@@ -175,6 +178,7 @@ final class OtaState {
             String version = OtaJson.asString(item);
             if (OtaVersion.isValid(version)) state.needsApkShown.add(version);
         }
+        state.needsApkFormatShown = Boolean.TRUE.equals(root.get("needsApkFormatShown"));
         state.lastCheck = stamp(root.get("lastCheck"));
         state.failedCheck = stamp(root.get("failedCheck"));
         state.checkEveryBoot = Boolean.TRUE.equals(root.get("checkEveryBoot"));
@@ -204,6 +208,7 @@ final class OtaState {
             root.put("notice", item);
         }
         root.put("needsApkShown", new ArrayList<Object>(needsApkShown));
+        root.put("needsApkFormatShown", needsApkFormatShown);
         root.put("lastCheck", stampJson(lastCheck));
         root.put("failedCheck", stampJson(failedCheck));
         root.put("checkEveryBoot", checkEveryBoot);

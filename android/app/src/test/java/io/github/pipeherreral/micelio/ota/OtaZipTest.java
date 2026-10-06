@@ -5,13 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -21,7 +18,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import org.junit.Rule;
 import org.junit.Test;
@@ -170,13 +166,13 @@ public class OtaZipTest {
         files.put("index.html", "<!doctype html>".getBytes(StandardCharsets.UTF_8));
         files.put("micelio-bundle.json", "{\"version\":\"1.6.2\",\"minNative\":1}".getBytes(StandardCharsets.UTF_8));
         File zip = temp.newFile("conflict.zip");
-        Files.write(zip.toPath(), storedZip(files));
+        Files.write(zip.toPath(), Fixtures.storedZip(files));
         File dest = new File(temp.getRoot(), "staging");
         assertEquals("zipPath", OtaZip.extract(zip, payloadOf(zip, files), dest, recorder));
         assertFalse(dest.exists());
 
         files.remove("a");
-        Files.write(zip.toPath(), storedZip(files));
+        Files.write(zip.toPath(), Fixtures.storedZip(files));
         assertNull(OtaZip.extract(zip, payloadOf(zip, files), dest, recorder));
     }
 
@@ -225,44 +221,5 @@ public class OtaZipTest {
         }
         return new OtaManifest.Payload(Fixtures.APP_ID, "stable", "1.6.2", 1, Fixtures.URL_PREFIX + "v1.6.2/x.zip",
                 zip.length(), OtaFiles.sha256Hex(zip), unpacked, Collections.unmodifiableList(entries));
-    }
-
-    /** Un zip mínimo, sin comprimir, con las entradas en ese orden (las fixtures no tienen este caso). */
-    private static byte[] storedZip(Map<String, byte[]> files) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayOutputStream directory = new ByteArrayOutputStream();
-        for (Map.Entry<String, byte[]> file : files.entrySet()) {
-            byte[] name = file.getKey().getBytes(StandardCharsets.UTF_8);
-            byte[] data = file.getValue();
-            CRC32 crc = new CRC32();
-            crc.update(data);
-            int offset = out.size();
-            out.write(header(30, 0x04034b50, 20, 0x0800, 0, (int) crc.getValue(), data.length, name.length, -1));
-            out.write(name);
-            out.write(data);
-            int crcValue = (int) crc.getValue();
-            directory.write(header(46, 0x02014b50, 20, 0x0800, 0, crcValue, data.length, name.length, offset));
-            directory.write(name);
-        }
-        int start = out.size();
-        out.write(directory.toByteArray());
-        ByteBuffer end = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN);
-        end.putInt(0x06054b50).putShort((short) 0).putShort((short) 0);
-        end.putShort((short) files.size()).putShort((short) files.size());
-        end.putInt(directory.size()).putInt(start).putShort((short) 0);
-        out.write(end.array());
-        return out.toByteArray();
-    }
-
-    /** La cabecera local (30 bytes) o la del directorio central (46), con los campos que usa la app. */
-    private static byte[] header(int length, int signature, int version, int flags, int method, int crc, int size,
-            int nameLength, int offset) {
-        ByteBuffer header = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
-        header.putInt(signature).putShort((short) version);
-        if (length == 46) header.putShort((short) version);
-        header.putShort((short) flags).putShort((short) method).putInt(0).putInt(crc).putInt(size).putInt(size);
-        header.putShort((short) nameLength).putShort((short) 0);
-        if (length == 46) header.putShort((short) 0).putShort((short) 0).putShort((short) 0).putInt(0).putInt(offset);
-        return header.array();
     }
 }

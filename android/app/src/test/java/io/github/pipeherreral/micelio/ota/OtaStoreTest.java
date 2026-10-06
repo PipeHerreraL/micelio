@@ -61,6 +61,7 @@ public class OtaStoreTest {
         state.failed.add(new OtaState.Failure("1.6.4", OtaState.FAILED_SAVE));
         state.notice = new OtaState.Notice(OtaState.NOTICE_UPDATED, "1.6.2");
         state.needsApkShown.add("1.7.0");
+        state.needsApkFormatShown = true;
         state.lastCheck = new OtaClock.Stamp(1_790_000_000_000L, 123_456, 9);
         state.failedCheck = new OtaClock.Stamp(1_790_000_100_000L, 223_456, -1);
         state.checkEveryBoot = true;
@@ -83,6 +84,7 @@ public class OtaStoreTest {
         assertEquals(2, back.active.bootsWithoutReady);
         assertEquals(1, back.pending.attempts);
         assertEquals(-1, back.failedCheck.bootCount);
+        assertTrue(back.needsApkFormatShown);
     }
 
     /**

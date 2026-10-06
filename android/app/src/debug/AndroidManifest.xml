@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo en el build de depuración: las pruebas del actualizador en el emulador (ARCHITECTURE.md
+     §4.34) bajan los paquetes de un servidor del runner por HTTP. El .apk publicado no lleva nada de
+     esto, y android.yml lo comprueba. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

@@ -2,8 +2,11 @@ package io.github.pipeherreral.micelio.ota;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.KeyPair;
@@ -17,6 +20,7 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.CRC32;
 
 /**
  * Las fixtures que comparten Node y Java (tests/fixtures/ota/, las escribe scripts/ota-fixtures.ts)
@@ -155,5 +159,99 @@ final class Fixtures {
             return out;
         }
         return value == OtaJson.NULL ? null : value;
+    }
+
+    /** Una versión publicada para las pruebas del servicio: su zip, la URL fijada a su etiqueta y su payload. */
+    static final class Release {
+        final String version;
+        final byte[] zip;
+        final String url;
+        /** JSON compacto, como lo firma Node. */
+        final byte[] payload;
+
+        private Release(String version, byte[] zip, String url, byte[] payload) {
+            this.version = version;
+            this.zip = zip;
+            this.url = url;
+            this.payload = payload;
+        }
+
+        byte[] manifest(KeyPair... signers) throws Exception {
+            return Fixtures.manifest(payload, signers);
+        }
+
+        OtaManifest.Payload parsed() throws Exception {
+            return Fixtures.payload(OtaJson.asObject(OtaJson.parse(payload)));
+        }
+    }
+
+    /** Un paquete mínimo de esa versión (index.html y su micelio-bundle.json), sin comprimir. */
+    static Release release(String version, int minNative) throws Exception {
+        Map<String, byte[]> files = new LinkedHashMap<>();
+        files.put("index.html", ("<!doctype html><title>" + version + "</title>").getBytes(StandardCharsets.UTF_8));
+        files.put(OtaZip.BUNDLE_INFO, ("{\"version\":\"" + version + "\",\"minNative\":" + minNative + "}")
+                .getBytes(StandardCharsets.UTF_8));
+        byte[] zip = storedZip(files);
+        List<Object> entries = new ArrayList<>();
+        long unpacked = 0;
+        for (Map.Entry<String, byte[]> file : files.entrySet()) {
+            List<Object> entry = new ArrayList<>();
+            entry.add(file.getKey());
+            entry.add((long) file.getValue().length);
+            entry.add(OtaFiles.hex(OtaFiles.sha256().digest(file.getValue())));
+            entries.add(entry);
+            unpacked += file.getValue().length;
+        }
+        String url = URL_PREFIX + "v" + version + "/micelio-web.zip";
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("app", APP_ID);
+        payload.put("channel", "stable");
+        payload.put("version", version);
+        payload.put("minNative", (long) minNative);
+        payload.put("url", url);
+        payload.put("size", (long) zip.length);
+        payload.put("sha256", OtaFiles.hex(OtaFiles.sha256().digest(zip)));
+        payload.put("unpacked", unpacked);
+        payload.put("files", entries);
+        return new Release(version, zip, url, OtaJson.write(payload).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Un zip mínimo, sin comprimir, con las entradas en ese orden: los casos que las fixtures no tienen. */
+    static byte[] storedZip(Map<String, byte[]> files) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream directory = new ByteArrayOutputStream();
+        for (Map.Entry<String, byte[]> file : files.entrySet()) {
+            byte[] name = file.getKey().getBytes(StandardCharsets.UTF_8);
+            byte[] data = file.getValue();
+            CRC32 crc = new CRC32();
+            crc.update(data);
+            int offset = out.size();
+            out.write(header(30, 0x04034b50, 20, 0x0800, 0, (int) crc.getValue(), data.length, name.length, -1));
+            out.write(name);
+            out.write(data);
+            int crcValue = (int) crc.getValue();
+            directory.write(header(46, 0x02014b50, 20, 0x0800, 0, crcValue, data.length, name.length, offset));
+            directory.write(name);
+        }
+        int start = out.size();
+        out.write(directory.toByteArray());
+        ByteBuffer end = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN);
+        end.putInt(0x06054b50).putShort((short) 0).putShort((short) 0);
+        end.putShort((short) files.size()).putShort((short) files.size());
+        end.putInt(directory.size()).putInt(start).putShort((short) 0);
+        out.write(end.array());
+        return out.toByteArray();
+    }
+
+    /** La cabecera local (30 bytes) o la del directorio central (46), con los campos que usa la app. */
+    private static byte[] header(int length, int signature, int version, int flags, int method, int crc, int size,
+            int nameLength, int offset) {
+        ByteBuffer header = ByteBuffer.allocate(length).order(ByteOrder.LITTLE_ENDIAN);
+        header.putInt(signature).putShort((short) version);
+        if (length == 46) header.putShort((short) version);
+        header.putShort((short) flags).putShort((short) method).putInt(0).putInt(crc).putInt(size).putInt(size);
+        header.putShort((short) nameLength).putShort((short) 0);
+        if (length == 46) header.putShort((short) 0).putShort((short) 0).putShort((short) 0).putInt(0).putInt(offset);
+        return header.array();
     }
 }
