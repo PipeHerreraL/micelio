@@ -19,6 +19,10 @@ analítica: la partida se guarda en tu navegador.
   [micelio.apk](https://github.com/PipeHerreraL/micelio/releases/latest/download/micelio.apk) de la
   última versión y ábrelo (Android pedirá permiso para instalar apps de esa fuente). La app guarda
   su propia partida: para llevarte la de la web, expórtala en Ajustes e impórtala en la app.
+- **Android, con el .apk al día solo:** [Obtainium](https://github.com/ImranR98/Obtainium), libre,
+  vigila las releases de un repositorio de GitHub. Añade `https://github.com/PipeHerreraL/micelio` e
+  instala la app desde ahí: te avisará de cada versión nueva y, desde Android 12, puede instalarla
+  sin preguntar. Las actualizaciones conservan la partida de la app.
 - **iPhone y iPad:** abre el juego en Safari, botón Compartir → «Añadir a pantalla de inicio».
   Esa app no ve la partida de Safari: expórtala antes e impórtala en ella.
 
@@ -43,6 +47,10 @@ analítica: la partida se guarda en tu navegador.
 - Tras el cuarto bioma, **El regreso** lleva tu linaje al bosque natal mil años después. Cumplido,
   empieza el **ciclo libre**: siembra el bioma que quieras, llega otra vez al nivel 500 y bate tu
   mejor tiempo en cada uno.
+- Al sembrar puedes jurar **votos**: sin lluvia, solo autocompra o sin mutaciones. Cada uno quita
+  algo y rebaja la meta para compensar; se pueden romper, nunca añadir, y cada combinación tiene su
+  récord. Cumplir un ciclo sin romper un voto abre una **adaptación cosmética** (Esporada, Cordones
+  negros, Higróforos) que solo cambia cómo se ve tu red.
 - Tras el Acto I llega un vecino: el **plasmodio** de _Physarum polycephalum_, un moho
   mucilaginoso (no es un hongo). En la pestaña **Socios** pones copos de avena y lámparas en una
   placa y miras cómo une la comida con una red que engorda los tubos útiles y seca los demás.

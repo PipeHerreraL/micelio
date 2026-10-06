@@ -1,6 +1,7 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-05. Versión 1.5.0 publicada; la fase 10 (1.6.0) avanza en la rama `fase-10`._
+_Actualizado: 2026-10-06. Versión 1.5.0 publicada; la 1.6.0 (fase 10) está lista en la rama
+`fase-10`: falta la etiqueta y publicarla._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
@@ -32,27 +33,36 @@ valores derivados (N/s, valor del clic, multiplicadores) no viven en el estado: 
 El guardado es `{ version, savedAt, game, state }` en `localStorage['micelio:save']`, versión 7. Desde
 la fase 9, `state.partners` guarda los socios (el plasmodio, con su placa, su red y su Rastro);
 su estado y su validación viven en `src/partners/`. Desde la fase 10, `state.cycle` cuenta los
-ciclos del ciclo libre (empezados y cumplidos; los votos del bloque B, vacíos hasta entonces) y
-`state.records` guarda el mejor tiempo por bioma y votos.
+ciclos del ciclo libre (empezados y cumplidos, con los votos y las mutaciones despiertas del que
+está en curso) y `state.records` guarda el mejor tiempo por bioma y votos.
 
 ## Lo último que se hizo
 
-- **Fase 10, bloque A (en la rama `fase-10`, sin publicar):** la 1.6.0 saldrá en una sola entrega
-  con el bloque B (decisión del usuario). Pradera y tundra forman un segundo anillo de destinos que
-  se abre con la taiga y el Chocó colonizados: quien está hoy en el muro los ve al cargar, con la
-  lámina «Donde acaban los árboles», sin perder una cifra. Seis adaptaciones nuevas, el deshielo de
-  la tundra (lo que pasa de 8 h de una ausencia rinde entero) y noticias con fuente. Tras el cuarto
-  bioma, El regreso al natal mil años después, con la Red planetaria uniendo las siluetas de los
-  cinco biomas; y después el ciclo libre: sembrar cualquier bioma por 300 esporas, con R y linaje
-  fijos y un récord de reloj por bioma en la Crónica. Resuelve el muro: ninguna partida del viaje
-  ni del ciclo pasa de una hora de mediana. Guardado versión 7, entero de una vez
-  (ARCHITECTURE.md §4.32). El inglés de la interfaz y las noticias de los biomas llegan aparte: el
-  JS inicial pesa 83,7 kB de 95.
-- `npm run sim` cumple 119 de 119 objetivos (los 39 de antes, idénticos; 3 redefinidos; 40 de los
+- **Fase 10 de la hoja de ruta (Viento de esporas II, v1.6.0, en la rama `fase-10`, sin
+  publicar):** una sola entrega con los dos bloques (decisión del usuario). Pradera y tundra forman
+  un segundo anillo de destinos que se abre con la taiga y el Chocó colonizados: quien está hoy en
+  el muro los ve al cargar, con la lámina «Donde acaban los árboles», sin perder una cifra. Seis
+  adaptaciones nuevas, el deshielo de la tundra (lo que pasa de 8 h de una ausencia rinde entero) y
+  noticias con fuente. Tras el cuarto bioma, El regreso al natal mil años después, con la Red
+  planetaria uniendo las siluetas de los cinco biomas; y después el ciclo libre: sembrar cualquier
+  bioma por 300 esporas, con R y linaje fijos y un récord de reloj por bioma y votos en la Crónica.
+  Resuelve el muro: ninguna partida del viaje ni del ciclo pasa de una hora de mediana
+  (ARCHITECTURE.md §4.32).
+- **Bloque B:** tres votos que se juran al sembrar (sin lluvia, solo autocompra, sin mutaciones):
+  cada uno quita algo y rebaja la meta del ciclo con un factor por bioma, calibrado para que ningún
+  voto suelto acorte el ciclo. Se rompen con confirmación y nunca se añaden. Cada voto mantenido
+  hasta cumplir abre una adaptación cosmética que solo cambia cómo se ve la red: Esporada, Cordones
+  negros e Higróforos (ARCHITECTURE.md §4.33). Guardado versión 7, entero de una vez:
+  `tests/fixtures/save-v7.json`, escrito por el build de la 1.6.0, debe cargar en todas las que
+  vengan. El inglés de la interfaz y las noticias de los biomas llegan aparte: el JS inicial pesa
+  88,3 kB de 95.
+- `npm run sim` cumple 126 de 126 objetivos (los 39 de antes, idénticos; 3 redefinidos; 40 de los
   tramos 3–4, 4 de El regreso, 2 del perfil ausente, 20 de la primera vuelta del ciclo, 9 del
-  régimen estable y 2 de esporas) y 17 de 17 del plasmodio, repartido entre hilos. 873 pruebas
-  unitarias y 286 de navegador en los cinco perfiles, también a 375 × 667 y 412 × 915 y con el
-  pseudoidioma; ~165 fps en la tundra y en El regreso (en WebKit, 49–57, como el natal en ese motor).
+  régimen estable, 2 de esporas y 7 de los votos) y 17 de 17 del plasmodio, repartido entre hilos
+  (unos 4 min en total). 932 pruebas unitarias y 329 de navegador en los cinco perfiles, también a
+  375 × 667 y 412 × 915 y con el pseudoidioma; ~165 fps en la tundra, en El regreso y con las tres
+  cosméticas al máximo (en WebKit, 49–59, como el natal en ese motor). La revisión de capturas
+  encontró un fallo de la cartela en el móvil que venía de la 1.4.2 (BUG-JOURNAL #26).
 
 - **v1.5.0, instaladores para el móvil (petición del usuario):** el juego se instala como app
   desde el navegador (Android e iPhone), funciona sin conexión, y en Android hay además un .apk
@@ -131,13 +141,19 @@ ciclos del ciclo libre (empezados y cumplidos; los votos del bloque B, vacíos h
 
 La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 10, bloque B (commits 12–15 de su especificación):** los votos del ciclo libre (sin
-   lluvia, solo autocompra, sin mutaciones), que se miden primero en el prototipo con la regla de
-   la meta, y sus adaptaciones cosméticas. Después, la calibración, `tests/fixtures/save-v7.json` escrito
-   con el build, la versión 1.6.0 (`versionCode` 10600) y la publicación en una sola entrega.
-2. **Fase 11 — Game+ (v1.7.0), petición del usuario:** volver a los biomas en escalones más
+1. **Publicar la 1.6.0** (la sesión principal, en el orden de AGENTS.md, «Versiones»): etiqueta
+   `v1.6.0`, release como prerelease hasta que el .apk (`versionCode` 10600) esté adjunto, y
+   entonces `main`, que publica en Pages.
+2. **1.6.1, petición del usuario:** las actualizaciones del juego dentro de la app de Android. La
+   app descarga el código web de cada release y lo usa al arrancar la vez siguiente, sin reinstalar
+   el .apk (`@capgo/capacitor-updater` en modo propio, sin su nube, con el paquete firmado). Antes,
+   comprobar en un teléfono que la partida se conserva: el origen sigue siendo `https://localhost`.
+3. **1.6.2, petición del usuario:** rediseño de la interfaz y los textos (textos más cortos con la
+   ciencia plegada, Socios con el objetivo en cuatro pasos, el árbol de mutaciones a cuatro columnas
+   con ficha, un icono para los nutrientes).
+4. **Fase 11 — Game+ (v1.7.0), petición del usuario:** volver a los biomas en escalones más
    difíciles (game+1, +2…), con premios que el ciclo libre no da.
-3. **Fase 12 — Tiempo profundo (v1.8.0):** las eras geológicas.
+5. **Fase 12 — Tiempo profundo (v1.8.0):** las eras geológicas.
 
 ## Deuda conocida
 
@@ -153,16 +169,22 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   estable (la más corta en 10:12, ≥ 10 min) y las partidas de espera (1 de mediana, ≤ 1: la primera
   siembra tras El regreso espera una partida). Guardar esporas durante El regreso dejaba las
   esperas en 0 pero sacaba al Chocó de su objetivo (ARCHITECTURE.md §4.32).
+- De los votos quedan al límite las partidas de la primera siembra tras El regreso (la peor, 48:46,
+  ≤ 50 min; la especificación pedía 45, imposible sin que algún voto acortara el ciclo estable) y
+  ese ciclo estable (el voto que menos alarga, 1,03 veces el ciclo sin votos, ≥ 1,0). Los tres
+  votos juntos en la pradera tardan 0,85–0,89 veces el ciclo sin votos: lo que quitan se solapa, y
+  la especificación solo los acota por arriba (aceptado; ARCHITECTURE.md §4.33). La Esporada no
+  deja elegir color: el rango lo fija.
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del
   repo de que se lanza al cambiar de viaje, también al sembrar el mismo bioma
   (`tests/e2e/cycle.spec.ts`); lo demás sigue sin ella.
-- El JS inicial pesa 83,7 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
+- El JS inicial pesa 88,3 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
   dispersar) y, desde la fase 10, el inglés de la interfaz llegan aparte (el juego espera al inglés
-  antes de montarse si es el idioma elegido). El bloque B aún tiene que entrar. Si hace falta más
-  sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al cerrar el
-  Acto I (unos 1,5 kB). Las coordenadas de las placas del plasmodio ahorrarían otros 1,5 kB, pero
-  su paquete (19,2 kB de 20) pasaría de su tope.
+  antes de montarse si es el idioma elegido). El catálogo del inglés está en 17,1 kB de 18. Si hace
+  falta más sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al
+  cerrar el Acto I (unos 1,5 kB). Las coordenadas de las placas del plasmodio ahorrarían otros
+  1,5 kB, pero su paquete (19,2 kB de 20) pasaría de su tope.
 - En Chromium, si el inglés no llegó al arrancar, elegirlo otra vez en Ajustes no lo recupera: el
   `import()` fallido se queda en el mapa de módulos y solo recargar lo trae (el aviso ya pide
   recargar). Igual
@@ -170,7 +192,9 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   recargar (mejor nada que una noticia del natal que allí sería falsa).
 - La banda de la Red planetaria queda tapada en parte en el escenario del móvil (la imagen entera
   está en la lámina «La red planetaria»), el pasivo de los ciclos no se mide y los récords son de
-  reloj: quien atrase el del dispositivo puede falsear el suyo (son personales; aceptado).
+  reloj: quien atrase el del dispositivo puede falsear el suyo (son personales; aceptado). En
+  inglés, a 375 px, la cartela del Chocó («Chocó rainforest · 312/500») ocupa tres renglones: para
+  no partirla por el separador (BUG-JOURNAL #26).
 - La app de Android (.apk) se compiló y se comprobó en GitHub Actions (paquete, versión y firma),
   pero no se ha probado en un teléfono de verdad, ni la app instalable del iPhone. Desde 2027
   Google exigirá desarrolladores verificados también para los .apk descargados (antes, solo en

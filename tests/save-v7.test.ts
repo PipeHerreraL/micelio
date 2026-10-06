@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createState, type GameState } from '../src/core/state.ts';
-import { parseSave, serializeSave, SAVE_VERSION } from '../src/systems/save.ts';
+import { buyGenerator } from '../src/core/actions.ts';
+import { vowActive } from '../src/core/forest.ts';
+import { createState, hasMutation, ownsMutation, type GameState } from '../src/core/state.ts';
+import { isFromNewerGame, parseSave, serializeSave, SAVE_VERSION } from '../src/systems/save.ts';
 import { GAME_VERSION } from '../src/version.ts';
 import { withV7Additions } from './save-v7-additions.ts';
 
@@ -57,7 +59,7 @@ describe('migración 6 → 7', () => {
   });
 });
 
-describe('validación de las claves de la v7 antes de sus reglas', () => {
+describe('validación de las claves de la v7 en una partida nueva', () => {
   it('una partida nueva va y vuelve idéntica, con el ciclo sin empezar y sin récords', () => {
     const state = createState(7, NOW);
     expect(state.cycle).toEqual({ stays: 0, done: 0, vows: [], woken: [] });
@@ -97,7 +99,8 @@ describe('validación de las claves de la v7 antes de sus reglas', () => {
     expect(loads((s) => Reflect.deleteProperty(s.adaptations as object, 'waxcaps'))).toBe(false);
   });
 
-  it('las cosméticas sin definición todavía solo valen 0, y la pradera sin visitar no enseña nada; Cuerpo apical sigue sin tope', () => {
+  it('una cosmética con rango sin el récord de su voto no carga, y la pradera sin visitar no enseña nada; Cuerpo apical sigue sin tope', () => {
+    // Las cosméticas piden un récord con su voto (tests/cosmetics.test.ts): una partida nueva no tiene.
     expect(loads((s) => Object.assign(s.adaptations as object, { sporePrint: 1 }))).toBe(false);
     // Las de la pradera y la tundra ya tienen definición (fase 10): rigen las reglas de siempre.
     expect(loads((s) => Object.assign(s.biomeAdaptations as object, { ringFront: 1 }))).toBe(false);
@@ -131,5 +134,64 @@ describe('guardado v7 del commit 5 de la fase 10 (tests/fixtures/save-v7-c5.json
       ['choco', 2],
     ]);
     expect(raw.state.partners.plasmodium).not.toBeNull();
+  });
+});
+
+describe('guardado v7 de la 1.6.0 (tests/fixtures/save-v7.json)', () => {
+  /**
+   * El muro de la 1.5 (save-v7-c5.json) jugado con acciones hasta un ciclo libre a medias, con votos,
+   * cargado en el navegador por el build de la 1.6.0, con sus láminas cerradas, y guardado por él (lo
+   * que dejó en localStorage, formateado con Prettier como los demás). Es lo que escribirán los
+   * jugadores de la versión publicada: las siguientes deben cargarlo sin perder nada.
+   */
+  const text = readFileSync(new URL('./fixtures/save-v7.json', import.meta.url), 'utf8');
+  const raw = JSON.parse(text) as { version: number; savedAt: number; game: string; state: GameState };
+
+  it('carga sin cambios ni socios rehechos y vuelve a guardarse idéntico, con la versión del juego', () => {
+    expect([raw.version, raw.game]).toEqual([7, '1.6.0']);
+    const result = parseSave(text);
+    if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+    expect(result.partnersReset).toEqual([]);
+    expect(result.save.state).toEqual(raw.state);
+    expect(JSON.parse(serializeSave(result.save.state, raw.savedAt))).toEqual({ ...raw, game: GAME_VERSION });
+  });
+
+  it('es un ciclo libre a medias con votos, mutaciones despiertas, récords con votos y cosméticas', () => {
+    const { state } = raw;
+    expect(state.forest).toMatchObject({ biome: 'choco', leg: 5 });
+    expect(state.chronicle.map((e) => e.biome)).toEqual([
+      'natal',
+      'taiga',
+      'choco',
+      'prairie',
+      'tundra',
+      'natal',
+    ]);
+    expect(state.cycle).toMatchObject({ stays: 3, done: 2, vows: ['autoOnly', 'noMutations'] });
+    expect(state.cycle.woken).toHaveLength(6);
+    expect(state.records.map((r) => [r.biome, r.vows])).toEqual([
+      ['natal', []],
+      ['tundra', ['noRain', 'noMutations']],
+    ]);
+    expect([state.adaptations.sporePrint, state.adaptations.waxcaps]).toEqual([1, 1]);
+    expect([state.biomeAdaptations.glomalin, state.biomeAdaptations.dwarfBirch]).toEqual([1, 1]);
+    expect(state.partners.plasmodium).not.toBeNull();
+  });
+
+  it('al cargarlo rigen sus votos: el árbol a medio despertar y las compras del jugador negadas', () => {
+    const result = parseSave(text);
+    if (!result.ok) throw new Error(`se esperaba ok y llegó '${result.error}'`);
+    const state = result.save.state;
+    expect([hasMutation(state, 'instinct'), hasMutation(state, 'beyondForest')]).toEqual([true, false]);
+    expect(ownsMutation(state, 'beyondForest')).toBe(true);
+    expect(vowActive(state, 'autoOnly')).toBe(true);
+    const before = structuredClone(state);
+    buyGenerator(state, { id: 'hypha', amount: 1 });
+    expect(state).toEqual(before);
+  });
+
+  it('la 1.5 no lo pisa: lo ve escrito por una versión posterior', () => {
+    expect(isFromNewerGame(text, '1.5.0')).toBe(true);
+    expect(isFromNewerGame(text, '1.6.0')).toBe(false);
   });
 });

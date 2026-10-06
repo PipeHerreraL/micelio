@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
-import { disperse } from '../../src/core/actions.ts';
+import { buyAdaptation, disperse } from '../../src/core/actions.ts';
 import { drain } from '../../src/core/events.ts';
+import { VOW_IDS } from '../../src/data/cycle.ts';
 import { MUTATION_IDS } from '../../src/data/mutations.ts';
 import {
   createPlasmodium,
@@ -8,7 +9,8 @@ import {
   startHabituation,
 } from '../../src/partners/plasmodium/state.ts';
 import { checkActOne, checkColonization } from '../../src/systems/journey.ts';
-import { seedSave, stateWith, windState } from './helpers.ts';
+import { reachLevel } from '../cycle-states.ts';
+import { savedState, seedSave, stateWith, windState } from './helpers.ts';
 
 /**
  * Medición de fluidez (PROMPT.md §16: 60 fps estables). Una partida avanzada (red grande,
@@ -280,3 +282,83 @@ for (const where of ['tundra', 'return'] as const) {
     expect(slow.p50).toBeLessThanOrEqual(17.5);
   });
 }
+
+/**
+ * Fase 10, bloque B: la misma red avanzada en un ciclo en la pradera con las tres cosméticas al
+ * tercer rango (esporas púrpura, cordones con filo y núcleo grueso, nueve higróforos). Los rangos se
+ * compran con la acción tras un ciclo cumplido con los tres votos; las esporas para pagarlos se
+ * inyectan, como en el simulador.
+ */
+async function cosmeticsGame(page: Page): Promise<void> {
+  const now = Date.now();
+  await seedSave(
+    page,
+    windState((s) => {
+      (['taiga', 'choco', 'prairie', 'tundra'] as const).forEach((to, i) => {
+        disperse(s, { to, now: now - (400 - i * 60) * 60_000 });
+        reachLevel(s, 520, now - (390 - i * 60) * 60_000);
+      });
+      disperse(s, { to: 'natal', now: now - 150 * 60_000 });
+      reachLevel(s, 520, now - 140 * 60_000);
+      disperse(s, { to: 'natal', now: now - 130 * 60_000, vows: [...VOW_IDS] });
+      reachLevel(s, 520, now - 60 * 60_000);
+      s.spores.available = 10_000;
+      for (const id of ['sporePrint', 'blackCords', 'waxcaps'] as const) {
+        for (let rank = 0; rank < 3; rank += 1) buyAdaptation(s, { id });
+      }
+      disperse(s, { to: 'prairie', now: now - 30 * 60_000 });
+      drain();
+      s.nutrients = 3e10;
+      s.owned = {
+        hypha: 120,
+        rhizomorph: 100,
+        primordium: 90,
+        mushroom: 80,
+        fairyRing: 60,
+        mycorrhiza: 50,
+        motherTree: 40,
+        ancientForest: 30,
+        malheur: 12,
+        planetary: 1,
+      };
+      s.effects = [{ kind: 'downpour', remaining: 50, duration: 60 }];
+      s.seen.push(
+        ...['taiga', 'choco', 'prairie', 'tundra'].flatMap((b) => [
+          `chapter.arrive.${b}`,
+          `chapter.colonize.${b}`,
+        ]),
+        'chapter.ring2',
+        'chapter.return.arrive',
+        'chapter.return.close',
+      );
+    }, now),
+    now,
+  );
+  await page.goto('./');
+  await page.waitForTimeout(1500);
+}
+
+test('con las tres cosméticas al máximo corre a 60 fps, también con la CPU frenada 4×', async ({
+  page,
+  browserName,
+}, info) => {
+  test.skip(Boolean(process.env.CI), 'Medición local: los runners de CI son ruidosos.');
+  await cosmeticsGame(page);
+  await expect(page.locator('.stage')).toHaveAttribute('data-biome', 'prairie');
+  const saved = await savedState(page);
+  expect([saved.adaptations.sporePrint, saved.adaptations.blackCords, saved.adaptations.waxcaps]).toEqual([
+    3, 3, 3,
+  ]);
+  const stats = await measure(page, 4000);
+  info.annotations.push({ type: 'fps-cosmetics', description: JSON.stringify(stats) });
+  console.log(`[${info.project.name} cosméticas] ${JSON.stringify(stats)}`);
+  expect(stats.p50).toBeLessThanOrEqual(17.5);
+  if (browserName !== 'chromium') return;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  const slow = await measure(page, 4000);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  info.annotations.push({ type: 'fps-cosmetics-throttled', description: JSON.stringify(slow) });
+  console.log(`[${info.project.name} cosméticas ×4] ${JSON.stringify(slow)}`);
+  expect(slow.p50).toBeLessThanOrEqual(17.5);
+});

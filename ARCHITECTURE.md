@@ -577,8 +577,8 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
 ### 4.32 Viento de esporas II: pradera, tundra, El regreso y ciclo libre (fase 10, bloque A)
 
 Resuelve el muro de la 1.5: tras el último bioma no quedaba destino y cada partida se alargaba
-(hasta 1 h 6 min la cuarta; docs/ROADMAP.md, fase 8). El bloque B (votos y cosméticas) llega
-después, y la 1.6.0 sale con los dos (decisión del usuario).
+(hasta 1 h 6 min la cuarta; docs/ROADMAP.md, fase 8). El bloque B (votos y cosméticas) está en
+§4.33, y la 1.6.0 sale con los dos (decisión del usuario).
 
 - **Dos anillos de destinos.** La pradera y la tundra (`ring: 2`) solo se ofrecen con la taiga y el
   Chocó colonizados (`openRing`, `destinations`): cada anillo se recorre entero y en orden. Así los
@@ -742,6 +742,92 @@ después, y la 1.6.0 sale con los dos (decisión del usuario).
   hasta recargar, por lo mismo), el teletipo se queda sin noticias en ese destino: mejor nada que un
   texto falso. Quien no ha salido del natal no lo descarga.
 
+### 4.33 Votos y adaptaciones cosméticas (fase 10, bloque B)
+
+Un voto quita algo durante un ciclo libre y rebaja la meta para compensar: cambia cómo se juega un
+ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 1.6.0 con el bloque A
+(decisión del usuario) y no cambió la forma del guardado: solo añadió reglas (§5).
+
+- **Se juran al sembrar, se rompen y nunca se añaden.** `disperse` lleva `vows` en el orden de
+  `VOW_IDS` y solo con los que el bioma ofrece (el Chocó no tiene «sin lluvia»: Lloró está entre los
+  lugares más lluviosos del planeta); El regreso va sin votos. Duran hasta cumplir el ciclo,
+  romperlos o irse. `renounceVow` quita uno, con confirmación; añadir a mitad de ciclo no existe,
+  porque falsearía el récord. Los vigentes son siempre un subconjunto de los jurados y la lista
+  jurada no se guarda: el récord lleva los que se mantuvieron. Descartados: interruptores que se
+  ponen y se quitan, votos fijos hasta cumplir y bajar el nivel meta (cambiaría el sentido de
+  «nivel 500»).
+- **`vowGoal`, un factor de R por voto y bioma** (`src/data/biomes.ts`), que se multiplican
+  (`vowGoalFactor`; los tres en el natal, ×0,03). Sin votos la R es la de siempre, bit a bit. La
+  confirmación de sembrar dice la meta que dejan («esporular aquí pide el 21 % de los nutrientes»).
+  Romper sube R y conserva el nivel: las esporas que da E(L) con la R nueva pueden quedar por debajo
+  de él, y la meta sube de verdad. Un factor por bioma porque lo que quita cada voto pesa distinto en
+  cada uno: con uno común, la taiga sin lluvia salía más rápida que sin votos.
+- **«Sin lluvia»:** `tick` no llama a `updateRain`, así que no cae ninguna gota ni se consume azar.
+  Una gota guardada con el voto solo sale de un guardado editado y se repara a null al cargar.
+- **«Solo autocompra»:** las compras del jugador (`buyGenerator`, `buyUpgrade`) se niegan y la
+  autocompra, que pasa por `purchaseGenerator` y `purchaseUpgrade`, compra todo con el umbral del
+  jugador aunque no tenga Instinto ni los interruptores encendidos, también sin conexión. **La Poda
+  no rige con el voto** (`isPaybackActive` es falso): compraba casi como el bot y el voto acortaba el
+  ciclo (a 0,63–0,85 veces, en el prototipo), así que habría sido la forma más rápida de sacar
+  récords. La interfaz bloquea con su motivo los botones de compra, los interruptores y el modo de la
+  Poda; lo guardado vuelve al romper el voto o cumplir el ciclo.
+- **«Sin mutaciones»: dos preguntas, no una.** `ownsMutation` dice «comprada» (el árbol, el Acto I,
+  las Adaptaciones y lo que se puede comprar) y `hasMutation`, «el efecto rige» (producción, lluvia,
+  sin conexión, autocompra y desbloqueos). Con el voto las compradas duermen: `wakeMutation`
+  despierta una por lo de siempre en esporas disponibles, con sus requisitos despiertos y solo con
+  esporas del ciclo (`wakeBudget`: el nivel, que empezó en 0, menos lo ya despertado; se deduce y no
+  se guarda). Romper el voto, cumplir o sembrar las despierta todas. Mientras duermen no hay Red
+  planetaria (su fila sigue en su sitio, dormida y con su motivo), Herencia ni Instinto, el sin
+  conexión vuelve a 50 % y 8 h y k a 15. Confundir las dos preguntas dejaría recomprar una dormida o
+  cerrar mal el Acto I: hay una prueba por cada sitio que las lee. Al pie de la letra, sin despertar
+  nada, los ciclos duraban de 8,6 a 25,6 h en el prototipo.
+- **Nada cambia con el tiempo** (docs/ROADMAP.md, reglas comunes): `cycle.vows` y `cycle.woken`
+  solo cambian al sembrar, romper, despertar y cumplir, y las cuatro invalidan los derivados (§4.6).
+- **El guardado** valida los votos en un ciclo empezado y sin cumplir, del bioma, sin repetir y en
+  orden (el orden es la clave del récord: uno desordenado duplicaría casillas); las despiertas, solo
+  con «sin mutaciones», compradas, cerradas por requisitos y sin costar más que el nivel; y los votos
+  de cada récord.
+- **Cuatro logros** (uno por voto y los tres juntos) suman al +1 % por la regla de Viento (§4.28).
+  Leen `hasVowRecord`, del récord y no del ciclo vigente: un voto roto no cuenta y lo ganado no se
+  pierde.
+- **Las cosméticas** (Esporada, Cordones negros e Higróforos) son adaptaciones con `unlock` (su
+  voto), 300·2^r esporas y tres rangos, 2.100 cada una: unos 10 ciclos por cosmética con las ~200
+  esporas netas de un ciclo, que así siguen teniendo en qué gastarse. Una sola regla,
+  `isAdaptationOpen` (un récord con su voto), niega la compra y rechaza un guardado con un rango sin
+  derecho. Solo cambian el dibujo (`src/render/cosmetics.ts`, puro y probado sin lienzo): las
+  esporas de la esporulación toman el color de su rango (crema con 0, como siempre); los rizomorfos,
+  un núcleo opaco más grueso y oscuro por rango sobre un filo crema de alfa 0,62 (con el 0,14 de la
+  luz de borde de los troncos no se leía; así queda a 3:1 o más contra la hojarasca, el humus y el
+  primer horizonte de los cinco suelos); y la superficie, setas carmín y limón con su propio azar
+  (los adornos de siempre no se mueven), nunca del rebozuelo, que es el acento de compra. Ningún
+  objeto nuevo por frame, y el bot las ignora, como a Fuego de zorro. Descartados: gratis y 1000·2^r
+  (unos 33 ciclos por cosmética). Deuda aceptada: la Esporada no deja elegir color.
+- **La interfaz, sin pestañas nuevas** (§4.32): en Viento, los interruptores de los votos
+  (`aria-pressed`), que viven en la interfaz hasta sembrar, y bajo el progreso los vigentes con su
+  botón de romper: la confirmación empieza en «Mantener el voto», y al romper el foco pasa al
+  siguiente o al estado del ciclo, nunca a `<body>` (BUG-JOURNAL #5, #8 y #15). El árbol dormido se
+  atenúa y cada nodo dice «dormida» y se despierta desde sí mismo. Estadísticas cuenta los votos como
+  número (la lista vive en Viento, para no aplastar la columna de etiquetas a 375 px), la Crónica
+  dice los votos de cada récord y las cosméticas van bajo las Adaptaciones, cerradas con su motivo.
+- **El bot y la calibración.** Sobre el orden T‑C‑P‑U, cada combinación se siembra desde El regreso
+  recién cumplido (la primera siembra) y, aparte, desde el final de la primera vuelta con las
+  adaptaciones de bioma al máximo (el régimen estable), y se compara semilla a semilla con el ciclo
+  sin votos del mismo estado; «solo autocompra», con los tres umbrales. El bot despierta mutaciones
+  en el orden de la tabla y con «sin lluvia» no atrapa gotas. Sus 630 ciclos llenan los hilos que
+  quedaban libres: `npm run sim` tarda lo mismo que antes (154–160 s en 11 hilos). La iteración del
+  prototipo que la especificación ponía antes de programar los votos se hizo con el simulador real,
+  porque la regla de la meta, El regreso y el ciclo ya estaban en el juego. `vowGoal` (sin lluvia /
+  solo autocompra / sin mutaciones): natal 0,15 / 0,38 / 0,53; taiga 0,33 / 0,56 / 0,71; Chocó — /
+  0,7 / 0,35; pradera 0,35 / 0,44 / 0,59; tundra 0,38 / 0,36 / 0,62. Con los de partida (0,4, 0,6 y
+  0,6), «sin lluvia» en el natal tardaba 2,04 veces lo que sin votos y «sin mutaciones» en la taiga,
+  0,96. Manda que ningún voto suelto acorte el ciclo estable (el peor, 1,03 veces); por eso las
+  partidas de la primera siembra tras El regreso tienen como objetivo 50 min y no los 45 de la
+  especificación (la peor, 48:46, la tundra con solo autocompra: sin votos, la pradera y la tundra
+  ya duran allí 39–40 min). Los tres votos juntos en la pradera tardan 0,85–0,89 veces el ciclo sin
+  votos (lo que quitan se solapa: sin lluvia, Olfato de lluvia y Tormenta perfecta ya no pesan);
+  subir sus factores sueltos sacaría la primera siembra de su objetivo, y la especificación solo los
+  acota por arriba. Aceptado.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -771,11 +857,13 @@ personales: nada sale del navegador.
 - **Versión 7 (fase 10), entera de una vez.** `cycle`, `records`, las seis adaptaciones de la
   pradera y la tundra y las tres cosméticas de los votos entraron con su forma completa en el primer
   commit que tocó el guardado, también las claves cuyas reglas llegaban después, que hasta entonces
-  solo validan vacías (hoy, los votos, las mutaciones despiertas y los rangos cosméticos, hasta el
+  solo validaban vacías (los votos, las mutaciones despiertas y los rangos cosméticos, hasta el
   bloque B). Un push a `main` publica, y una v7 escrita por una versión intermedia dejaría de cargar
-  en la final; así tampoco hace falta otra versión del guardado para los votos.
+  en la final; así tampoco hizo falta otra versión del guardado para los votos.
   `tests/fixtures/save-v7-c5.json`, escrito por ese primer commit, debe cargar en todos los que
-  siguen. La migración 6 → 7 solo añade claves (el bosque, la Crónica, los niveles, las esporas,
+  siguen, y `tests/fixtures/save-v7.json`, guardado por el build de la 1.6.0 (un ciclo libre a medias
+  con votos y mutaciones despiertas, récords con votos y cosméticas), debe cargar y volver a
+  guardarse idéntico en todas las versiones que vengan. La migración 6 → 7 solo añade claves (el bosque, la Crónica, los niveles, las esporas,
   `seen` y los socios no se tocan) y se compara campo a campo con una v7 escrita a mano; los seis
   guardados reales de la 1.5 (`tests/fixtures/save-v6-*.json`) dan, ya migrados, las cifras que
   calculaba la 1.5. La validación del tramo 5 está en §4.32. La 1.5 no pisa una v7: su
@@ -795,25 +883,25 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 
 ## 7. Presupuestos
 
-| Operación                                                        | Presupuesto                   | Medido                                                                                                                                                                                                                                                                                                                                                            | Cómo                                    |
-| ---------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| JavaScript del build                                             | < 150 kB comprimido           | 84.3 kB inicial + 19.3 kB del plasmodio (fase 10). Con los catálogos que llegan aparte, quien juega en español descarga 117.9 kB y quien juega en inglés 133.2 kB (fase 9: 89.5 + 18.6; fase 8: 76.4)                                                                                                                                                             | `npm run build` (gzip que informa Vite) |
-| JS inicial (guarda por paquete)                                  | ≤ 95 kB comprimido            | 83.7 kB (fase 10, bloque A: el inglés de la interfaz y las noticias de los biomas llegan aparte; 74.0 kB al sacar el inglés, 86.4 kB en la v1.5.0, 94.6 kB en la v1.4.2)                                                                                                                                                                                          | `npm run budget`, también en CI         |
-| CSS inicial                                                      | ≤ 9 kB comprimido             | 8.3 kB (7.8 kB en la v1.5.0; cada bioma suma ~0.1 kB)                                                                                                                                                                                                                                                                                                             | `npm run budget`                        |
-| JS del plasmodio (modelo, acciones y vista)                      | ≤ 20 kB comprimido            | 19.2 kB (medido en la fase 10; aquí decía 18.6 kB, la cifra de la fase 9; estimado ~15 kB en el diseño)                                                                                                                                                                                                                                                           | `npm run budget`                        |
-| Catálogo de un socio (un idioma)                                 | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                                                                                                                                                                                                                                          | `npm run budget`                        |
-| Catálogo de noticias (un idioma)                                 | ≤ 7 kB comprimido             | del sotobosque 4.0 kB (es) y 3.7 kB (en); de los biomas (`news/biomes`, solo tras dispersar) 4.8 kB (es) y 4.5 kB (en). En la v1.5.0, todas juntas: 5.8 y 5.5 kB                                                                                                                                                                                                  | `npm run budget`                        |
-| Catálogo de la interfaz en inglés                                | ≤ 18 kB comprimido            | 15.9 kB con los textos de la fase 10 (13.1 kB al sacarlo; el español sigue en el JS inicial: es el idioma por defecto)                                                                                                                                                                                                                                            | `npm run budget`                        |
-| .apk de Android                                                  | —                             | 5.0 MB                                                                                                                                                                                                                                                                                                                                                            | `.github/workflows/android.yml`         |
-| Vaciar 1.200 s de modelo del plasmodio                           | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                                                                                                                                                                                                                                         | a mano con `advancePlasmodium` (fase 9) |
-| Rastro del plasmodio                                             | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                                                                                                                                                                                                                            | `npm run sim:plasmodio`                 |
-| Frame                                                            | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local). Fase 10, en la tundra y en El regreso: ~165 fps en Chromium, Firefox y el Pixel 7 (162–164 con la CPU ×4); WebKit y el iPhone 14, 49–57 fps, con la mediana del frame en 16 ms como el natal en ese motor | `npm run perf`                          |
-| Partículas vivas                                                 | ≤ 200 (pool)                  | —                                                                                                                                                                                                                                                                                                                                                                 | Tope en `render/particles.ts`           |
-| Segmentos de la red                                              | ≤ 2000                        | —                                                                                                                                                                                                                                                                                                                                                                 | Tope en `render/network.ts`             |
-| Refresco de números en pantalla                                  | ≤ 10 Hz                       | —                                                                                                                                                                                                                                                                                                                                                                 | Limitador en `main.ts`                  |
-| Balance en 10 esporulaciones                                     | < 1e300                       | 2.3e13                                                                                                                                                                                                                                                                                                                                                            | `npm run sim`                           |
-| Balance del viaje (cuatro destinos, El regreso y el ciclo libre) | < 1e63 (nombres de idle)      | 1.08e18 con dos vueltas del ciclo libre (fase 10; 7.4e17 en la fase 8, con dos biomas y 4 partidas más); crece lineal con los ciclos                                                                                                                                                                                                                              | `npm run sim`                           |
-| Simulador de la red (`npm run sim`)                              | ≤ 10 min en el PC del usuario | 154 s en 11 hilos y 65 s el del plasmodio (fase 10; 165 s + 64 s en un hilo en la fase 9)                                                                                                                                                                                                                                                                         | `npm run sim`                           |
+| Operación                                                        | Presupuesto                   | Medido                                                                                                                                                                                                                                                                                                                                                                                                                    | Cómo                                    |
+| ---------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| JavaScript del build                                             | < 150 kB comprimido           | 89.0 kB inicial + 19.3 kB del plasmodio (v1.6.0). Con los catálogos que llegan aparte, quien juega en español descarga 122.6 kB y quien juega en inglés 139.2 kB (bloque A de la fase 10: 84.3 kB inicial, 117.9 y 133.2 kB; fase 9: 89.5 + 18.6; fase 8: 76.4)                                                                                                                                                           | `npm run build` (gzip que informa Vite) |
+| JS inicial (guarda por paquete)                                  | ≤ 95 kB comprimido            | 88.3 kB (v1.6.0: los votos y las cosméticas sumaron 4.6 kB; 83.7 kB con el bloque A, 74.0 kB al sacar el inglés, 86.4 kB en la v1.5.0, 94.6 kB en la v1.4.2)                                                                                                                                                                                                                                                              | `npm run budget`, también en CI         |
+| CSS inicial                                                      | ≤ 9 kB comprimido             | 8.4 kB (v1.6.0; 7.8 kB en la v1.5.0; cada bioma suma ~0.1 kB)                                                                                                                                                                                                                                                                                                                                                             | `npm run budget`                        |
+| JS del plasmodio (modelo, acciones y vista)                      | ≤ 20 kB comprimido            | 19.2 kB (medido en la fase 10; aquí decía 18.6 kB, la cifra de la fase 9; estimado ~15 kB en el diseño)                                                                                                                                                                                                                                                                                                                   | `npm run budget`                        |
+| Catálogo de un socio (un idioma)                                 | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                                                                                                                                                                                                                                                                                                  | `npm run budget`                        |
+| Catálogo de noticias (un idioma)                                 | ≤ 7 kB comprimido             | del sotobosque 4.0 kB (es) y 3.7 kB (en); de los biomas (`news/biomes`, solo tras dispersar) 4.8 kB (es) y 4.5 kB (en). En la v1.5.0, todas juntas: 5.8 y 5.5 kB                                                                                                                                                                                                                                                          | `npm run budget`                        |
+| Catálogo de la interfaz en inglés                                | ≤ 18 kB comprimido            | 17.1 kB en la v1.6.0, cerca de su tope (15.9 kB con el bloque A, 13.1 kB al sacarlo; el español sigue en el JS inicial: es el idioma por defecto)                                                                                                                                                                                                                                                                         | `npm run budget`                        |
+| .apk de Android                                                  | —                             | 5.0 MB                                                                                                                                                                                                                                                                                                                                                                                                                    | `.github/workflows/android.yml`         |
+| Vaciar 1.200 s de modelo del plasmodio                           | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                                                                                                                                                                                                                                                                                                 | a mano con `advancePlasmodium` (fase 9) |
+| Rastro del plasmodio                                             | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                                                                                                                                                                                                                                                                                    | `npm run sim:plasmodio`                 |
+| Frame                                                            | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local). Fase 10, en la tundra, en El regreso y en un ciclo con las tres cosméticas al tercer rango: ~165 fps en Chromium, Firefox y el Pixel 7 (162–165 con la CPU ×4); WebKit y el iPhone 14, 49–59 fps, con la mediana del frame en 15–16 ms como el natal en ese motor | `npm run perf`                          |
+| Partículas vivas                                                 | ≤ 200 (pool)                  | —                                                                                                                                                                                                                                                                                                                                                                                                                         | Tope en `render/particles.ts`           |
+| Segmentos de la red                                              | ≤ 2000                        | —                                                                                                                                                                                                                                                                                                                                                                                                                         | Tope en `render/network.ts`             |
+| Refresco de números en pantalla                                  | ≤ 10 Hz                       | —                                                                                                                                                                                                                                                                                                                                                                                                                         | Limitador en `main.ts`                  |
+| Balance en 10 esporulaciones                                     | < 1e300                       | 2.3e13                                                                                                                                                                                                                                                                                                                                                                                                                    | `npm run sim`                           |
+| Balance del viaje (cuatro destinos, El regreso y el ciclo libre) | < 1e63 (nombres de idle)      | 1.08e18 con dos vueltas del ciclo libre (fase 10; 7.4e17 en la fase 8, con dos biomas y 4 partidas más); crece lineal con los ciclos                                                                                                                                                                                                                                                                                      | `npm run sim`                           |
+| Simulador de la red (`npm run sim`)                              | ≤ 10 min en el PC del usuario | 154–160 s en 11 hilos y 61–63 s el del plasmodio (v1.6.0, con la matriz de votos; 154 s + 65 s con el bloque A; 165 s + 64 s en un hilo en la fase 9)                                                                                                                                                                                                                                                                     | `npm run sim`                           |
 
 ## 8. Escala
 
@@ -831,7 +919,7 @@ src/core/      estado, fórmulas, selectores, acciones, tick (sin DOM, sin reloj
 src/data/      tablas de balance y claves de texto (sin lógica, sin texto visible)
 src/systems/   guardado, offline, lluvia, autocompra, logros
 src/ui/        componentes, pestañas, tooltips, modales, avisos
-src/render/    canvas de la red y partículas
+src/render/    canvas de la red, partículas, la banda de la Red planetaria y las cosméticas
 src/audio/     sonidos sintetizados
 src/i18n/      catálogos (es.ts base; en.ts, news/, news/biomes/ y partners/ llegan aparte) y
                formato con Intl

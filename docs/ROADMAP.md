@@ -25,6 +25,9 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 5. **Game+ en la versión siguiente a la fase 10** (2026-10-04): volver a los biomas ya colonizados
    en escalones más difíciles, con premios que el ciclo libre no da. Va en la 1.7.0 como fase 11, y
    las eras geológicas pasan a la fase 12 (1.8.0). No cambia nada de la fase 10.
+6. **Dos entregas pequeñas antes del game+** (2026-10-06): la 1.6.1 trae las actualizaciones del
+   juego dentro de la app de Android y la 1.6.2 rediseña la interfaz y los textos. Nada de eso
+   entra en la 1.6.0.
 
 ## Reglas comunes
 
@@ -43,7 +46,8 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 ## Fases
 
 La 1.5.0 no es una fase: son los instaladores para el móvil, que pidió el usuario antes de la
-fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor más.
+fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor más. Tampoco son
+fases la 1.6.1 y la 1.6.2, que el usuario pidió entre la fase 10 y la 11: suben el parche.
 
 | Fase | Versión | Contenido                                                           | Tamaño |
 | ---- | ------- | ------------------------------------------------------------------- | ------ |
@@ -51,7 +55,9 @@ fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor 
 | 7    | 1.2.0   | Madurez de la red y Adaptaciones (hecha)                            | M      |
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica (hecha) | L      |
 | 9    | 1.4.0   | El Plasmodio y la estructura de socios (hecha)                      | L      |
-| 10   | 1.6.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
+| 10   | 1.6.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre (hecha)      | M      |
+| —    | 1.6.1   | Actualizaciones del juego dentro de la app de Android               | —      |
+| —    | 1.6.2   | Rediseño de la interfaz y los textos                                | —      |
 | 11   | 1.7.0   | Game+: los biomas otra vez, en escalones más difíciles              | M      |
 | 12   | 1.8.0   | Tiempo profundo: las eras geológicas                                | L      |
 
@@ -142,18 +148,50 @@ fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor 
   ausencia (el «deshielo», con el perfil ausente como objetivo) y la 1.6.0 sale en una sola
   entrega con los dos bloques: A (pradera, tundra, El regreso y ciclo libre con récords, que ya
   resuelve el muro) y B (votos y adaptaciones cosméticas).
-- **Bloque A (en la rama `fase-10`, sin publicar):** 119 de 119 objetivos en `npm run sim` y 17 de
-  17 del plasmodio. Pradera y tundra forman un segundo anillo que se abre con la taiga y el Chocó
-  colonizados, así que los tramos 1–2 quedan idénticos bit a bit; sus tramos colonizan en
-  2,18–3,13 h con partidas de 21–31 min de mediana, y la mediana de cada partida no pasa de una
-  hora (la más larga, 58:49, en la pradera tercera). El regreso es un tramo jugable más, al natal
-  mil años después, que se cumple en 2,36–2,66 h; después, sembrar cualquiera de los cinco biomas
-  por 300 esporas, con R y linaje fijos: la primera vuelta del ciclo dura 2,29–3,05 h por bioma, el
-  régimen estable 1,51–1,95 h, y tampoco ahí la mediana de una partida pasa de una hora. Quien está
-  hoy en el muro carga con los dos biomas nuevos abiertos y sin perder una cifra (guardado versión
-  7). Ver ARCHITECTURE.md §4.32. Riesgos: el Chocó del ciclo, al límite en las dos direcciones (la
-  más larga de la primera vuelta en 56:52, el estable con partidas de 15:21 de mediana), y las
-  partidas de espera, en 1 de mediana, justo en su objetivo.
+- **Resultado (v1.6.0), bloque A:** pradera y tundra forman un segundo anillo que se abre con la
+  taiga y el Chocó colonizados, así que los tramos 1–2 quedan idénticos bit a bit; sus tramos
+  colonizan en 2,18–3,13 h con partidas de 21–31 min de mediana, y la mediana de cada partida no
+  pasa de una hora (la más larga, 58:49, en la pradera tercera). El regreso es un tramo jugable más,
+  al natal mil años después, que se cumple en 2,36–2,66 h; después, sembrar cualquiera de los cinco
+  biomas por 300 esporas, con R y linaje fijos: la primera vuelta del ciclo dura 2,29–3,05 h por
+  bioma, el régimen estable 1,51–1,95 h, y tampoco ahí la mediana de una partida pasa de una hora.
+  Quien está hoy en el muro carga con los dos biomas nuevos abiertos y sin perder una cifra
+  (guardado versión 7). Ver ARCHITECTURE.md §4.32.
+- **Bloque B:** los votos se juran al sembrar y se pueden romper, nunca añadir; cada uno rebaja la
+  meta del ciclo con un factor por bioma, calibrado con el simulador para que ningún voto suelto
+  acorte el ciclo (en el régimen estable tardan 1,03–1,35 veces el ciclo sin votos) y para que las
+  partidas de la primera siembra tras El regreso no pasen de 50 min (la especificación pedía 45: sin
+  votos, las de la pradera y la tundra ya duran allí 39–40 min). Con «solo autocompra» la Poda no
+  rige; con «sin mutaciones» el árbol se despierta con las esporas del ciclo. Cada voto mantenido
+  hasta cumplir abre una adaptación cosmética (Esporada, Cordones negros e Higróforos). Ver
+  ARCHITECTURE.md §4.33.
+- `npm run sim`: 126 de 126 objetivos (los 39 de antes, idénticos; 3 redefinidos; 77 del bloque A,
+  con el perfil ausente; 7 de los votos) y 17 de 17 del plasmodio. Riesgos: el Chocó del ciclo, al
+  límite en las dos direcciones (la más larga de la primera vuelta en 56:52, el estable con
+  partidas de 15:21 de mediana); las partidas de espera, en 1 de mediana, justo en su objetivo; y
+  los tres votos juntos en la pradera, que tardan 0,85–0,89 veces el ciclo sin votos (aceptado: la
+  especificación solo los acota por arriba).
+
+### 1.6.1 — Actualizaciones dentro de la app (petición del usuario)
+
+Decidida el 2026-10-06. Hoy, para tener una versión nueva en la app de Android hay que descargar e
+instalar otra vez el .apk.
+
+- La app descarga el código web de cada release y lo usa en el arranque siguiente, sin reinstalar
+  el .apk. Con el plugin libre `@capgo/capacitor-updater` en modo propio, sin su nube: el paquete va
+  firmado y sale de las releases de GitHub.
+- Antes de nada, comprobar que la partida se conserva al actualizar: el origen sigue siendo
+  `https://localhost`, así que `localStorage` debería ser el mismo, pero hay que verlo en un teléfono.
+- Mientras tanto, quien quiera que el .apk se actualice solo puede usar Obtainium (README).
+
+### 1.6.2 — Rediseño de la interfaz y los textos (petición del usuario)
+
+Decidida el 2026-10-06, para después de la 1.6.1. Diseño por hacer; lo que pidió:
+
+- Textos más cortos, con la ciencia plegada.
+- Socios con el objetivo en cuatro pasos.
+- El árbol de mutaciones a cuatro columnas, con una ficha para cada nodo.
+- Un icono para los nutrientes.
 
 ### Fase 11 — Game+ (M)
 
