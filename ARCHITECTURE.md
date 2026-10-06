@@ -974,8 +974,12 @@ rama cumple una parte.
   vieja, también guardan.
   La versión a prueba vuelve atrás sola si no confirma en 30 s de primer plano (medidos con
   `elapsedRealtime`; el arranque ya espera hasta 8 s el catálogo del idioma), tras dos arranques sin
-  confirmar, si se cae su renderizador o si el JS avisa de un error. Una versión fallida no se vuelve
-  a probar; las siguientes sí, una por una. **El actualizador nunca mata el proceso:** cambia de
+  confirmar, si se cae su renderizador o si el JS avisa de un error. Al volver atrás (o si la
+  confirmación no se escribe) vuelve a arrancar toda actividad que la servía, no solo la que avisó: si
+  la actividad se recreó durante la prueba (otro tamaño de letra), el aviso puede llegar de la vieja
+  después de elegir la nueva, porque Capacitor reparte las llamadas que ya estaban en cola al
+  cerrarse, y la nueva se quedaría sin guardar. Una versión fallida no se vuelve a probar; las
+  siguientes sí, una por una. **El actualizador nunca mata el proceso:** cambia de
   paquete con `recreate()`, y ante un renderizador
   caído un `WebViewListener` devuelve `true` (con `false`, Android cierra la app), porque Chromium
   tarda hasta un minuto en llevar `localStorage` a disco y matar el proceso podría perder el último

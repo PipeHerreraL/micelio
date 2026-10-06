@@ -353,9 +353,10 @@ final class OtaService {
         run(() -> {
             if (!isUndecidedTrial(session)) return;
             boolean save = OtaState.FAILED_SAVE.equals(reason);
-            failTrial(save ? OtaState.FAILED_SAVE : OtaState.FAILED_ERROR,
+            List<Session> served = failTrial(save ? OtaState.FAILED_SAVE : OtaState.FAILED_ERROR,
                     save ? OtaState.NOTICE_SAVE_REJECTED : OtaState.NOTICE_ROLLED_BACK);
             session.host.recreate();
+            recreateServed(served, session);
         });
     }
 
@@ -372,13 +373,16 @@ final class OtaService {
                 if (now - renderCrashes.get(i) >= RENDER_WINDOW_MILLIS) renderCrashes.remove(i);
             }
             renderCrashes.add(now);
-            if (isUndecidedTrial(session)) failTrial(OtaState.FAILED_RENDER, OtaState.NOTICE_ROLLED_BACK);
+            List<Session> served = isUndecidedTrial(session)
+                    ? failTrial(OtaState.FAILED_RENDER, OtaState.NOTICE_ROLLED_BACK)
+                    : Collections.<Session>emptyList();
             if (renderCrashes.size() >= RENDER_CRASHES) {
                 log.log("El renderizador se cayó " + RENDER_CRASHES + " veces en un minuto: se cierra", null);
                 session.host.finish();
             } else {
                 session.host.recreate();
             }
+            recreateServed(served, session);
         });
     }
 
@@ -543,8 +547,9 @@ final class OtaService {
         if (pending == null || !pending.version.equals(trial.version)) {
             // No debería pasar: el pendiente solo cambia en este hilo, y nunca durante una prueba. Si
             // pasa, la actividad vuelve a arrancar con lo que el selector decida.
-            endTrial();
+            List<Session> served = endTrial();
             session.host.recreate();
+            recreateServed(served, session);
             return TOO_LATE;
         }
         OtaState next = state.copy();
@@ -562,8 +567,9 @@ final class OtaService {
             // actividad vuelve a arrancar con la base, que guarda; el selector la volverá a probar
             // mientras le queden intentos.
             log.log("No se pudo escribir la confirmación de " + pending.version, null);
-            endTrial();
+            List<Session> served = endTrial();
             session.host.recreate();
+            recreateServed(served, session);
             return TOO_LATE;
         }
         // Todos los arranques que la sirvieron pueden guardar ya: también la actividad nueva de una
@@ -588,20 +594,18 @@ final class OtaService {
                 if (current.watch.isRunning()) armTrialTimer(current);
                 return;
             }
-            Session served = latest;
-            failTrial(OtaState.FAILED_TIMEOUT, OtaState.NOTICE_ROLLED_BACK);
-            if (served != null) served.host.recreate();
+            recreateServed(failTrial(OtaState.FAILED_TIMEOUT, OtaState.NOTICE_ROLLED_BACK), null);
         }), current.watch.remaining(clock.now().elapsed));
     }
 
     /**
      * La versión a prueba falla: se anota (antes de recrear la actividad), se borra su carpeta y queda
      * el aviso. Si no se puede escribir, el estado en memoria ya no la sirve en este proceso, y el
-     * siguiente arranque en frío la cuenta como un intento más.
+     * siguiente arranque en frío la cuenta como un intento más. Devuelve los arranques que la sirvieron.
      */
-    private void failTrial(String reason, String noticeKind) {
+    private List<Session> failTrial(String reason, String noticeKind) {
         String version = trial.version;
-        endTrial();
+        List<Session> served = endTrial();
         OtaState next = state.copy();
         next.failed.add(new OtaState.Failure(version, reason));
         next.notice = new OtaState.Notice(noticeKind, version);
@@ -611,11 +615,30 @@ final class OtaService {
         if (!written) state = next;
         if (written && pending) store.delete(version);
         log.log("La versión " + version + " falló (" + reason + ")", null);
+        return served;
     }
 
-    private void endTrial() {
-        if (trial != null && trial.timer != null) trial.timer.cancel();
+    /** Deja de probar en este proceso. Devuelve los arranques que servían la prueba (ninguno si no había). */
+    private List<Session> endTrial() {
+        if (trial == null) return Collections.emptyList();
+        if (trial.timer != null) trial.timer.cancel();
+        List<Session> served = trial.sessions;
         trial = null;
+        return served;
+    }
+
+    /**
+     * Una prueba terminó sin confirmarse: vuelve a arrancar cada actividad que la servía, salvo `handled`
+     * (de esa ya se ocupó quien llama), para que sirva la base. Todas, no solo la que avisó: si la
+     * actividad se recreó durante la prueba, el aviso (un reject() o la caída del renderizador) puede
+     * llegar de la vieja después de elegir la nueva, porque Capacitor reparte las llamadas que ya estaban
+     * en cola aunque cierre su hilo; y la nueva seguiría sirviendo la versión sin guardar, sin que su
+     * ready() ni su reject() decidan ya nada y sin reloj. En una actividad destruida no hace nada.
+     */
+    private static void recreateServed(List<Session> served, Session handled) {
+        for (Session other : served) {
+            if (other != handled) other.host.recreate();
+        }
     }
 
     // ---- Buscar y descargar ----

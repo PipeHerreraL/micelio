@@ -50,6 +50,10 @@ public class OtaServiceTest {
     private final Queue<Runnable> network = new ArrayDeque<>();
     private final FakeHttp http = new FakeHttp();
     private final FakeHost host = new FakeHost();
+    // Las dos actividades de una recreación durante una prueba (trialAcrossARecreation).
+    private final FakeHost staleHost = new FakeHost();
+    private final FakeHost liveHost = new FakeHost();
+    private OtaService.Session stale;
     private final List<String> logs = new ArrayList<>();
     private final List<String> downloaded = new ArrayList<>();
     private KeyPair key;
@@ -182,15 +186,17 @@ public class OtaServiceTest {
     private static final class FakeHost implements OtaService.Host {
         int recreated;
         int finished;
+        /** La actividad vieja de una recreación: como en ActivityHost, recreate() y finish() no hacen nada. */
+        boolean destroyed;
 
         @Override
         public void recreate() {
-            recreated++;
+            if (!destroyed) recreated++;
         }
 
         @Override
         public void finish() {
-            finished++;
+            if (!destroyed) finished++;
         }
     }
 
@@ -257,6 +263,42 @@ public class OtaServiceTest {
         File blocker = new File(dir, OtaStore.STATE + ".tmp");
         assertTrue(blocker.mkdirs());
         return blocker;
+    }
+
+    /**
+     * La 1.6.2 a prueba en una actividad que se recrea a los 10 s (otro tamaño de letra): la vieja queda
+     * destruida y la nueva, con su propia actividad, vuelve a servirla a prueba. Devuelve el arranque de
+     * la nueva; el de la vieja queda en {@link #stale}.
+     */
+    private OtaService.Session trialAcrossARecreation() throws Exception {
+        onDisk(Fixtures.release("1.6.2", 1), false, 0);
+        start("1.6.1");
+        stale = service.select(staleHost);
+        service.resumed(stale);
+        serial.advance(10_000);
+        service.paused(stale);
+        staleHost.destroyed = true;
+        OtaService.Session live = service.select(liveHost);
+        assertTrue(live.trial);
+        service.resumed(live);
+        return live;
+    }
+
+    /**
+     * La prueba terminó sin confirmarse (el reloj, o un aviso del arranque viejo): la actividad viva vuelve
+     * a arrancar, una vez, y lo que sirve entonces es la base, que guarda. Hasta que arranca, sigue sin
+     * guardar.
+     */
+    private void theLiveActivityGoesBackToTheBase(OtaService.Session live) throws Exception {
+        assertEquals("la actividad viva vuelve a arrancar", 1, liveHost.recreated);
+        assertEquals(Collections.singletonList(OtaService.TOO_LATE), ready(live));
+        assertTrue(service.bootJson(live).startsWith("{\"trial\":true,"));
+        assertEquals("una sola vez", 1, liveHost.recreated);
+        liveHost.destroyed = true;
+        OtaService.Session base = service.select(new FakeHost());
+        assertFalse(base.trial);
+        assertEquals("1.6.1", base.version);
+        assertTrue(service.bootJson(base).startsWith("{\"trial\":false,"));
     }
 
     // ---- La carrera entre ready() y el reloj ----
@@ -350,24 +392,17 @@ public class OtaServiceTest {
 
     /**
      * Si la actividad se recrea durante la prueba (otro tamaño de letra), vuelve a servirla sin contar
-     * otro intento, y el reloj sigue su cuenta.
+     * otro intento, y el reloj sigue su cuenta; al vencer, vuelve a arrancar la actividad nueva.
      */
     @Test
     public void recreatingDuringATrialKeepsTheClockAndCountsNoAttempt() throws Exception {
-        onDisk(Fixtures.release("1.6.2", 1), false, 0);
-        start("1.6.1");
-        OtaService.Session first = service.select(host);
-        service.resumed(first);
-        serial.advance(10_000);
-        service.paused(first);
-        OtaService.Session second = service.select(host);
-        assertTrue(second.trial);
+        OtaService.Session live = trialAcrossARecreation();
         assertEquals(1, store.read().pending.attempts);
-        service.resumed(second);
         serial.advance(19_999);
-        assertEquals(0, host.recreated);
+        assertEquals(0, liveHost.recreated);
         serial.advance(1);
-        assertEquals(1, host.recreated);
+        assertEquals(OtaState.FAILED_TIMEOUT, store.read().failed.get(0).reason);
+        theLiveActivityGoesBackToTheBase(live);
     }
 
     /**
@@ -405,22 +440,14 @@ public class OtaServiceTest {
      */
     @Test
     public void aStaleReadyAfterTheRecreationLetsTheNewStartSave() throws Exception {
-        onDisk(Fixtures.release("1.6.2", 1), false, 0);
-        start("1.6.1");
-        OtaService.Session stale = service.select(host);
-        service.resumed(stale);
-        serial.advance(2_000);
-        service.paused(stale);
-        OtaService.Session live = service.select(host);
-        assertTrue(live.trial);
+        OtaService.Session live = trialAcrossARecreation();
         assertEquals("el arranque viejo no da por visto el aviso",
                 Collections.singletonList(OtaService.CONFIRMED), ready(stale));
 
         assertTrue(service.bootJson(live), service.bootJson(live).startsWith("{\"trial\":false,"));
-        service.resumed(live);
         assertEquals(Collections.singletonList("confirmed updated 1.6.2"), ready(live));
         serial.advance(10 * MINUTE);
-        assertEquals(0, host.recreated);
+        assertEquals(0, liveHost.recreated);
         assertEquals("1.6.2", store.read().active.version);
     }
 
@@ -451,6 +478,20 @@ public class OtaServiceTest {
         assertEquals(2, state.pending.attempts);
         assertTrue(state.failed.isEmpty());
         assertEquals(Collections.singletonList("confirmed updated 1.6.2"), ready(retried));
+    }
+
+    /**
+     * El ready() de la actividad vieja de una recreación llega tras elegir la nueva, con el disco lleno: la
+     * confirmación no se escribe, y la que vuelve a arrancar es la nueva, que si no seguiría sirviendo la
+     * versión sin guardar y sin reloj.
+     */
+    @Test
+    public void aStaleReadyThatCannotConfirmRestartsTheLiveActivity() throws Exception {
+        OtaService.Session live = trialAcrossARecreation();
+        blockWrites();
+        assertEquals(Collections.singletonList(OtaService.TOO_LATE), ready(stale));
+        assertTrue("no es culpa de la versión", store.read().failed.isEmpty());
+        theLiveActivityGoesBackToTheBase(live);
     }
 
     // ---- Rechazar y la caída del renderizador ----
@@ -505,6 +546,46 @@ public class OtaServiceTest {
         service.renderGone(base);
         serial.runDue();
         assertEquals("pasado el minuto, se recrea otra vez", 3, host.recreated);
+    }
+
+    /**
+     * Un reject() de la actividad vieja de una recreación que llega tras elegir la nueva (Capacitor
+     * reparte las llamadas que ya estaban en cola al cerrarse): la versión falla y vuelve a arrancar la
+     * nueva. Con «save», la nueva también rechaza antes de montar, y su reject() ya no decide nada: sin
+     * volver a arrancarla, se quedaría en la pantalla de carga.
+     */
+    @Test
+    public void aStaleRejectForTheSaveRestartsTheLiveActivity() throws Exception {
+        OtaService.Session live = trialAcrossARecreation();
+        service.reject(stale, OtaState.FAILED_SAVE);
+        serial.runDue();
+        OtaState state = store.read();
+        assertEquals(OtaState.FAILED_SAVE, state.failed.get(0).reason);
+        assertEquals(OtaState.NOTICE_SAVE_REJECTED, state.notice.kind);
+        theLiveActivityGoesBackToTheBase(live);
+    }
+
+    /** Lo mismo con un error antes de confirmar: si no, la nueva jugaría sin guardar y sin aviso. */
+    @Test
+    public void aStaleRejectForAnErrorRestartsTheLiveActivity() throws Exception {
+        OtaService.Session live = trialAcrossARecreation();
+        service.reject(stale, OtaState.FAILED_ERROR);
+        serial.runDue();
+        OtaState state = store.read();
+        assertEquals(OtaState.FAILED_ERROR, state.failed.get(0).reason);
+        assertEquals(OtaState.NOTICE_ROLLED_BACK, state.notice.kind);
+        theLiveActivityGoesBackToTheBase(live);
+    }
+
+    /** Y con la caída del renderizador de la actividad vieja. */
+    @Test
+    public void aStaleRendererCrashRestartsTheLiveActivity() throws Exception {
+        OtaService.Session live = trialAcrossARecreation();
+        service.renderGone(stale);
+        serial.runDue();
+        assertEquals(OtaState.FAILED_RENDER, store.read().failed.get(0).reason);
+        assertEquals(0, liveHost.finished);
+        theLiveActivityGoesBackToTheBase(live);
     }
 
     // ---- Los restos y el estado ajeno ----
