@@ -86,6 +86,11 @@ public class OtaDownloaderTest {
             route(path, 302, location, new byte[0], 0);
         }
 
+        /** Lee la petición y cierra sin responder nada: como una red que se corta. */
+        void hangUp(String path) {
+            routes.put(path, new byte[0]);
+        }
+
         private void serve() {
             while (!socket.isClosed()) {
                 try (Socket client = socket.accept()) {
@@ -97,6 +102,7 @@ public class OtaDownloaderTest {
                         response = "HTTP/1.1 404 X\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
                                 .getBytes(StandardCharsets.UTF_8);
                     }
+                    // Una respuesta vacía (hangUp) no escribe nada: solo se cierra la conexión.
                     OutputStream out = client.getOutputStream();
                     out.write(response);
                     out.flush();
@@ -243,8 +249,11 @@ public class OtaDownloaderTest {
         cancel.cancel();
         server.body("/z.zip", bytes(10));
         assertEquals("network", downloader.download(server.url("/z.zip"), dest, 10, sha256(bytes(10)), cancel));
-        server.socket.close();
-        assertEquals("network", downloader.download(server.url("/z.zip"), dest, 10, sha256(bytes(10)),
+        // Sin respuesta: la conexión se cierra antes de la primera línea. No se prueba con el servidor
+        // cerrado, porque en Linux su cierre se cruzaba con el accept() en curso y llegó a responder.
+        server.hangUp("/corta.zip");
+        assertEquals("network", downloader.download(server.url("/corta.zip"), dest, 10, sha256(bytes(10)),
                 new OtaService.Cancel()));
+        assertEquals(-1, downloader.fetch(server.url("/corta.zip"), 1024, new OtaService.Cancel()).status);
     }
 }
