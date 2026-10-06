@@ -410,11 +410,13 @@ body::before {
     display: contents;
   }
 
-  /* Lo que el foco o scrollIntoView traen a la vista en el panel no queda bajo lo fijo (pinning.ts).
-     Margen en el contenido y no relleno en la página: con scroll-padding, enfocar el núcleo, una
-     cifra o una pestaña de la barra pegada (que ya están en lo fijo) desplazaba la lista. */
+  /* Lo que el foco o scrollIntoView traen a la vista en el panel no queda bajo lo fijo (pinning.ts):
+     la franja de arriba y, en el móvil, la barra de pestañas de abajo. Margen en el contenido y no
+     relleno en la página: con scroll-padding, enfocar el núcleo, una cifra o una pestaña de la barra
+     pegada (que ya están en lo fijo) desplazaba la lista. */
   .tabs__panels * {
     scroll-margin-top: var(--fixed-top, 0px);
+    scroll-margin-bottom: var(--fixed-bottom, 0px);
   }
 }
 

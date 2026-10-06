@@ -8,11 +8,13 @@ import { checkColonization } from '../../src/systems/journey.ts';
 import {
   PHONES,
   cutOff,
+  focusCover,
   isMobile,
   renderedLines,
   savedState,
   seedRawSave,
   seedSave,
+  settle,
   windState,
 } from './helpers.ts';
 
@@ -67,6 +69,59 @@ test('«Ver el viento» lleva a Esporular con el foco en Viento de esporas', asy
   await expect(page.getByRole('tab', { name: /Esporular/ })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#wind-title')).toBeFocused();
 });
+
+/** En la tundra recién llegada (cuarto destino, tras taiga, Chocó y pradera), con su lámina por ver. */
+function tundraArrived(now: number): GameState {
+  return windState((s) => {
+    (['taiga', 'choco', 'prairie'] as const).forEach((to, i) => {
+      disperse(s, { to, now: now - (60 - i * 10) * 60_000 });
+      s.spores.level = 520;
+      checkColonization(s, now - (55 - i * 10) * 60_000);
+    });
+    disperse(s, { to: 'tundra', now: now - 5 * 60_000 });
+    drain();
+    s.seen.push(
+      ...['taiga', 'choco', 'prairie'].flatMap((b) => [`chapter.arrive.${b}`, `chapter.colonize.${b}`]),
+      'chapter.ring2',
+    );
+  }, now);
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, «Ver el viento» deja Viento de esporas arriba, a la vista y sin la barra de pestañas encima`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    await seedSave(
+      page,
+      windState((s) => {
+        s.seen = s.seen.filter((k) => k !== 'chapter.act1');
+      }),
+    );
+    await page.goto('./');
+    // En WebKit, enfocar no desplaza: con `nearest`, el título quedaba en el borde de abajo, bajo la
+    // barra de pestañas fija del móvil (BUG-JOURNAL #31).
+    await dialog(page).getByRole('button', { name: 'Ver el viento' }).click();
+    await expect(page.locator('#wind-title')).toBeFocused();
+    await settle(page);
+    expect(await focusCover(page)).toBeNull();
+  });
+
+  test(`a ${phone.width} px, «Ver las adaptaciones» de la llegada a la tundra deja su título a la vista`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const now = Date.now();
+    await seedSave(page, tundraArrived(now), now);
+    await page.goto('./');
+    const toAdaptations = dialog(page).getByRole('button', { name: 'Ver las adaptaciones' });
+    await expect(toAdaptations).toBeVisible({ timeout: 10_000 });
+    await toAdaptations.click();
+    await expect(page.locator('#badapt-tundra-title')).toBeFocused();
+    await settle(page);
+    expect(await focusCover(page)).toBeNull();
+  });
+}
 
 /** Altos de las filas de destino a la vista, en px. */
 function rowHeights(page: Page): Promise<number[]> {

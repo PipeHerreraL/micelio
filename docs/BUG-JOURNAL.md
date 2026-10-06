@@ -48,6 +48,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [28](#28) | `scripts/sim-report.ts`                                                   | El simulador escondía partidas de más de una hora en el Chocó del ciclo libre              |
 | [29](#29) | `src/systems/save.ts`, `src/systems/cycle.ts`                             | Un guardado con tantos ciclos cumplidos como empezados dejaba de guardarse al cumplir      |
 | [30](#30) | `src/ui/wind.ts`, `src/ui/tab-sporulate.ts`                               | En WebKit, tras romper un voto o sembrar, el foco quedaba debajo de la franja fija         |
+| [31](#31) | `src/main.ts`, `src/ui/pinning.ts`, `styles.css`                          | En el móvil, las láminas que llevan a otra pestaña dejaban el título bajo la barra         |
 
 ---
 
@@ -774,6 +775,36 @@ arriba y de abajo del elemento enfocado no haya otra cosa encima. Falla sin el a
 en WebKit y en el iPhone 14, a 375 y 412 px, y también en Firefox, el botón de romper o el estado del
 ciclo quedaban bajo el escenario fijo; en el iPhone 14, tras sembrar, el título quedaba de 300 a 800
 px por encima de la vista). En Chromium pasaba también sin él.
+
+---
+
+<a id="31"></a>
+
+## 31. En el móvil, las láminas que llevan a otra pestaña dejaban el título bajo la barra
+
+**Zona:** `src/main.ts` (`focusHeading`), `src/ui/pinning.ts` y `src/ui/styles.css` (desde la 1.5)
+
+**Síntoma.** Lo encontró la revisión final de la 1.6.0 en WebKit por debajo de 768 px: «Ver el
+viento», «Ver el ciclo libre» y «Ver las adaptaciones» abrían su pestaña con el título enfocado justo
+debajo de la barra de pestañas fija de abajo; se veía la parte de arriba de Esporular y no Viento.
+Venía de la 1.5 (la lámina del Acto I fallaba igual) y las cinco láminas nuevas de la 1.6 lo
+heredaban. Las pruebas de navegador solo miraban que el título tuviera el foco.
+
+**Causa.** `focusHeading` enfocaba y luego llamaba a `scrollIntoView({ block: 'nearest' })`. WebKit
+no desplaza al enfocar, así que `nearest` alineaba el título con el borde de abajo de la ventana, y
+allí está la barra fija: solo había margen para lo fijo de arriba (`--fixed-top`). Chromium centra el
+foco al enfocar, y ahí no se notaba.
+
+**Arreglo.** El título va arriba, bajo lo fijo (`block: 'start'` con el `scroll-margin-top` de
+siempre), y sin el desplazamiento propio del navegador al enfocar: se llega a esa sección y se ve
+desde su principio. Además `pinning.ts` publica `--fixed-bottom` (la barra del móvil) y lo del panel
+lleva ese `scroll-margin-bottom`, para que nada que el foco traiga a la vista quede bajo la barra.
+
+**Qué lo sostiene.** `tests/e2e/wind.spec.ts` → «a 375 px (y a 412 px), «Ver el viento» deja Viento
+de esporas arriba, a la vista y sin la barra de pestañas encima» y «… «Ver las adaptaciones» de la
+llegada a la tundra deja su título a la vista», en los cinco perfiles, con `focusCover` (#30).
+Fallan sin el arreglo (comprobado en WebKit y en el iPhone 14, a 375 y 412 px: el título, entre 641
+y 915 px, bajo la etiqueta de una pestaña de la barra).
 
 ---
 

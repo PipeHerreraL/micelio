@@ -503,8 +503,13 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   la pantalla y pasaría a lista), con un campo de texto enfocado (el teclado dejaba el campo de
   importar debajo de la franja) y cuando 100svh menos la franja y las barras deja menos de 200 px
   al panel (un móvil en horizontal, zoom, pantalla partida). Al cambiar de pestaña el jugador con
-  la lista bajada, la nueva empieza justo bajo lo fijo; `scroll-padding-top` evita que el foco
-  quede debajo. Una crítica previa con tres enfoques cambió el diseño: escenario más bajo, efectos
+  la lista bajada, la nueva empieza justo bajo lo fijo; ~~`scroll-padding-top` evita que el foco
+  quede debajo~~ un `scroll-margin-top` en lo del panel (`--fixed-top`) evita que el foco quede
+  debajo. **Corrección (1.6.0):** era margen y no relleno desde antes (con `scroll-padding`, enfocar
+  algo que ya está en lo fijo desplazaba la lista), y en el móvil hay también un `scroll-margin-bottom`
+  (`--fixed-bottom`, la barra de pestañas de abajo): sin él, las láminas que llevan a otra pestaña
+  dejaban el título enfocado bajo la barra en WebKit (BUG-JOURNAL #31). Esas láminas llevan el
+  título arriba, bajo lo fijo, y no al borde más cercano. Una crítica previa con tres enfoques cambió el diseño: escenario más bajo, efectos
   dentro de la franja, respaldo automático en vez de dos columnas en horizontal, barra de pestañas
   pegada en tableta.
 - **Lo que cambia con el estado no cambia la altura.** Un botón de compra a todo lo ancho lleva
@@ -1028,3 +1033,5 @@ Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
   simulador (BUG-JOURNAL #28); el Chocó del ciclo pasa a 5e14 y 5,5 R, y suben tres factores de voto.
 - §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba; el
   escenario pegajoso, que §4.30 descartaba, es lo que se eligió.
+- §4.30 (1.6.0): lo que evita que el foco quede bajo lo fijo es un margen, no un relleno, y hay uno
+  también para la barra de pestañas del móvil.

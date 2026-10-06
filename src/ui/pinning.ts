@@ -2,7 +2,8 @@
  * Franja fija de arriba (ARCHITECTURE.md §4.30): por debajo de 1024 px el contador y el escenario
  * con el núcleo se quedan arriba y solo se desplaza el panel. Aquí se decide cuándo no se fija (la
  * clase `layout--unpinned` vuelve a la disposición de antes, con solo la cabecera fija en el
- * móvil) y cuánto tapa lo fijo arriba (`--pinned-h` y `--fixed-top` en :root).
+ * móvil) y cuánto tapa lo fijo arriba (`--pinned-h` y `--fixed-top` en :root) y abajo
+ * (`--fixed-bottom`, la barra de pestañas del móvil).
  */
 import type { TabId } from './tabs.ts';
 
@@ -109,11 +110,15 @@ export function createPinning(parts: PinningParts): Pinning {
       pinned + (position(parts.bar) === 'sticky' ? parts.bar.getBoundingClientRect().height : 0);
     // Hacia abajo para la barra de tableta, que va debajo de la franja (z-index 9 frente a 10): con
     // ceil quedaba una rendija de menos de un píxel por la que se veía pasar la lista.
-    const next = `${String(Math.floor(pinned))}|${String(Math.ceil(fixedTop))}`;
+    // En el móvil la barra va fija abajo: lo que el foco trae a la vista tampoco debe quedar bajo
+    // ella (BUG-JOURNAL #31).
+    const fixedBottom = barPosition === 'fixed' ? bar : 0;
+    const next = `${String(Math.floor(pinned))}|${String(Math.ceil(fixedTop))}|${String(Math.ceil(fixedBottom))}`;
     if (next === written) return;
     written = next;
     root.style.setProperty('--pinned-h', `${String(Math.floor(pinned))}px`);
     root.style.setProperty('--fixed-top', `${String(Math.ceil(fixedTop))}px`);
+    root.style.setProperty('--fixed-bottom', `${String(Math.ceil(fixedBottom))}px`);
   }
 
   function revealPanel(): void {

@@ -374,12 +374,17 @@ globalDisposer.add(() => {
 const floaters = createFloaters();
 let currentTab: TabId = 'generators';
 
-/** Enfoca un encabezado de la pestaña recién elegida, ya visible (en el cuadro siguiente). */
+/**
+ * Enfoca un encabezado de la pestaña recién elegida, ya visible (en el cuadro siguiente), y lo lleva
+ * arriba, bajo lo fijo (`scroll-margin-top`): se llega a esa sección, así que se ve desde su
+ * principio. Con `nearest`, WebKit (que no desplaza al enfocar) lo dejaba en el borde de abajo, bajo
+ * la barra de pestañas del móvil, y Chromium lo centraba (BUG-JOURNAL #31).
+ */
 function focusHeading(id: string): void {
   requestAnimationFrame(() => {
     const el = document.getElementById(id);
-    el?.focus();
-    el?.scrollIntoView({ block: 'nearest' });
+    el?.focus({ preventScroll: true });
+    el?.scrollIntoView({ block: 'start' });
   });
 }
 
