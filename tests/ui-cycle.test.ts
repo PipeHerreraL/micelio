@@ -111,7 +111,7 @@ describe('Viento en el ciclo libre (fase 10)', () => {
     caption.update();
     const wind = windOf(store);
     expect(caption.root.querySelector('.caption__progress')?.textContent).toBe('Ciclo 1: nivel 312 de 500');
-    expect(caption.root.querySelector('.caption__compact')?.textContent).toBe('Taiga · 312/500');
+    expect(caption.root.querySelector('.caption__compact')?.textContent).toBe('Taiga\u00a0· 312/500');
     expect(wind.root.querySelector('.wind__progress > .tabular')?.textContent).toBe(
       'Ciclo 1: nivel 312 de 500',
     );
@@ -139,7 +139,7 @@ describe('Viento en el ciclo libre (fase 10)', () => {
     expect(caption.root.querySelector('.caption__progress')?.textContent).toBe(
       'Ciclo 1 cumplido · nivel 520',
     );
-    expect(caption.root.querySelector('.caption__compact')?.textContent).toBe('Taiga · nivel 520');
+    expect(caption.root.querySelector('.caption__compact')?.textContent).toBe('Taiga\u00a0· nivel\u00a0520');
     expect(caption.root.querySelector<HTMLElement>('.caption__bar')?.hidden).toBe(true);
     expect(wind.root.querySelector<HTMLElement>('.wind__progress > .bar')?.hidden).toBe(true);
     const records = visibleRows(wind.root).map((row) => row.querySelector('.wind__record')?.textContent);

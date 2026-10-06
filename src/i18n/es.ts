@@ -413,8 +413,10 @@ export const es = {
   'biome.cycleProgress': 'Ciclo {n}: nivel {level} de {goal}',
   'biome.cycleDone': 'Ciclo {n} cumplido · nivel {level}',
   'caption.place': '{name} · {soil}',
-  'caption.compact': '{name} · {level}/{goal}',
-  'caption.compactDone': '{name} · nivel {level}',
+  // A 375 px la línea compacta no cabe y se parte: el «·» va pegado al nombre y «nivel» a su cifra,
+  // para que ningún renglón empiece por el separador ni deje «nivel» solo (BUG-JOURNAL #26).
+  'caption.compact': '{name}\u00a0· {level}/{goal}',
+  'caption.compactDone': '{name}\u00a0· nivel\u00a0{level}',
   // Viento de esporas: la sección de Esporular y su confirmación
   'wind.title': 'Viento de esporas',
   'wind.intro':

@@ -289,7 +289,7 @@ describe('progreso del bosque', () => {
     expect(views.captionText).toBe(progress);
     expect(views.windText).toBe(progress);
     expect(views.chronicleText).toBe(progress);
-    expect(views.compact).toBe('Taiga · 312/500');
+    expect(views.compact).toBe('Taiga\u00a0· 312/500');
     // 312 / 500 = 0,624.
     for (const bar of [...views.bars, views.chronicleBar]) {
       expect(bar?.hidden).toBe(false);
@@ -304,7 +304,7 @@ describe('progreso del bosque', () => {
     const views = progressViews(state);
     expect(views.captionText).toBe('Bioma colonizado · nivel 520');
     expect(views.windText).toBe('Bioma colonizado · nivel 520');
-    expect(views.compact).toBe('Taiga · nivel 520');
+    expect(views.compact).toBe('Taiga\u00a0· nivel\u00a0520');
     for (const bar of views.bars) expect(bar?.hidden).toBe(true);
     expect(views.chronicleText).toBeUndefined();
   });
@@ -317,7 +317,7 @@ describe('progreso del bosque', () => {
     expect(views.captionText).toBe(progress);
     expect(views.windText).toBe(progress);
     expect(views.chronicleText).toBe(progress);
-    expect(views.compact).toBe('Bosque natal · 312/500');
+    expect(views.compact).toBe('Bosque natal\u00a0· 312/500');
     for (const bar of [...views.bars, views.chronicleBar]) {
       expect(bar?.hidden).toBe(false);
       expect(bar?.querySelector<HTMLElement>('.bar__fill')?.style.transform).toBe('scaleX(0.624)');
@@ -330,7 +330,7 @@ describe('progreso del bosque', () => {
     const views = progressViews(state);
     expect(views.captionText).toBe('El regreso cumplido · nivel 525');
     expect(views.windText).toBe('El regreso cumplido · nivel 525');
-    expect(views.compact).toBe('Bosque natal · nivel 525');
+    expect(views.compact).toBe('Bosque natal\u00a0· nivel\u00a0525');
     for (const bar of views.bars) expect(bar?.hidden).toBe(true);
   });
 
@@ -338,7 +338,7 @@ describe('progreso del bosque', () => {
     const views = progressViews(actOneState());
     expect(views.captionText).toBe('Acto I cumplido · nivel 1941');
     expect(views.windText).toBe('Acto I cumplido · nivel 1941');
-    expect(views.compact).toBe('Bosque natal · nivel 1941');
+    expect(views.compact).toBe('Bosque natal\u00a0· nivel\u00a01941');
     for (const bar of views.bars) expect(bar?.hidden).toBe(true);
   });
 });

@@ -26,9 +26,11 @@ describe('cuentas enormes', () => {
     caption.update();
     const compact = caption.root.querySelector('.caption__compact')?.textContent ?? '';
     expect(compact).not.toMatch(/\d{1,3}(\.\d{3}){2,}/);
-    // Sin espacios duros: «44,1 mil quintillones» se parte si la cartela es estrecha (móvil).
-    expect(compact.includes(String.fromCharCode(0xa0))).toBe(false);
-    expect(compact).toMatch(/44,1 mil/);
+    // La cifra, sin espacios duros: «44,1 mil quintillones» se parte si la cartela es estrecha
+    // (móvil). Los del separador y de «nivel» sí lo son, a propósito (BUG-JOURNAL #26).
+    const level = compact.slice(compact.indexOf('44,1'));
+    expect(level.includes(String.fromCharCode(0xa0))).toBe(false);
+    expect(level).toMatch(/^44,1 mil/);
   });
 
   it('el ritmo de esporas desde el millón va con nombre y, delante de «esporas», con «de»', () => {

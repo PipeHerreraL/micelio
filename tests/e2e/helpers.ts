@@ -116,6 +116,48 @@ export function collectErrors(page: Page): string[] {
 }
 
 /**
+ * Los renglones en que el navegador parte el texto de `selector` (un solo nodo de texto), tal como
+ * se ven: cada carácter va al renglón de su caja; los que no tienen caja (el espacio donde se parte),
+ * al renglón en curso. Además, cuánto se sale el texto por la derecha de `boxSelector` (0 si cabe).
+ */
+export function renderedLines(
+  page: Page,
+  selector: string,
+  boxSelector: string,
+): Promise<{ lines: string[]; overflow: number }> {
+  return page.evaluate(
+    ([sel, boxSel]) => {
+      const el = document.querySelector(sel);
+      const node = el?.firstChild;
+      const box = document.querySelector(boxSel);
+      if (!el || !(node instanceof Text) || !box) return { lines: [`no existe ${sel}`], overflow: 0 };
+      const lines: string[] = [];
+      let current = '';
+      let top: number | null = null;
+      for (let i = 0; i < node.data.length; i += 1) {
+        const range = document.createRange();
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const rect = range.getClientRects()[0];
+        // Tres píxeles de margen: los acentos y las cifras no tienen todos la misma caja.
+        if (rect && rect.width > 0 && top !== null && Math.abs(rect.top - top) > 3) {
+          lines.push(current);
+          current = '';
+        }
+        if (rect && rect.width > 0) top = rect.top;
+        current += node.data.charAt(i);
+      }
+      lines.push(current);
+      const all = document.createRange();
+      all.selectNodeContents(el);
+      const overflow = Math.max(0, all.getBoundingClientRect().right - box.getBoundingClientRect().right);
+      return { lines, overflow };
+    },
+    [selector, boxSelector] as const,
+  );
+}
+
+/**
  * Lo que se corta: los elementos visibles dentro de `selector` que se salen de su caja por los
  * lados, y el desplazamiento horizontal de la página. Vacío si todo cabe.
  */

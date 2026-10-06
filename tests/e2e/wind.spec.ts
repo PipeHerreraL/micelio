@@ -5,7 +5,16 @@ import { drain } from '../../src/core/events.ts';
 import { createState, type GameState } from '../../src/core/state.ts';
 import { MUTATION_IDS } from '../../src/data/mutations.ts';
 import { checkColonization } from '../../src/systems/journey.ts';
-import { PHONES, cutOff, isMobile, savedState, seedRawSave, seedSave, windState } from './helpers.ts';
+import {
+  PHONES,
+  cutOff,
+  isMobile,
+  renderedLines,
+  savedState,
+  seedRawSave,
+  seedSave,
+  windState,
+} from './helpers.ts';
 
 /**
  * Viento de esporas (docs/ROADMAP.md, fases 8 y 10) en el navegador. Lo que depende del ancho (las
@@ -166,6 +175,55 @@ for (const viewport of [
     const box = await caption.boundingBox();
     if (!core || !box) throw new Error('Sin cajas');
     expect(overlaps(core, box)).toBe(false);
+  });
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, la línea compacta de la cartela no se parte en su separador ni deja «nivel» sin su cifra`, async ({
+    context,
+  }) => {
+    // El Chocó en el viaje (nombre largo y cifra) y el natal tras el Acto I (nombre, «nivel» y cifra),
+    // en los dos idiomas: «Chocó rainforest» es aún más largo. Una pestaña por caso, cada una con su
+    // guardado sembrado.
+    const cases = [
+      { biome: 'choco', locale: 'es', text: 'Selva del Chocó · 312/500' },
+      { biome: 'choco', locale: 'en', text: 'Chocó rainforest · 312/500' },
+      { biome: 'natal', locale: 'es', text: 'Bosque natal · nivel 1941' },
+    ] as const;
+    for (const c of cases) {
+      const page = await context.newPage();
+      await page.setViewportSize(phone);
+      await seedSave(
+        page,
+        windState((s) => {
+          s.settings.locale = c.locale;
+          if (c.biome === 'natal') return;
+          s.forest = {
+            ...s.forest,
+            biome: 'choco',
+            leg: 1,
+            earned: 0,
+            arrivalSporulations: 9,
+            arrivalPlayTime: 12_000,
+          };
+          const natal = s.chronicle[0];
+          if (natal) Object.assign(natal, { leftAt: Date.now() - 1000, levelReached: 1941 });
+          s.seen.push('chapter.arrive.choco');
+          s.spores.level = 312;
+        }),
+      );
+      await page.goto('./');
+      const compact = page.locator('.caption__compact');
+      await expect(compact).toHaveText(c.text);
+      const { lines, overflow } = await renderedLines(page, '.caption__compact', '.caption');
+      const words = lines.map((line) => line.replace(/\u00a0/g, ' ').trim());
+      expect(
+        words.filter((line, i) => (i > 0 && line.startsWith('·')) || /\b(nivel|level)$/.test(line)),
+        `${c.locale} ${c.biome}: ${JSON.stringify(words)}`,
+      ).toEqual([]);
+      expect(overflow, `${c.locale} ${c.biome}: ${JSON.stringify(words)}`).toBeLessThanOrEqual(1);
+      await page.close();
+    }
   });
 }
 

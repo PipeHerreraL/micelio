@@ -43,6 +43,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [23](#23) | `scripts/service-worker.ts`                                               | Sin conexión, la app instalada no arrancaba                                                |
 | [24](#24) | `src/systems/save.ts`, `src/main.ts`                                      | Una versión vieja, sin conexión, podía pisar la partida de una más nueva                   |
 | [25](#25) | `src/ui/hud.ts`, `src/i18n/`                                              | En el móvil, la franja fija de arriba saltaba a mitad de partida                           |
+| [26](#26) | `src/i18n/` (`caption.compact`)                                           | En el móvil, la cartela partía «Selva del Chocó · 312/500» con el «·» al principio         |
 
 ---
 
@@ -601,6 +602,34 @@ en Esporular): de 360 a 412 px cabe en una línea con cualquier nombre hasta «m
 **Qué lo sostiene.** `tests/e2e/cycle.spec.ts` → «a 375 px, la franja fija de arriba no cambia de
 alto con el nombre de la cifra de la siguiente espora» (cinco perfiles, con los 1,56 mil billones de
 un ciclo en el Chocó). Falla sin el arreglo (comprobado: dos líneas en los cinco perfiles).
+
+---
+
+<a id="26"></a>
+
+## 26. En el móvil, la cartela partía «Selva del Chocó · 312/500» con el «·» al principio
+
+**Zona:** `src/i18n/es.ts` y `en.ts`, `caption.compact` y `caption.compactDone` (desde la 1.4.2)
+
+**Síntoma.** Lo encontró la revisión de capturas a 375 px de la fase 10: la línea compacta de la
+cartela se partía en dos con el separador al principio del segundo renglón («Selva del Chocó» /
+«· 312/500»; en inglés, igual con «Chocó rainforest»). A 412 px el que se quedaba solo era «nivel»:
+«Bosque natal · nivel» / «1941».
+
+**Causa.** En el móvil la cartela termina antes del núcleo (ARCHITECTURE.md §4.30) y su texto
+cabe en unos 95 px a 375 px, así que la línea compacta casi nunca cabe entera, y el navegador la
+parte por cualquier espacio: también por los del separador y por el que va entre «nivel» y su
+cifra.
+
+**Arreglo.** Espacios duros en el catálogo: el «·» va pegado al nombre y «nivel» a su cifra, así
+que el renglón se parte después del separador o dentro del nombre. La cifra sigue sin espacios
+duros (#22: «44,1 mil sextillones» se parte por sus palabras). Descartado: pegar también la cifra
+al «·», que en inglés dejaba «rainforest · 312/500» en un solo trozo más ancho que la cartela
+(medido en Chromium: se salía 5 px). A 375 px, «Chocó rainforest» ocupa ahora tres renglones.
+
+**Qué lo sostiene.** `tests/e2e/wind.spec.ts` → «a 375 px (y a 412 px), la línea compacta de la
+cartela no se parte en su separador ni deja «nivel» sin su cifra» (cinco perfiles, en español y en
+inglés, y que el texto no se salga de la cartela). Falla sin el arreglo (comprobado en los diez).
 
 ---
 

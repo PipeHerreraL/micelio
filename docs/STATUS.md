@@ -7,7 +7,7 @@ Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 25 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 26 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
