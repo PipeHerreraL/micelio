@@ -137,9 +137,9 @@ describe('jurar votos al sembrar (fase 10)', () => {
     const r = sporeScale(s);
     renounceVow(s, { vow: 'noRain' });
     expect(s.cycle.vows).toEqual(['autoOnly']);
-    // Tundra: R 4,6e12 × 0,36 (solo autocompra) frente a × 0,38 · 0,36 antes.
+    // Tundra: R 4,6e12 × 0,36 (solo autocompra) frente a × 0,44 · 0,36 antes.
     expect(sporeScale(s) / 1.656e12).toBeCloseTo(1, 12);
-    expect(sporeScale(s) / r).toBeCloseTo(1 / 0.38, 12);
+    expect(sporeScale(s) / r).toBeCloseTo(1 / 0.44, 12);
     // El nivel alcanzado se conserva aunque E(L) con la R nueva dé menos.
     expect(s.spores.level).toBe(120);
     expect(drain()).toEqual([{ type: 'vowRenounced', vow: 'noRain' }]);

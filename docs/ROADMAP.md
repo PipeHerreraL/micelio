@@ -153,13 +153,15 @@ fases la 1.6.1 y la 1.6.2, que el usuario pidió entre la fase 10 y la 11: suben
   colonizan en 2,18–3,13 h con partidas de 21–31 min de mediana, y la mediana de cada partida no
   pasa de una hora (la más larga, 58:49, en la pradera tercera). El regreso es un tramo jugable más,
   al natal mil años después, que se cumple en 2,36–2,66 h; después, sembrar cualquiera de los cinco
-  biomas por 300 esporas, con R y linaje fijos: la primera vuelta del ciclo dura 2,29–3,05 h por
-  bioma, el régimen estable 1,51–1,95 h, y tampoco ahí la mediana de una partida pasa de una hora.
+  biomas por 300 esporas, con R y linaje fijos: la primera vuelta del ciclo dura 2,29–2,99 h por
+  bioma, el régimen estable 1,46–2,03 h, y tampoco ahí la mediana de una partida pasa de una hora
+  (contada desde la siembra; en la revisión final, el simulador escondía una de 1:04:24 en el Chocó
+  y se recalibró: BUG-JOURNAL #28).
   Quien está hoy en el muro carga con los dos biomas nuevos abiertos y sin perder una cifra
   (guardado versión 7). Ver ARCHITECTURE.md §4.32.
 - **Bloque B:** los votos se juran al sembrar y se pueden romper, nunca añadir; cada uno rebaja la
   meta del ciclo con un factor por bioma, calibrado con el simulador para que ningún voto suelto
-  acorte el ciclo (en el régimen estable tardan 1,03–1,35 veces el ciclo sin votos) y para que las
+  acorte el ciclo (en el régimen estable tardan 1,03–1,31 veces el ciclo sin votos) y para que las
   partidas de la primera siembra tras El regreso no pasen de 50 min (la especificación pedía 45: sin
   votos, las de la pradera y la tundra ya duran allí 39–40 min). Con «solo autocompra» la Poda no
   rige; con «sin mutaciones» el árbol se despierta con las esporas del ciclo. Cada voto mantenido
@@ -167,9 +169,9 @@ fases la 1.6.1 y la 1.6.2, que el usuario pidió entre la fase 10 y la 11: suben
   ARCHITECTURE.md §4.33.
 - `npm run sim`: 126 de 126 objetivos (los 39 de antes, idénticos; 3 redefinidos; 77 del bloque A,
   con el perfil ausente; 7 de los votos) y 17 de 17 del plasmodio. Riesgos: el Chocó del ciclo, al
-  límite en las dos direcciones (la más larga de la primera vuelta en 56:52, el estable con
-  partidas de 15:21 de mediana); las partidas de espera, en 1 de mediana, justo en su objetivo; y
-  los tres votos juntos en la pradera, que tardan 0,85–0,89 veces el ciclo sin votos (aceptado: la
+  límite en las dos direcciones (la más larga de la primera vuelta en 58:45, el estable con
+  partidas de 15:18 de mediana); las partidas de espera, en 1 de mediana, justo en su objetivo; y
+  los tres votos juntos en la pradera, que tardan 0,95–0,99 veces el ciclo sin votos (aceptado: la
   especificación solo los acota por arriba).
 
 ### 1.6.1 — Actualizaciones dentro de la app (petición del usuario)

@@ -45,6 +45,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [25](#25) | `src/ui/hud.ts`, `src/i18n/`                                              | En el móvil, la franja fija de arriba saltaba a mitad de partida                           |
 | [26](#26) | `src/i18n/` (`caption.compact`)                                           | En el móvil, la cartela partía «Selva del Chocó · 312/500» con el «·» al principio         |
 | [27](#27) | `src/ui/wind.ts`, `src/core/forest.ts`                                    | Viento daba como récord del bioma el de otros votos                                        |
+| [28](#28) | `scripts/sim-report.ts`                                                   | El simulador escondía partidas de más de una hora en el Chocó del ciclo libre              |
 
 ---
 
@@ -662,6 +663,43 @@ marcados, no el mejor del bioma con otros votos» (falla sin el arreglo: comprob
 1 partida» en vez de «Récord: 3 h, en 2 partidas»), y `tests/e2e/cycle.spec.ts` → «a 375 px (y a
 412 px), cada fila de sembrar dice el récord de los votos marcados y sigue compacta» (cinco
 perfiles; las filas siguen en 110–150 px con la línea más larga).
+
+---
+
+<a id="28"></a>
+
+## 28. El simulador escondía partidas de más de una hora en el Chocó del ciclo libre
+
+**Zona:** `scripts/sim-report.ts` (`cycleRunMedians`, antes en `scripts/simulate.ts`)
+
+**Síntoma.** Lo encontró la revisión final de la 1.6.0: BALANCE.md daba la partida más larga de la
+primera vuelta del ciclo en el Chocó en 56:52 (objetivo ≤ 60 min), pero 22 de sus 36 ciclos tenían
+alguna partida de más de una hora, y la mediana de la cuarta partida, contada bien, era 1:04:24. En la
+calibración se había visto «saltar» a 1:08:01 al guardar esporas durante El regreso, y se atribuyó a
+que el bot empezaba la vuelta con menos adaptaciones. STATUS, ROADMAP y ARCHITECTURE prometían que
+ninguna partida del ciclo pasaba de una hora de mediana, y la que más importaba sí pasaba.
+
+**Causa.** Cada ciclo guarda sus partidas en una lista con la de espera (la que paga la siembra)
+delante, y la mediana por partida se tomaba índice a índice entre ciclos. En el bioma que abre la
+vuelta, con espera en las nueve semillas, el índice 3 era la tercera partida de verdad: la mediana de
+«la cuarta» mezclaba 27 cuartas con 9 terceras (de unos 36 min). Sin esperas, guardando durante El
+regreso, los índices se alineaban y salía la cifra real: el salto era sobre todo la medida.
+
+**Arreglo.** Las medianas por partida del ciclo se cuentan desde la siembra; la partida de espera va
+aparte, con su propia columna en la tabla, y cuenta en la más larga (como pide la especificación) pero
+no en la más corta (como la que cumple la meta, termina cuando alcanza, no con la regla de §17). Con
+la medida buena el Chocó no cumplía, y se recalibró (docs/BALANCE.md): R 5e14 y requisito 5,5 R, con
+la más larga en 58:45. La palanca que daba la especificación, subir el requisito, iba al revés: con
+7 R la cuarta partida cargaba con más nivel y llegaba a 1:09:23.
+
+**Qué lo sostiene.** `tests/sim-report.test.ts` → «la partida de espera no desplaza las demás: la
+cuarta de cada ciclo se compara con la cuarta», «la espera va aparte, con la mediana de los ciclos que
+la tuvieron, y cuenta en la más larga» y las otras dos. Fallan sin el arreglo (comprobado: la más larga
+salía en 50 min en vez de 64,5).
+
+**Qué aprender.** Una mediana por índice solo compara lo mismo si el índice significa lo mismo en
+todas las series. Cuando una cifra cambia mucho por algo que no debería moverla, primero hay que
+sospechar de la medida.
 
 ---
 

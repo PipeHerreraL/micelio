@@ -46,8 +46,9 @@ está en curso) y `state.records` guarda el mejor tiempo por bioma y votos.
   noticias con fuente. Tras el cuarto bioma, El regreso al natal mil años después, con la Red
   planetaria uniendo las siluetas de los cinco biomas; y después el ciclo libre: sembrar cualquier
   bioma por 300 esporas, con R y linaje fijos y un récord de reloj por bioma y votos en la Crónica.
-  Resuelve el muro: ninguna partida del viaje ni del ciclo pasa de una hora de mediana
-  (ARCHITECTURE.md §4.32).
+  Resuelve el muro: ninguna partida del viaje ni del ciclo pasa de una hora de mediana, contada
+  desde la siembra (ARCHITECTURE.md §4.32; hasta la revisión final, el simulador mezclaba la partida
+  de espera con las demás y escondía una de 1:04:24 en el Chocó: BUG-JOURNAL #28).
 - **Bloque B:** tres votos que se juran al sembrar (sin lluvia, solo autocompra, sin mutaciones):
   cada uno quita algo y rebaja la meta del ciclo con un factor por bioma, calibrado para que ningún
   voto suelto acorte el ciclo. Se rompen con confirmación y nunca se añaden. Cada voto mantenido
@@ -164,16 +165,21 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   (objetivo ≤ 2,5). Si un cambio de balance los mueve, el §14.4 de la especificación de la
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
 - En la fase 10 quedan también al límite: el Chocó del ciclo libre en las dos direcciones (la
-  partida más larga de la primera vuelta en 56:52, ≤ 60 min; las del régimen estable en 15:21 de
-  mediana, ≥ 15), la pradera tercera (la más larga en 58:13–58:49, ≤ 60 min), la taiga del régimen
-  estable (la más corta en 10:12, ≥ 10 min) y las partidas de espera (1 de mediana, ≤ 1: la primera
+  partida más larga de la primera vuelta en 58:45, ≤ 60 min; las del régimen estable en 15:18 de
+  mediana, ≥ 15, y su primera en 10:15, ≥ 10), la pradera tercera (la más larga en 58:13–58:49,
+  ≤ 60 min), la taiga del régimen estable (la más corta en 10:12, ≥ 10 min), las partidas de la
+  tundra en la primera vuelta (34:17, ≤ 35) y las partidas de espera (1 de mediana, ≤ 1: la primera
   siembra tras El regreso espera una partida). Guardar esporas durante El regreso dejaba las
-  esperas en 0 pero sacaba al Chocó de su objetivo (ARCHITECTURE.md §4.32).
+  esperas en 0 pero sacaba a la tundra de su objetivo (ARCHITECTURE.md §4.32). El objetivo es la
+  mediana de las cuatro posiciones del Chocó en la vuelta, como pide la especificación; por posición,
+  cuando la abre y cuando la cierra su partida más larga queda en 1:01:14–1:01:16 (con los valores
+  de antes, 1:04:13–1:08:53).
 - De los votos quedan al límite las partidas de la primera siembra tras El regreso (la peor, 48:46,
   ≤ 50 min; la especificación pedía 45, imposible sin que algún voto acortara el ciclo estable) y
-  ese ciclo estable (el voto que menos alarga, 1,03 veces el ciclo sin votos, ≥ 1,0). Los tres
-  votos juntos en la pradera tardan 0,85–0,89 veces el ciclo sin votos: lo que quitan se solapa, y
-  la especificación solo los acota por arriba (aceptado; ARCHITECTURE.md §4.33). La Esporada no
+  ese ciclo estable (el voto que menos alarga, 1,03 veces el ciclo sin votos, ≥ 1,0; cambiar un bioma
+  mueve hasta una décima los votos de los otros). Los tres votos juntos en la pradera tardan
+  0,95–0,99 veces el ciclo sin votos: lo que quitan se solapa, y la especificación solo los acota por
+  arriba (aceptado; ARCHITECTURE.md §4.33). La Esporada no
   deja elegir color: el rango lo fija.
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
   mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del

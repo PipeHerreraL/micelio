@@ -34,7 +34,20 @@ import {
   type VowCycle,
 } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
-import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
+import {
+  SEEDS,
+  clock,
+  cycleRunMedians,
+  hours,
+  longestCycleRun,
+  median,
+  present,
+  row,
+  runMedians,
+  waitRunMedian,
+  writeBlock,
+  type Metric,
+} from './sim-report.ts';
 
 // Las cifras del informe se escriben como en el juego: «1,8 millones», no «1.80e+06».
 setLocale('es');
@@ -396,17 +409,6 @@ metrics.push({
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m <= 1,
 });
-/** Mediana entre semillas de la partida i (solo las semillas que la jugaron). */
-const runMedians = (perSeed: readonly (readonly number[] | undefined)[]): number[] => {
-  const longest = Math.max(0, ...perSeed.map((runs) => runs?.length ?? 0));
-  const out: number[] = [];
-  for (let i = 0; i < longest; i += 1) {
-    const values = perSeed.map((runs) => runs?.[i]).filter((v): v is number => v !== undefined);
-    // Una partida que solo jugaron una o dos semillas no dice nada de la mediana.
-    if (values.length * 2 >= perSeed.length) out.push(median(values));
-  }
-  return out;
-};
 /** Lo mismo para la partida i de un tramo. */
 const legRunMedians = (results: readonly Journey[], leg: number): number[] =>
   runMedians(results.map((w) => w.legs[leg]?.runs));
@@ -592,9 +594,6 @@ const cyclesOf = (
   lap: number,
   biome: BiomeId,
 ): (CycleLeg | null)[] => journeys.flat().map((j) => j.laps[lap]?.find((c) => c.biome === biome) ?? null);
-/** Medianas por partida de unos ciclos; `withoutGoal` deja fuera la última, la que cumple la meta. */
-const cycleRunMedians = (cycles: readonly (CycleLeg | null)[], withoutGoal = false): number[] =>
-  runMedians(cycles.map((c) => (c ? (withoutGoal ? c.runs.slice(0, -1) : c.runs) : undefined)));
 const cycleTime = (cycles: readonly (CycleLeg | null)[]): number | null => {
   const times = cycles.map((c) => c?.time ?? null);
   return times.every((t) => t !== null) ? median(present(times)) : null;
@@ -620,7 +619,7 @@ for (const biome of BIOME_IDS) {
   metrics.push({
     name: `${label}: partida más larga (mediana por partida)`,
     target: '≤ 60 min',
-    values: [medians.length > 0 ? Math.max(...medians) : null],
+    values: [longestCycleRun(cycles)],
     format: clock,
     pass: (m) => m <= 3600,
   });
@@ -664,10 +663,7 @@ metrics.push({
 metrics.push({
   name: `${stableLabel}: partida más larga (mediana por partida)`,
   target: '≤ 60 min',
-  values: perStableBiome((biome) => {
-    const medians = cycleRunMedians(cyclesOf(stables, 1, biome));
-    return medians.length > 0 ? Math.max(...medians) : null;
-  }),
+  values: perStableBiome((biome) => longestCycleRun(cyclesOf(stables, 1, biome))),
   format: clock,
   pass: (m) => m <= 3600,
   every: true,
@@ -954,8 +950,8 @@ ORDERS.forEach((order, o) => {
 });
 /** El ciclo libre por bioma (fase 10): la primera vuelta y el régimen estable. */
 const cycleTable = [
-  '| Bioma | R | Requisito | Vuelta | Partidas hasta cumplirlo (mediana de cada una) | Todas (mediana) | Ciclo | Esporas por ciclo |',
-  '| ----- | - | --------- | ------ | ---------------------------------------------- | --------------- | ----- | ----------------- |',
+  '| Bioma | R | Requisito | Vuelta | Espera para sembrar (mediana, ciclos) | Partidas desde la siembra (mediana de cada una) | Todas (mediana) | Ciclo | Esporas por ciclo |',
+  '| ----- | - | --------- | ------ | ------------------------------------- | ----------------------------------------------- | --------------- | ----- | ----------------- |',
 ];
 for (const biome of BIOME_IDS) {
   const def = getBiome(biome);
@@ -966,10 +962,12 @@ for (const biome of BIOME_IDS) {
     ] as const
   ).forEach(([lap, cycles]) => {
     const played = cycles.filter((c): c is CycleLeg => c !== null);
+    const wait = waitRunMedian(cycles);
+    const waited = played.filter((c) => c.waits > 0).length;
     cycleTable.push(
       `| ${capital(CYCLE_NAMES[biome])} | ${fmt(def.cycleScale)} | ${def.cycleRequirement} R | ${lap} | ${
-        cycleRunMedians(cycles).map(clock).join(', ') || '—'
-      } | ${clock(median(played.flatMap((c) => c.runs)))} | ${hours(median(present(played.map((c) => c.time))))} | ${Math.round(median(played.map((c) => c.spores)))} |`,
+        wait === null ? '—' : `${clock(wait)} (${waited} de ${cycles.length})`
+      } | ${cycleRunMedians(cycles).map(clock).join(', ') || '—'} | ${clock(median(played.flatMap((c) => c.runs)))} | ${hours(median(present(played.map((c) => c.time))))} | ${Math.round(median(played.map((c) => c.spores)))} |`,
     );
   });
 }
@@ -1106,7 +1104,7 @@ const block = [
         .join(', ')}`,
   ).join(
     '; ',
-  )}); cada fila es la mediana de las cuatro apariciones del bioma por las ${SEEDS.length} semillas. El régimen estable vuelve a jugar la misma vuelta sobre una copia, con las adaptaciones de bioma al máximo. Una partida de espera para pagar la siembra, si la hay, cuenta en el ciclo siguiente.`,
+  )}); cada fila es la mediana de las cuatro apariciones del bioma por las ${SEEDS.length} semillas. El régimen estable vuelve a jugar la misma vuelta sobre una copia, con las adaptaciones de bioma al máximo. Una partida de espera para pagar la siembra, si la hay, cuenta en el ciclo siguiente y en su partida más larga, pero va en su columna: las medianas de cada partida se cuentan desde la siembra, para que la n-ésima de cada ciclo se compare con la n-ésima de los demás.`,
   '',
   ...cycleTable,
   '',

@@ -704,19 +704,32 @@ Resuelve el muro de la 1.5: tras el último bioma no quedaba destino y cada part
   delante, y en el ciclo libre todo el ciclo, para la siembra siguiente; durante El regreso no
   guarda nada, y la primera siembra espera una partida (12–22 min) en casi todas las semillas: las
   partidas de espera quedan en 1 de mediana, su objetivo. Guardando también durante El regreso
-  bajaban a 0, pero el bot empezaba la primera vuelta con menos adaptaciones y sin esa partida
-  corta, y la más larga del Chocó pasaba a 1:08:01 (medido en la fase 10). La primera vuelta del
-  ciclo empieza en un bioma distinto en cada orden del viaje (cada bioma sale en cuatro posiciones;
-  el natal nunca la abre, porque acaba de cerrar El regreso) y la métrica de cada bioma es la
-  mediana de sus apariciones por las semillas. El régimen estable vuelve a jugar la misma vuelta
-  sobre una copia, con las adaptaciones de bioma al máximo, compradas por la acción con las esporas
-  de cada rango inyectadas (las disponibles no cambian): es el final de juego, cuando ya nada crece.
-  Una partida de espera para pagar una siembra cuenta en el ciclo siguiente.
+  bajaban a 0, pero el bot empezaba la primera vuelta con menos adaptaciones ~~y sin esa partida
+  corta, y la más larga del Chocó pasaba a 1:08:01 (medido en la fase 10)~~ y las partidas de la
+  tundra pasaban de 35 min de mediana (35:56). **Corrección (revisión final de la 1.6.0):** el salto
+  del Chocó de 56:52 a 1:08:01 era casi todo de la medida, no del juego: con la partida de espera
+  delante, la mediana por partida mezclaba la cuarta partida de unos ciclos con la tercera de otros,
+  y sin espera salía la cifra de verdad (BUG-JOURNAL #28); sin guardar, alineada, era 1:04:24. La
+  primera vuelta del ciclo empieza en un bioma distinto en cada orden del viaje (cada bioma sale en
+  cuatro posiciones; el natal nunca la abre, porque acaba de cerrar El regreso) y la métrica de cada
+  bioma es la mediana de sus apariciones por las semillas. El régimen estable vuelve a jugar la
+  misma vuelta sobre una copia, con las adaptaciones de bioma al máximo, compradas por la acción con
+  las esporas de cada rango inyectadas (las disponibles no cambian): es el final de juego, cuando ya
+  nada crece. Una partida de espera para pagar una siembra cuenta en el ciclo siguiente y en su
+  partida más larga, pero no ocupa el lugar de ninguna otra: las medianas por partida se cuentan
+  desde la siembra (`cycleRunMedians`, `scripts/sim-report.ts`).
 - **Ciclo calibrado** (`cycleScale` y `cycleRequirement`, con el simulador): natal 4,8e13 y 6 R,
-  taiga 4,6e13 y 5 R, Chocó 5,4e14 y 6 R, pradera 3,7e13 y 6 R, tundra 4,6e12 y 6 R. El Chocó queda
-  al límite en las dos direcciones (la más larga de la primera vuelta en 56:52 y el estable con
-  partidas de 15:21 de mediana); si hubiera que elegir, manda la más larga ≤ 60 min, que es el muro
-  que la fase resuelve.
+  taiga 4,6e13 y 5 R, ~~Chocó 5,4e14 y 6 R~~ Chocó 5e14 y 5,5 R, pradera 3,7e13 y 6 R, tundra 4,6e12
+  y 6 R. El Chocó queda al límite en las dos direcciones (~~la más larga de la primera vuelta en
+  56:52 y el estable con partidas de 15:21 de mediana~~ la más larga de la primera vuelta en 58:45,
+  el estable con partidas de 15:18 de mediana y su primera en 10:15); si hubiera que elegir, manda la
+  más larga ≤ 60 min, que es el muro que la fase resuelve. **Corrección (revisión final de la
+  1.6.0):** con la medida alineada (BUG-JOURNAL #28), 5,4e14 y 6 R daban 1:04:24 y no cumplían. La
+  palanca no es solo la R: la más larga es la cuarta partida y el requisito decide cuánto nivel
+  carga. Subirlo a 7 R, como proponía la especificación, la alargaba a 1:09:23; bajarlo a 5 R la
+  dejaba en 59:04, pero la primera partida del estable bajaba a 9:36. La R y el requisito nuevos
+  cambian el estado del que sale la matriz de votos del estable, y tres factores se ajustaron
+  (§4.33).
 - **El simulador se reparte entre hilos** (`scripts/sim-pool.ts`, `sim-worker.ts`). Cada orden del
   primer anillo (un prefijo) se juega una vez por semilla y se ramifica, sobre copias, en los del
   segundo; las tareas (partida suelta, campaña, natal, trozo de viaje, perfil ausente, vuelta del
@@ -819,16 +832,21 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
   quedaban libres: `npm run sim` tarda lo mismo que antes (154–160 s en 11 hilos). La iteración del
   prototipo que la especificación ponía antes de programar los votos se hizo con el simulador real,
   porque la regla de la meta, El regreso y el ciclo ya estaban en el juego. `vowGoal` (sin lluvia /
-  solo autocompra / sin mutaciones): natal 0,15 / 0,38 / 0,53; taiga 0,33 / 0,56 / 0,71; Chocó — /
-  0,7 / 0,35; pradera 0,35 / 0,44 / 0,59; tundra 0,38 / 0,36 / 0,62. Con los de partida (0,4, 0,6 y
-  0,6), «sin lluvia» en el natal tardaba 2,04 veces lo que sin votos y «sin mutaciones» en la taiga,
-  0,96. Manda que ningún voto suelto acorte el ciclo estable (el peor, 1,03 veces); por eso las
-  partidas de la primera siembra tras El regreso tienen como objetivo 50 min y no los 45 de la
-  especificación (la peor, 48:46, la tundra con solo autocompra: sin votos, la pradera y la tundra
-  ya duran allí 39–40 min). Los tres votos juntos en la pradera tardan 0,85–0,89 veces el ciclo sin
-  votos (lo que quitan se solapa: sin lluvia, Olfato de lluvia y Tormenta perfecta ya no pesan);
-  subir sus factores sueltos sacaría la primera siembra de su objetivo, y la especificación solo los
-  acota por arriba. Aceptado.
+  solo autocompra / sin mutaciones): natal 0,15 / 0,38 / 0,53; taiga 0,33 / 0,56 / ~~0,71~~ 0,8;
+  Chocó — / 0,7 / 0,35; pradera 0,35 / ~~0,44~~ 0,46 / 0,59; tundra ~~0,38~~ 0,44 / 0,36 / 0,62.
+  Con los de partida (0,4, 0,6 y 0,6), «sin lluvia» en el natal tardaba 2,04 veces lo que sin votos
+  y «sin mutaciones» en la taiga, 0,96. Manda que ningún voto suelto acorte el ciclo estable (el
+  peor, 1,03 veces); por eso las partidas de la primera siembra tras El regreso tienen como objetivo
+  50 min y no los 45 de la especificación (la peor, 48:46, la tundra con solo autocompra: sin votos,
+  la pradera y la tundra ya duran allí 39–40 min). Los tres votos juntos en la pradera tardan
+  ~~0,85–0,89~~ 0,95–0,99 veces el ciclo sin votos (lo que quitan se solapa: sin lluvia, Olfato de
+  lluvia y Tormenta perfecta ya no pesan); subir sus factores sueltos sacaría la primera siembra de su
+  objetivo, y la especificación solo los acota por arriba. Aceptado. **Corrección (revisión final de
+  la 1.6.0):** al recalibrar el Chocó (§4.32) cambió el estado del que sale la matriz del estable, y
+  la taiga «sin mutaciones» quedaba en 0,98 veces el ciclo sin votos, la tundra «sin lluvia» en 0,99
+  y la pradera «solo autocompra» en 1,00: con los tres factores nuevos, 1,11, 1,06 y 1,07, y sus
+  primeras siembras en 39:10, 40:25 y 47:20. Que un cambio en un bioma mueva hasta una décima los
+  votos de los otros es lo que deja este objetivo al límite.
 
 ### 4.14 Dependencias
 
@@ -902,7 +920,7 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 | Segmentos de la red                                              | ≤ 2000                        | —                                                                                                                                                                                                                                                                                                                                                                                                                         | Tope en `render/network.ts`             |
 | Refresco de números en pantalla                                  | ≤ 10 Hz                       | —                                                                                                                                                                                                                                                                                                                                                                                                                         | Limitador en `main.ts`                  |
 | Balance en 10 esporulaciones                                     | < 1e300                       | 2.3e13                                                                                                                                                                                                                                                                                                                                                                                                                    | `npm run sim`                           |
-| Balance del viaje (cuatro destinos, El regreso y el ciclo libre) | < 1e63 (nombres de idle)      | 1.08e18 con dos vueltas del ciclo libre (fase 10; 7.4e17 en la fase 8, con dos biomas y 4 partidas más); crece lineal con los ciclos                                                                                                                                                                                                                                                                                      | `npm run sim`                           |
+| Balance del viaje (cuatro destinos, El regreso y el ciclo libre) | < 1e63 (nombres de idle)      | 1.01e18 con dos vueltas del ciclo libre (v1.6.0; 1.08e18 antes de recalibrar el Chocó; 7.4e17 en la fase 8, con dos biomas y 4 partidas más); crece lineal con los ciclos                                                                                                                                                                                                                                                 | `npm run sim`                           |
 | Simulador de la red (`npm run sim`)                              | ≤ 10 min en el PC del usuario | 154–160 s en 11 hilos y 61–63 s el del plasmodio (v1.6.0, con la matriz de votos; 154 s + 65 s con el bloque A; 165 s + 64 s en un hilo en la fase 9)                                                                                                                                                                                                                                                                     | `npm run sim`                           |
 
 ## 8. Escala
@@ -1001,5 +1019,7 @@ Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
   millones») y no sufijos cortos, que siguen en Ajustes; la científica empieza en 1e66, no en 1e36.
 - §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
   escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
+- §4.32 y §4.33 (revisión final de la 1.6.0): el salto del Chocó a 1:08:01 era de la medida del
+  simulador (BUG-JOURNAL #28); el Chocó del ciclo pasa a 5e14 y 5,5 R, y suben tres factores de voto.
 - §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba; el
   escenario pegajoso, que §4.30 descartaba, es lo que se eligió.

@@ -190,8 +190,8 @@ test('a 375 px y con textos un 40 % más largos, ninguna etiqueta de Estadístic
 
 /**
  * Sembrado el Chocó tras cumplir la taiga, con la partida lista para el nivel 508: con su R
- * (5,4e14) faltan unos 1,56 mil billones para la siguiente espora, la cifra con el nombre más largo
- * de un ciclo.
+ * (5e14) faltan unos 1,4 mil billones para la siguiente espora, la cifra con el nombre más largo de
+ * un ciclo.
  */
 function chocoSown(now: number): GameState {
   const s = taigaCycleAlmostDone(now);
