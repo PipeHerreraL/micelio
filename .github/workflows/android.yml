@@ -3,7 +3,8 @@ name: Android
 # App de Android (ARCHITECTURE.md §4.31): compila el .apk con Capacitor en cada cambio (para ver que
 # compila; versión de depuración, con otro paquete) y, al publicar una release, lo firma con la
 # clave del proyecto, comprueba que es esa clave y lo adjunta como micelio.apk (el enlace de Ajustes
-# apunta a releases/latest/download/micelio.apk).
+# apunta a releases/latest/download/micelio.apk). En cada build corre además JUnit y el lint de
+# NewApi del actualizador (§4.34).
 
 on:
   push:
@@ -52,8 +53,24 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - run: npm ci
+      # Sin scripts de instalación: en el lock solo los tiene fsevents, que es de macOS, y así nada
+      # de npm se ejecuta al instalar en la máquina que compila el .apk.
+      - run: npm ci --ignore-scripts
       - run: npm run build:android
+
+      # El Java del actualizador (ARCHITECTURE.md §4.34): JUnit con las fixtures que comparte con
+      # Node, y lint de NewApi, fatal (android/app/build.gradle). Después de build:android, que crea
+      # capacitor-cordova-android-plugins, sin el que Gradle no configura el proyecto. Solo :app:
+      # sin el prefijo, lintDebug corre también el lint de Capacitor con su propia configuración.
+      - name: Pruebas de Java y lint
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug
+          # Cuántas corrieron: un filtro mal puesto daría verde con ninguna.
+          TESTS=$(grep -ho '<testsuite [^>]*' app/build/test-results/testDebugUnitTest/TEST-*.xml |
+            sed -E 's/.* tests="([0-9]+)".*/\1/' | awk '{ n += $1 } END { print n + 0 }')
+          echo "JUnit: $TESTS pruebas" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$TESTS" -gt 0 ]
 
       # La clave solo se usa al publicar: un .apk de prueba firmado con ella se instalaría encima
       # de la app del jugador.
@@ -102,6 +119,26 @@ jobs:
             echo "::error::El .apk no es $PACKAGE $NAME."
             exit 1
           fi
+          # El paquete web del .apk dice su versión y el nivel nativo de este árbol: la app los lee al
+          # arrancar para elegir entre él y uno descargado (ARCHITECTURE.md §4.34).
+          BUNDLE=$(unzip -p "$APK" assets/public/micelio-bundle.json)
+          WANT=$(node -p "JSON.stringify({ version: '$VERSION', minNative: require('./android/native.json').level })")
+          if [ "$BUNDLE" != "$WANT" ]; then
+            echo "::error::El micelio-bundle.json del .apk dice «$BUNDLE» y no «$WANT»."
+            exit 1
+          fi
+          echo "micelio-bundle.json: $BUNDLE"
+          # La configuración del actualizador del de depuración es la que genera Gradle, inerte sin
+          # MICELIO_OTA_TEST_CONFIG (sin claves ni URL), y pisa la commiteada: un .apk de depuración
+          # nunca acepta lo que firma la clave de producción (android/app/build.gradle).
+          if [ -z "$TAG" ]; then
+            OTA=$(unzip -p "$APK" res/raw/micelio_ota.json)
+            INERT='{"manifestUrl":"","urlPrefix":"","channel":"stable","checkIntervalSeconds":3600,"keys":{}}'
+            if [ "$OTA" != "$INERT" ]; then
+              echo "::error::El .apk de depuración no lleva la configuración generada del actualizador: «$OTA»."
+              exit 1
+            fi
+          fi
           if [ -n "$TAG" ]; then
             if [ "v$VERSION" != "$TAG" ]; then
               echo "::error::La release $TAG no coincide con la versión $VERSION de package.json."
@@ -120,6 +157,16 @@ jobs:
             fi
           fi
           ls -l "$APK"
+          echo "APK: $(stat -c %s "$APK") bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/tests/
+            android/app/build/reports/lint-results-debug.*
+          retention-days: 7
 
       - uses: actions/upload-artifact@v7
         with:

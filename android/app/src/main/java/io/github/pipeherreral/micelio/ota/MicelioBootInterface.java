@@ -1,0 +1,29 @@
+package io.github.pipeherreral.micelio.ota;
+
+import android.webkit.JavascriptInterface;
+
+/**
+ * `window.MicelioBoot` (ARCHITECTURE.md §4.34): lo que el JS lee de forma síncrona al evaluar main.ts,
+ * antes de cargar la partida, para saber si esta versión está a prueba y no debe escribir nada del
+ * guardado. El complemento lo añade en su `load()`, que el `Bridge` llama antes de cargar la página: un
+ * objeto inyectado antes de la carga está desde el primer script.
+ *
+ * Sigue ahí en cada recarga de la página dentro de la misma actividad, así que responde lo de ahora y
+ * no lo del arranque: tras confirmar la versión a prueba dice `trial: false`, y una recarga ya no
+ * retiene el guardado. Sin E/S: el WebView lo llama desde un hilo suyo, en segundo plano. Solo dice
+ * qué versión corre; el WebView solo carga https://localhost (las URL de fuera las abre Android aparte),
+ * así que no hay otra página que pueda leerlo.
+ */
+public final class MicelioBootInterface {
+    private final OtaService.Session session;
+
+    MicelioBootInterface(OtaService.Session session) {
+        this.session = session;
+    }
+
+    /** JSON: `{ trial, version, builtin, apk, nativeLevel }` de este arranque. */
+    @JavascriptInterface
+    public String boot() {
+        return OtaAndroid.bootJson(session);
+    }
+}

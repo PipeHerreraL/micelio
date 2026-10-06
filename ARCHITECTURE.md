@@ -63,6 +63,8 @@ main.ts ──► bucle: acumulador de 50 ms ──► core/tick ──► estad
   `news/biomes/` solo tras dispersar) y el inglés de la interfaz (`en.ts`, fase 10).
 - `partners/` (fase 9): los socios. Su núcleo va en el paquete inicial; su modelo y su vista
   llegan aparte con `import()` y nunca los ejecuta el simulador de la red (§4.29).
+- `native/` (1.6.1): lo que solo existe en la app de Android, hoy el lado JS de las
+  actualizaciones (§4.34), con sus textos en `i18n/native/`. El build de la web no lleva nada.
 
 ## 4. Decisiones
 
@@ -443,6 +445,9 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   un impuesto a esporular. Un socio que no valida no hace perder la red: al cargar vuelve a
   empezar (copia de respaldo y aviso), al importar se avisa en la confirmación, y al guardar
   vuelve a su último bloque válido y la red se guarda igual (`saveGame` devuelve `restored`).
+  **Corrección (1.6.1):** salvo si el guardado viene de un juego más nuevo: lo más probable es que
+  esa versión subiera un tope del socio, y reiniciarlo y guardar encima lo perdería. Ese guardado
+  no se carga ni se importa (`newer`, §5; BUG-JOURNAL #32).
   `tests/fixtures/save-v6.json` es un guardado real de la 1.4: si la forma cambia sin migración,
   su prueba falla.
 - **El modelo es el de Tero y colegas (2010)** con fuente por turno e integrador exponencial
@@ -556,14 +561,20 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
 - **Una versión vieja nunca pisa una partida más nueva.** Sin skipWaiting, quien recarga con
   conexión juega a la versión nueva, pero la caché activa sigue siendo la anterior: sin conexión,
   vuelve la vieja. Por eso cada guardado lleva `game` (§5) y, si la versión que carga no lo entiende
-  y es posterior, no guarda nada hasta recargar con conexión, ni al borrar o importar.
+  y es posterior, no guarda nada hasta recargar con conexión, ni al borrar o importar. En la app,
+  recargar sirve el mismo paquete: desde la 1.6.1 el aviso dice que la app busca sola la versión
+  nueva y ofrece «Buscar ahora» (§4.34).
 - **App de Android con Capacitor 8** (`capacitor.config.ts`, `android/`): `vite build --mode native`
-  (rutas relativas, sin service worker) servido desde `https://localhost` dentro de la app. El
-  código del juego no importa nada de Capacitor. El `appId`, el esquema y el host no cambian nunca:
-  son la identidad de la app y el origen de su guardado. `.github/workflows/android.yml` compila en
-  cada cambio y, al publicar una release, firma con la clave del proyecto (secretos del
-  repositorio; la crea `scripts/android-keystore.ps1` en el PC del dueño) y adjunta `micelio.apk`.
-  `versionCode` sale de `package.json` (1.5.0 → 10500) y solo puede subir; menor y parche hasta 99.
+  (rutas relativas, sin service worker) servido desde `https://localhost` dentro de la app.
+  ~~El código del juego no importa nada de Capacitor.~~ **Corrección (1.6.1):** no importa nada de
+  Capacitor salvo en `src/native/`, que solo entra en el build native: el lado JS de las
+  actualizaciones habla con su complemento por `registerPlugin` de `@capacitor/core` (§4.34), y el
+  `dist/` de la web no lleva ni un byte de él (lo comprueba `ci.yml`). El `appId`, el esquema y el
+  host no cambian nunca: son la identidad de la app y el origen de su guardado.
+  `.github/workflows/android.yml` compila en cada cambio y, al publicar una release, firma con la
+  clave del proyecto (secretos del repositorio; la crea `scripts/android-keystore.ps1` en el PC del
+  dueño) y adjunta `micelio.apk`. `versionCode` sale de `package.json` (1.5.0 → 10500) y solo
+  puede subir; menor y parche hasta 99.
 - **La clave de firma es la partida de los jugadores de Android:** con otra, una actualización no
   se instala encima y desinstalar borra el guardado. El script nunca crea una segunda clave (se
   detiene si GitHub ya tiene una) y escribe la huella del certificado en
@@ -877,6 +888,204 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
   primeras siembras en 39:10, 40:25 y 47:20. Que un cambio en un bioma mueva hasta una décima los
   votos de los otros es lo que deja este objetivo al límite.
 
+### 4.34 Actualizaciones del juego dentro de la app de Android (petición del usuario, v1.6.1)
+
+Hasta la 1.6.0, tener una versión nueva en la app pedía bajar e instalar otra vez el .apk. Desde la
+1.6.1, la app baja de cada release un paquete con el código web, lo verifica y lo usa en el
+siguiente arranque en frío o al pulsar «Usar ahora»; solo un cambio en la parte nativa pide otro
+.apk. Sale de tres investigaciones (capgo, sus alternativas y cómo probarlo en un emulador) y de una
+revisión adversarial del diseño. **Decisiones del usuario (2026-10-06):** un complemento propio en
+vez de capgo, y el paquete se firma en el PC del dueño, no en GitHub Actions. Se construye en la
+rama `ota-1.6.1`, con PR en borrador (AGENTS.md, «Git»): esto es el diseño, y cada commit de la
+rama cumple una parte.
+
+- **El origen no cambia: `https://localhost`.** `MainActivity` elige la carpeta con
+  `bridgeBuilder.setServerPath` antes de `super.onCreate()`, siempre (también la del .apk, que se
+  sirve de sus assets): el `Bridge` arranca con ella y carga una sola vez. Cambia la carpeta,
+  no el origen, así que `localStorage` es el mismo; es el mecanismo de capgo y de Ionic Deploy.
+  Descartado `persistServerBasePath`: Capacitor aplica la ruta guardada antes que nuestra lógica y
+  la borra con cualquier .apk nuevo.
+- **Un complemento propio, en Java y sin dependencias**
+  (`android/app/src/main/java/io/github/pipeherreral/micelio/ota/`, unas 900 líneas estimadas).
+  Java busca, descarga, verifica, descomprime, elige al arrancar y vuelve atrás sin depender del JS
+  del paquete en uso; el JS solo pregunta si está a prueba y dice «arranqué bien» o «no entiendo la
+  partida». La lógica pura (configuración, base64, versiones, manifiesto, selector y reloj de
+  búsqueda) se prueba con JUnit. `OtaService`, uno por proceso, es el único dueño del estado y del
+  disco, con un solo hilo ejecutor: `recreate()` vuelve a pasar por `onCreate` en el mismo proceso,
+  y sin un dueño único la limpieza del arranque y una descarga en curso se pisarían. También es Java
+  sin Android: JUnit lo prueba entero con el reloj, los hilos y la red simulados (la carrera entre
+  `ready()` y el reloj, «Usar ahora» con una descarga en curso, el disco lleno), y `OtaAndroid` le da
+  los de verdad y lo une a `MainActivity` y al complemento `MicelioUpdater`. El estado
+  (`state.json`, escrito con un temporal, `fsync` y `renameTo`) y los paquetes viven en
+  `getNoBackupFilesDir()/ota/`, fuera de la copia de Android: una restauración no apunta a carpetas
+  que no existen. Arranca en Android 7 (API 24, el mínimo de la app): base64 propio, porque
+  `java.util.Base64` es de la API 26, y `lintDebug` con `NewApi` fatal.
+- **Un manifiesto firmado por release**, `micelio-web.json`, que la app pide a
+  `releases/latest/download/` («la última» excluye las prereleases): `format`, `minFormat`, el
+  `payload` en base64 y una lista de firmas ECDSA P-256 / SHA-256 de `"micelio-ota-v1\n"` más los
+  bytes exactos del payload. Java parsea los mismos bytes que verificó (no hay canonización) y el
+  prefijo hace que una firma de esta clave no valga para otra cosa. El payload lleva `app`,
+  `channel` (`staging` o `stable`), `version`, `minNative`, la URL del zip fijada a su etiqueta, su
+  tamaño y su SHA-256, y cada archivo con su tamaño y su SHA-256. Las claves públicas van en el .apk
+  (`res/raw/micelio_ota.json`, con `manifestUrl`, `urlPrefix`, `channel` y `checkIntervalSeconds`);
+  sin claves o sin URL el actualizador queda inerte, y `android.yml` no publica una release sin al
+  menos una clave. El formato 1 queda fijo mientras existan apps que solo lo entienden: uno nuevo se
+  publica con otro nombre, y `minFormat`, fuera de lo firmado, solo puede mostrar un aviso.
+- **El zip es el `assets/public/` del .apk de la misma etiqueta:** lo probado instalado es lo que se
+  descarga. `scripts/ota-pack.ts` lo escribe determinista (orden de bytes, fecha fija y la regla
+  `ignoreAssetsPattern` de aapt en cada componente de la ruta), con `micelio-bundle.json` en la raíz
+  (`version` y `minNative`).
+- **Qué comprueba Java antes de usar nada**, en orden y con el motivo en `lastError`: el manifiesto
+  ocupa como mucho 64 KiB; alguna firma de una clave del .apk verifica; `app` y `channel` son los de
+  esta app; la versión es mayor que la servida, la base y la pendiente, y no falló antes;
+  `minNative` no pasa del nivel del .apk (si pasa, no se descarga nada y la app avisa una vez de que
+  necesita el .apk nuevo); la URL empieza por `urlPrefix`; el zip no pasa de 10 MB, ni de 1000
+  archivos, ni de 30 MB descomprimido; la descarga se corta al pasar del tamaño firmado y su
+  SHA-256, calculado al vuelo, es el firmado; el zip se lee de su directorio central, sin rutas
+  absolutas, `..`, `\` ni nombres repetidos, con exactamente los archivos de la lista, cada uno con
+  el tamaño y el SHA-256 contados al escribirlo; y `fsync` de archivos y carpetas antes del
+  `renameTo`. **Un rechazo no marca la versión como fallida:** si no, quien sirviera un zip roto
+  vetaría una buena.
+- **Cuándo busca:** 15 s después de cada vuelta al primer plano, si no hay una versión a prueba y
+  pasó el intervalo (`checkIntervalSeconds`: 3600 en la release, lo comprueba `android.yml`; 0 en
+  las pruebas). Lo mide con la hora de pared, `elapsedRealtime` y el número de arranque del sistema:
+  una hora que retrocede cuenta como caducada, para que adelantar y devolver el reloj no apague las
+  búsquedas. Tras un fallo de red, también a mitad de la descarga o si «Usar ahora» la corta,
+  reintenta a los 10 min; «Buscar ahora» no mira el intervalo. Cada GET lleva un `User-Agent` fijo,
+  `Micelio`, sin cookies ni identificadores (§5), y nunca sigue una redirección de HTTPS a HTTP. Lo
+  de las cookies no sale solo: Capacitor instala siempre un `CookieHandler` en el proceso (aunque
+  `CapacitorCookies` esté apagado) que guarda las de GitHub (`_octo` dura un año) en el almacén del
+  WebView y las manda después; las peticiones del actualizador no pasan por él (`OtaCookies`).
+- **Al arrancar, la regla del mayor:** se sirve la mayor versión compatible entre la del .apk y la
+  confirmada, así que instalar un .apk más viejo no hace retroceder el juego. Se descarta todo
+  paquete con un archivo que falta o no mide lo anotado, con `minNative` mayor que el nivel del .apk
+  o verificado con una clave que el .apk ya no conoce (cada paquete recuerda las suyas): un .apk de
+  rescate o una rotación lo retiran aunque su número sea enorme. Una versión nueva se prueba como
+  mucho en dos arranques; el intento se escribe antes de servirla y, si no se puede escribir (disco
+  lleno), se sirve la base, porque una prueba sin anotar podría repetirse sin fin. El selector
+  entero va en `try/catch (Throwable)`: con cualquier excepción se sirve el integrado sin escribir
+  nada, y la app abre igual.
+- **Confirmar y volver atrás.** Tras el primer frame, el JS llama a `ready()`, que responde
+  `confirmed`, `tooLate` o `notTrial`, decidido en el ejecutor junto con su escritura: confirmar y
+  vencer el reloj no pueden pasar los dos. Si la confirmación no se puede escribir (disco lleno),
+  responde `tooLate` y la actividad vuelve a arrancar con la base, sin dar la versión por fallida.
+  Una versión ya confirmada en el proceso vuelve a responder `confirmed`: una recarga de la página en
+  la misma actividad, o la actividad nueva de una recreación cuyo `ready()` llega después del de la
+  vieja, también guardan.
+  La versión a prueba vuelve atrás sola si no confirma en 30 s de primer plano (medidos con
+  `elapsedRealtime`; el arranque ya espera hasta 8 s el catálogo del idioma), tras dos arranques sin
+  confirmar, si se cae su renderizador o si el JS avisa de un error. Al volver atrás (o si la
+  confirmación no se escribe) vuelve a arrancar toda actividad que la servía, no solo la que avisó: si
+  la actividad se recreó durante la prueba (otro tamaño de letra), el aviso puede llegar de la vieja
+  después de elegir la nueva, porque Capacitor reparte las llamadas que ya estaban en cola al
+  cerrarse, y la nueva se quedaría sin guardar. Una versión fallida no se vuelve a probar; las
+  siguientes sí, una por una. **El actualizador nunca mata el proceso:** cambia de
+  paquete con `recreate()`, y ante un renderizador
+  caído un `WebViewListener` devuelve `true` (con `false`, Android cierra la app), porque Chromium
+  tarda hasta un minuto en llevar `localStorage` a disco y matar el proceso podría perder el último
+  guardado. Una versión confirmada que falla después (tres arranques seguidos sin `ready()`) no se
+  revierte a ciegas, porque la partida ya avanzó y la anterior quizá no la entienda: se recalculan
+  los SHA-256 de sus archivos; si alguno no coincide, se descarta y se vuelve a bajar; si están
+  intactos, se sigue sirviendo y se busca en cada arranque hasta que llegue el arreglo.
+- **La partida, con cuatro reglas:**
+  1. **Una versión a prueba no escribe nada del guardado**, ni la copia de respaldo, y lo sabe antes
+     de leer la partida, sin esperar a nadie: `MicelioBoot`, un `@JavascriptInterface` que el
+     complemento añade en su `load()` (el `Bridge` lo llama antes de `loadWebView()`), se lee de
+     forma síncrona al evaluar `main.ts` y responde lo de ahora, no lo del arranque: tras confirmar,
+     una recarga ya no retiene. A prueba, o si `MicelioBoot` no responde, `loadGame` lee
+     con un almacén de solo lectura y `saveNow()` solo anota que se pidió un guardado, hasta
+     `confirmed` o `notTrial`: falla cerrada. Si no se suelta sin estar a prueba (el puente y
+     `MicelioBoot` rotos a la vez, un fallo nuestro), a los 10 s un aviso fijo dice que no guarda.
+     Descartado: preguntar por el puente asíncrono y soltar a los 5 s sin respuesta, porque la
+     versión a prueba podía empezar una partida nueva y guardarla encima.
+  2. **Si no la entiende, se retira sola:** a prueba, con `corrupt` o `partnersReset`, el JS llama a
+     `reject('save')` antes de montar y la anterior la carga como siempre. Protege de una migración
+     defectuosa, que llegaría a todos los jugadores a la vez. Esa versión no se vuelve a probar, la
+     siguiente sí: una validación endurecida a propósito repara al cargar (como BUG-JOURNAL #18 y
+     #29), y el jugador no se queda sin actualizaciones.
+  3. **Una versión anterior nunca pisa una partida que no entiende del todo** (§5, BUG-JOURNAL #32,
+     también en la web). La regla del mayor hace raro que la app sirva una versión menor que la
+     confirmada; si pasa, carga la partida si la entiende entera o no guarda nada, y Java busca la
+     nueva enseguida.
+  4. **Una copia por formato antes de migrar, solo en la app:** antes del primer guardado de una
+     sesión que cargó una partida con `version` menor que `SAVE_VERSION`, su texto original se copia
+     a `micelio:save:pre-v<version>`, que nunca se pisa (unos 14 kB por formato). Cubre la migración
+     que deja la partida válida pero con pérdida: confirma, y aun así la versión siguiente puede
+     volver a migrar desde la copia. En la web queda propuesta para la 1.7.0, la primera que suba
+     `SAVE_VERSION`: aquí subiría el JS inicial.
+- **En la web, la actualización no añade ni un byte.** Lo de la app vive en `src/native/` y
+  `src/i18n/native/` (sus textos no caben en `es.ts`, que va en el JS inicial), en ramas
+  `import.meta.env.MODE === 'native'`, como `install.ts`, y en un trozo que solo carga la app.
+  `ci.yml` comprueba que `dist/` no nombra `MicelioUpdater`, `MicelioBoot` ni `micelio-bundle` y,
+  mientras `package.json` diga 1.6.0, que sale idéntico byte a byte al del commit del arreglo de #32
+  (`scripts/dist-compare.ts`).
+- **El nivel nativo** (`android/native.json`: `level` y una huella de los archivos nativos que sigue
+  git, o seguiría en el siguiente commit, leídos del árbol de trabajo con los finales de línea en
+  LF, y de las versiones de `@capacitor/*` del lock): Gradle lo pone en `BuildConfig.NATIVE_LEVEL`
+  y Vite, en el `minNative` de `micelio-bundle.json`. Si la huella cambia,
+  `tests/native-surface.test.ts` falla y obliga a decidir si la web nueva necesita el cambio (sube
+  `level`) o no; no decide sola: `node scripts/native-fingerprint.ts` solo reescribe la huella. La
+  1.6.1 tiene el nivel 1.
+- **Se firma en el PC del dueño.** `android.yml` adjunta a la release el .apk, el zip y el borrador
+  del payload. `scripts/ota-sign.ps1` comprueba con `git ls-remote` que la etiqueta remota es la
+  local, enseña los cambios desde la última versión firmada, compila desde la etiqueta **local**
+  (nunca código traído de GitHub) y exige un zip idéntico byte a byte al del CI; firma un manifiesto
+  `staging`, espera a que el paquete publicado pase en los emuladores y solo entonces sube el
+  `stable`. La clave (P-256, creada por `scripts/ota-key.ps1` y cifrada con una frase de 120 bits
+  que el script genera) vive en el PC del dueño y en su copia, nunca en GitHub; la del .apk sigue en
+  los secretos del repositorio. Así, la cuenta de GitHub sola no llega a las partidas. Para rotar la
+  clave, el manifiesto lleva las firmas de las dos mientras quede algún .apk que solo conozca la
+  vieja; si se filtran la clave y la cuenta, un .apk de rescate que solo conoce una nueva descarta
+  todo lo firmado con la vieja.
+- **Pruebas:** Vitest y JUnit sobre las mismas fixtures (`tests/fixtures/ota/`, firmadas con un par
+  efímero que no se guarda), y emuladores de Android en GitHub Actions (`android-ota.yml`, gratis en
+  un repositorio público): unos 30 escenarios del mecanismo (paquete roto, partida comparada byte a
+  byte, caída del renderizador, disco, reloj), instalar encima desde la 1.5.0 y la 1.6.0, el paquete
+  publicado de verdad antes de firmar el `stable` y un arranque en Android 7. La configuración de
+  prueba (claves desechables y la URL de un servidor del runner) la genera Gradle solo en el build
+  de depuración y nunca se commitea; el texto claro hacia ese servidor solo se permite en
+  depuración, y `android.yml` comprueba que el .apk de la release lleva la configuración de
+  producción.
+- **Quien tenga la 1.5.0 o la 1.6.0** instala una vez el .apk de la 1.6.1 encima (misma firma,
+  `versionCode` 10601), tras dejar Micelio un minuto en segundo plano para que Chromium lleve la
+  partida a disco. Desde ahí, las versiones llegan solas; la primera, la 1.6.2.
+- **Qué no protege:** la cuenta junto con la clave y su frase, o el PC del dueño comprometido; el
+  código malicioso del repositorio o de npm que el dueño firme sin verlo (la firma dice «esto
+  aprobé», no «esto es inocuo»: por eso `ota-sign.ps1` enseña los cambios y señala los archivos
+  delicados); volver a repartir una versión que ya se firmó como `stable`; un teléfono con root. Lo
+  que está en juego sube: hasta ahora el código nuevo llegaba cuando el jugador instalaba algo, y
+  ahora llega solo a todas las apps. Por eso la firma vive fuera de GitHub y el `stable` solo se
+  firma con las pruebas en verde. Una versión mala se retira publicando la siguiente; mientras
+  tanto, borrar `micelio-web.json` de la release frena el reparto.
+- **Descartado:**
+  - **capgo** (`@capgo/capacitor-updater` 8.52.1), la primera elección de la hoja de ruta: inyecta
+    un script que escribe en el `localStorage` de la partida cada 15 s y no se apaga sin parchearlo;
+    llama a su nube salvo que se vacíen sus URL a mano; su firma no cubre la versión; su vuelta
+    atrás va por reloj, sin contar arranques, y tenía dos fallos arreglados en la 8.52.0; su estado
+    «a prueba» solo se lee por el puente asíncrono; y suma unas 15 200 líneas de Java con OkHttp,
+    WorkManager, Brotli y Play Core (de 2 a 4 MB más, estimado). Lo que la revisión exigió (saber de
+    forma síncrona si se está a prueba, confirmar sin carrera, descartar por clave) habría que
+    escribirlo igual por fuera de él.
+  - La API oficial de Capacitor con Filesystem y fflate (también pide un .apk nuevo, y solo vuelve
+    atrás al reiniciar el proceso) y Capawesome (trae OkHttp y zip4j).
+  - Publicar en GitHub Pages: se publica con cada push a `main` y guarda 10 min en caché.
+  - Firmar en GitHub Actions con un entorno de aprobación obligatoria: no pide nada en cada release,
+    pero la cuenta sola bastaría para mandar código a todos los teléfonos.
+  - Ed25519, que Android trae desde la API 33, y una sola firma por manifiesto, que al rotar la
+    clave dejaría sin actualizaciones, en silencio, a los .apk viejos.
+  - Aplicar al volver de segundo plano: convertiría tiempo de `applyBackground` (al 100 %) en
+    tiempo de `applyOffline` (con eficiencia).
+  - Una lista firmada de versiones revocadas: quien lee un manifiesto más nuevo ya pasa de la mala
+    por la regla del mayor, y quien recibe el viejo nunca ve la lista.
+  - Tratar como `newer` en la app toda partida con un `game` mayor, aunque se entienda entera: un
+    `game` demasiado alto dejaría al jugador bloqueado para siempre, sin salida dentro de la app.
+- **Riesgos aceptados:** unas 900 líneas de Java nuestras (las cubren JUnit y los emuladores); el
+  emulador no es un teléfono, y el TLS de GitHub en Android 7 no se ha probado en uno; Windows y
+  Linux podrían dar zips distintos (un ensayo lo comprueba antes de la primera release); un teléfono
+  muy lento que no confirme en 30 s salta versiones; firmar le cuesta al dueño una orden y una
+  espera de 30–45 min por release; iOS sigue para más adelante (§4.31); y si algún día se publica en
+  Google Play, habrá que revisar su política sobre código descargado.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -890,19 +1099,28 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
 | `happy-dom`                                                | DOM simulado para las pocas pruebas de interfaz (foco, listas); el resto corre sin DOM |
 | `@playwright/test`                                         | Pruebas de navegador en Chromium, Firefox y WebKit (§4.25)                             |
 | `@fontsource/im-fell-english`, `@fontsource/source-sans-3` | Fuentes autoalojadas (§4.13)                                                           |
-| `@capacitor/core`, `@capacitor/android`, `@capacitor/cli`  | App de Android (§4.31); el juego no las importa: solo el proyecto `android/`           |
+| `@capacitor/core`, `@capacitor/android`, `@capacitor/cli`  | App de Android (§4.31); el juego ~~no las importa~~ usa `core` solo en `src/native/`   |
 
 ## 5. Datos
 
 Todo el estado de una partida es un `GameState` (ver `docs/STATUS.md`). Vive en
 `localStorage` bajo `micelio:save` como `{ version, savedAt, game, state }`. No hay datos
-personales: nada sale del navegador.
+personales: ~~nada sale del navegador~~ nada de la partida sale del navegador. **Corrección
+(1.6.1):** la app de Android hace dos GET a las releases de GitHub, el manifiesto de las
+actualizaciones (como mucho uno por hora) y el zip cuando hay una versión nueva, sin datos de la
+partida, sin cookies ni identificadores y con un `User-Agent` fijo; GitHub ve la IP, como al bajar
+el .apk (§4.34).
 
 - Cada cambio de formato sube `version` y añade `migrations[n]` (de n a n + 1).
 - `game` es la versión del juego que guardó (desde la 1.5.0). Si un guardado no se entiende y viene
   de un formato o de una versión del juego posteriores, no se toca: el juego no guarda nada y pide
-  recargar con conexión (§4.31, BUG-JOURNAL #24).
+  recargar con conexión (§4.31, BUG-JOURNAL #24). Desde la 1.6.1 basta con que no se entienda un
+  socio (BUG-JOURNAL #32); uno que se entiende entero carga aunque sea más nuevo, para que un `game`
+  mal escrito no bloquee la partida.
 - Si el guardado está dañado, se copia a `micelio:save:backup` y se empieza de cero.
+- En la app (1.6.1), antes del primer guardado de una sesión que cargó un formato anterior, el
+  texto original se copia a `micelio:save:pre-v<version>`, que nunca se pisa; y una versión a
+  prueba no escribe nada del guardado, ni la copia de respaldo (§4.34, la partida).
 - **Versión 7 (fase 10), entera de una vez.** `cycle`, `records`, las seis adaptaciones de la
   pradera y la tundra y las tres cosméticas de los votos entraron con su forma completa en el primer
   commit que tocó el guardado, también las claves cuyas reglas llegaban después, que hasta entonces
@@ -920,7 +1138,8 @@ personales: nada sale del navegador.
 
 ## 6. Entrada no confiable
 
-El juego no tiene servidor, pero sí dos entradas que no controla:
+El juego no tiene servidor, pero sí ~~dos~~ tres entradas que no controla (la tercera, desde la
+1.6.1 y solo en la app de Android):
 
 1. **El texto de importar partida.** Puede venir de cualquier sitio. Se decodifica
    (Base64 → `TextDecoder`), se parsea con `JSON.parse` dentro de `try`, y pasa por el mismo
@@ -929,6 +1148,11 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 2. **El contenido de `localStorage`.** Otra pestaña, una extensión o una versión anterior
    pueden haberlo escrito. Pasa por migraciones y validación; si falla, copia de respaldo y
    partida nueva.
+3. **El manifiesto y el zip de las actualizaciones.** Llegan de las releases de GitHub, que la
+   cuenta controla. Java los valida antes de usarlos (§4.34): acota el tamaño antes de parsear,
+   exige una firma de una clave del .apk y comprueba la app, el canal, la versión, el nivel nativo,
+   la URL, el tamaño y el SHA-256 del zip, y cada ruta y cada archivo contra la lista firmada. Nada
+   sin firma llega a ejecutarse.
 
 ## 7. Presupuestos
 
@@ -973,8 +1197,10 @@ src/audio/     sonidos sintetizados
 src/i18n/      catálogos (es.ts base; en.ts, news/, news/biomes/ y partners/ llegan aparte) y
                formato con Intl
 src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su modelo y su vista
+src/native/    solo en la app de Android (1.6.1): el lado JS de las actualizaciones
 scripts/       simuladores de balance (red, repartida entre hilos, y plasmodio), presupuesto de JS,
-               procedencia de placas, guardados reales de la 1.5
+               procedencia de placas, guardados reales de la 1.5 y, desde la 1.6.1, el paquete,
+               la firma y el nivel nativo de las actualizaciones de la app
 tests/         pruebas de Vitest; tests/e2e/, de Playwright; tests/fixtures/, guardados reales
 docs/          STATUS, BUG-JOURNAL, BALANCE, ROADMAP y rediseno/ (el plan aprobado de la 1.6.2)
 ```
@@ -1051,6 +1277,12 @@ Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
 - §4.25 (fase 10): unas pocas pruebas de navegador corren contra el servidor de desarrollo.
 - §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
   escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
+- §4.29 (1.6.1): un socio que no valida en un guardado de un juego más nuevo no vuelve a empezar:
+  el guardado no se carga ni se importa (BUG-JOURNAL #32).
+- §4.14 y §4.31 (1.6.1): el juego sí importa `@capacitor/core`, solo desde `src/native/` y solo en
+  el build de la app, para las actualizaciones (§4.34).
+- §5 y §6 (1.6.1): en la app algo sale del navegador, dos GET a GitHub sin datos de la partida, y
+  el manifiesto y el zip de las actualizaciones son una tercera entrada no confiable.
 - §4.32 y §4.33 (revisión final de la 1.6.0): el salto del Chocó a 1:08:01 era de la medida del
   simulador (BUG-JOURNAL #28); el Chocó del ciclo pasa a 5e14 y 5,5 R, y suben tres factores de voto.
 - §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba; el

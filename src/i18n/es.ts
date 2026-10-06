@@ -860,7 +860,6 @@ export const es = {
   'settings.title': 'Ajustes',
   'settings.install': 'Instalar la app',
   'settings.install.button': 'Instalar Micelio',
-  'settings.install.done': 'Ya juegas con la app instalada.',
   'settings.install.justInstalled': 'Instalada: ábrela desde la pantalla de inicio o desde tus aplicaciones.',
   'settings.install.ios':
     'En el iPhone o el iPad, en Safari: botón Compartir y «Añadir a pantalla de inicio». La app no ve la partida de Safari: expórtala abajo e impórtala en la app.',
@@ -900,6 +899,8 @@ export const es = {
   'settings.import.error.json': 'El texto está dañado y no se puede leer.',
   'settings.import.error.shape': 'El texto no tiene la forma de una partida de Micelio.',
   'settings.import.error.version': 'La partida es de una versión de Micelio que este juego no reconoce.',
+  'settings.import.error.newer':
+    'La partida es de una versión más nueva de Micelio. Actualiza el juego para importarla: en Android, instala el .apk nuevo encima del que tienes, sin desinstalar.',
   'settings.import.error.migration': 'La partida es de una versión antigua que no se pudo actualizar.',
   'settings.import.error.invalid': 'La partida tiene valores imposibles y no se puede cargar.',
   'settings.import.confirm.title': '¿Reemplazar tu partida?',

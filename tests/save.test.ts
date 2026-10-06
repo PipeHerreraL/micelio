@@ -584,6 +584,54 @@ describe('guardados de un juego más nuevo', () => {
     expect(expectLoaded(loadUntouched(text)).state).toStrictEqual(richState());
   });
 
+  /**
+   * `tests/fixtures/save-v7.json` (con el plasmodio en su segunda placa) escrito por la versión
+   * `game`, con Avena por encima del tope de esta: lo que deja una versión que lo sube y un jugador
+   * que lo pasa.
+   */
+  function v7WithOatsAboveCap(game: string | undefined): string {
+    const raw = JSON.parse(readFileSync('tests/fixtures/save-v7.json', 'utf8')) as {
+      game?: string;
+      state: GameState;
+    };
+    const plasmodium = raw.state.partners.plasmodium;
+    if (!plasmodium) throw new Error('save-v7.json debería llevar el plasmodio');
+    plasmodium.upgrades.oats = 4;
+    return JSON.stringify({ ...raw, game });
+  }
+
+  it('un guardado de una versión posterior con un socio que esta no entiende tampoco se toca', () => {
+    // BUG-JOURNAL #32: la carga indulgente daba el plasmodio por dañado, lo reiniciaba y el
+    // autoguardado pisaba la partida, como en #24, porque solo miraba la versión si todo fallaba.
+    const text = v7WithOatsAboveCap('99.0.0');
+    expect(parseSave(text, undefined, undefined, 'lenient')).toMatchObject({
+      ok: true,
+      partnersReset: ['plasmodium'],
+    });
+    expect(loadUntouched(text)).toStrictEqual({ kind: 'newer' });
+  });
+
+  it('el mismo socio en un guardado de esta versión o de una anterior empieza de nuevo, con copia y aviso', () => {
+    for (const game of [GAME_VERSION, '1.5.0', undefined]) {
+      const storage = new MemoryStorage();
+      const text = v7WithOatsAboveCap(game);
+      storage.setItem(SAVE_KEY, text);
+      const result = loadGame(storage);
+      expect(result).toMatchObject({ kind: 'loaded', partnersReset: ['plasmodium'] });
+      expect(expectLoaded(result).state.partners.plasmodium).toBeNull();
+      expect(storage.data.get(BACKUP_KEY)).toBe(text);
+    }
+  });
+
+  it('importarlo dice que la partida es más nueva, no que el plasmodio se perdió', () => {
+    // La misma regla que la carga: el aviso de importar lleva a actualizar el juego.
+    expect(importSave(b64(v7WithOatsAboveCap('99.0.0')))).toStrictEqual({ ok: false, error: 'newer' });
+    expect(importSave(b64(v7WithOatsAboveCap(GAME_VERSION)))).toMatchObject({
+      ok: true,
+      partnersReset: ['plasmodium'],
+    });
+  });
+
   it('un guardado dañado de esta versión o de una anterior sigue yendo a la copia de respaldo', () => {
     for (const game of [GAME_VERSION, '1.4.2', undefined]) {
       const storage = new MemoryStorage();
@@ -908,9 +956,17 @@ describe('exportar e importar', () => {
     expect(importSave(b64(negative))).toStrictEqual({ ok: false, error: 'invalid' });
   });
 
-  it('un Base64 válido de un guardado de una versión futura da el error version', () => {
+  it('una partida de una versión más nueva del juego da el error newer, no «no se reconoce»', () => {
+    // Una partida exportada de la web nueva e importada en una app sin actualizar: no está dañada,
+    // hay que actualizar el juego. Con un formato posterior y con una versión posterior del juego.
     const future = JSON.stringify({ version: 99, savedAt: SAVED_AT, state: richState() });
-    expect(importSave(b64(future))).toStrictEqual({ ok: false, error: 'version' });
+    expect(importSave(b64(future))).toStrictEqual({ ok: false, error: 'newer' });
+    const state = { ...richState(), forest: { ...richState().forest, biome: 'volcano' } };
+    const newerGame = JSON.stringify({ version: SAVE_VERSION, savedAt: SAVED_AT, game: '99.0.0', state });
+    expect(importSave(b64(newerGame))).toStrictEqual({ ok: false, error: 'newer' });
+    // Un formato imposible sin versión más nueva sigue siendo «no se reconoce».
+    const zero = JSON.stringify({ version: 0, savedAt: SAVED_AT, state: richState() });
+    expect(importSave(b64(zero))).toStrictEqual({ ok: false, error: 'version' });
   });
 
   it('ningún texto inválido hace lanzar a importSave', () => {

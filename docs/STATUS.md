@@ -156,10 +156,12 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 1. **Publicar la 1.6.0** (la sesión principal, en el orden de AGENTS.md, «Versiones»): etiqueta
    `v1.6.0`, release como prerelease hasta que el .apk (`versionCode` 10600) esté adjunto, y
    entonces `main`, que publica en Pages.
-2. **1.6.1, petición del usuario:** las actualizaciones del juego dentro de la app de Android. La
-   app descarga el código web de cada release y lo usa al arrancar la vez siguiente, sin reinstalar
-   el .apk (`@capgo/capacitor-updater` en modo propio, sin su nube, con el paquete firmado). Antes,
-   comprobar en un teléfono que la partida se conserva: el origen sigue siendo `https://localhost`.
+2. **1.6.1, petición del usuario:** las actualizaciones del juego dentro de la app de Android, en
+   la rama `ota-1.6.1` (PR en borrador). La app descarga el código web de cada release, lo verifica
+   y lo usa al arrancar la vez siguiente, sin reinstalar el .apk. Decisiones del usuario
+   (2026-10-06): un complemento propio en Java en vez de capgo, y el paquete se firma en su PC
+   (ARCHITECTURE.md §4.34). La partida se conserva porque el origen sigue siendo
+   `https://localhost`; lo comprueban emuladores en el CI y, después, un teléfono.
 3. **1.6.2, petición del usuario:** rediseño de la interfaz y los textos (textos más cortos con la
    ciencia plegada, Socios con el objetivo en cuatro pasos, el árbol de mutaciones a cuatro columnas
    con ficha, un icono para los nutrientes). El plan está aprobado: `docs/rediseno/plan.md` (manda
@@ -197,7 +199,7 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del
   repo de que se lanza al cambiar de viaje, también al sembrar el mismo bioma
   (`tests/e2e/cycle.spec.ts`); lo demás sigue sin ella.
-- El JS inicial pesa 88,5 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
+- El JS inicial pesa 88,6 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
   dispersar) y, desde la fase 10, el inglés de la interfaz llegan aparte (el juego espera al inglés
   antes de montarse si es el idioma elegido). El catálogo del inglés está en 17,2 kB de 18. Si hace
   falta más sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al
@@ -236,3 +238,7 @@ build en verde, commit, push, etiqueta `v0.N.0` y release.
 La fase 10 es la excepción: va en la rama `fase-10` y `main` no se sube hasta la etiqueta de la
 1.6.0. Un push a `main` publica en Pages, y una versión 7 del guardado escrita por un commit
 intermedio no debe llegar a ningún jugador.
+
+La 1.6.1 también va en una rama, `ota-1.6.1`, con PR en borrador: los emuladores de Android y el
+.apk corren en el CI en cada commit antes de publicar, y la rama se fusiona a `main` antes de
+etiquetar (AGENTS.md, «Git»).

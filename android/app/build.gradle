@@ -15,6 +15,15 @@ if (micelioParts[1] > 99 || micelioParts[2] > 99) {
 }
 def micelioVersionCode = micelioParts[0] * 10000 + micelioParts[1] * 100 + micelioParts[2]
 
+// El nivel de la parte nativa (ARCHITECTURE.md §4.34), el mismo que el build de la app escribe como
+// minNative en micelio-bundle.json: la app no usa un paquete descargado que pida un nivel mayor que
+// el suyo. Si cambia la parte nativa, tests/native-surface.test.ts obliga a decidir si se sube.
+def micelioNativeJson = file('../native.json')
+def micelioNativeLevel = new groovy.json.JsonSlurper().parse(micelioNativeJson).level
+if (!(micelioNativeLevel instanceof Integer) || micelioNativeLevel < 1) {
+    throw new GradleException("El level de android/native.json (${micelioNativeLevel}) no es un entero desde 1.")
+}
+
 // Firma de las versiones publicadas: el almacén de claves y su contraseña llegan por variables
 // de entorno (.github/workflows/android.yml, desde los secretos del repositorio). Siempre la misma
 // clave: con otra, Android trataría la actualización como otra app y no la dejaría instalar encima
@@ -30,12 +39,17 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode micelioVersionCode
         versionName micelioVersion
+        buildConfigField 'int', 'NATIVE_LEVEL', String.valueOf(micelioNativeLevel)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    // BuildConfig, para NATIVE_LEVEL: desde el Android Gradle Plugin 8 no se genera si no se pide.
+    buildFeatures {
+        buildConfig = true
     }
     signingConfigs {
         if (micelioKeystore) {
@@ -60,6 +74,60 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    // Las pruebas del actualizador (ARCHITECTURE.md §4.34) comprueban las mismas fixtures que Node
+    // (tests/fixtures/ota/, de scripts/ota-fixtures.ts): si los dos lados difieren en una regla,
+    // falla una prueba y no una actualización en los teléfonos.
+    def otaFixtures = file('../../tests/fixtures/ota')
+    testOptions {
+        unitTests.all { test ->
+            test.systemProperty 'micelio.otaFixtures', otaFixtures.absolutePath
+            test.inputs.dir(otaFixtures)
+            test.systemProperty 'micelio.nativeJson', micelioNativeJson.absolutePath
+            test.inputs.file(micelioNativeJson)
+        }
+    }
+    // Una API más nueva que minSdkVersion (24) deja la app sin abrir en Android 7: java.util.Base64 y
+    // java.nio.file son de la 26. lintVital no mira NewApi por defecto; con fatal, también frena
+    // assembleRelease. Solo nuestro código: el de Capacitor llega de npm y no se arregla aquí.
+    lint {
+        checkOnly.add('NewApi')
+        fatal.add('NewApi')
+        abortOnError = true
+        checkDependencies = false
+    }
+}
+
+// La configuración del actualizador en el build de depuración (ARCHITECTURE.md §4.34): generada, nunca
+// commiteada, y pisa la de src/main/res/raw. Con MICELIO_OTA_TEST_CONFIG, la del archivo que nombra
+// (las pruebas en el emulador: claves desechables y el servidor del runner); sin ella, una inerte, sin
+// claves ni URL. Así un .apk de depuración nunca acepta lo que firma la clave de producción, y ninguna
+// preparación de pruebas toca un archivo commiteado.
+abstract class MicelioOtaDebugConfig extends DefaultTask {
+    @Input
+    abstract Property<String> getConfig()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    @TaskAction
+    void write() {
+        def raw = getOutputDir().get().dir('raw').asFile
+        raw.mkdirs()
+        new File(raw, 'micelio_ota.json').setText(getConfig().get(), 'UTF-8')
+    }
+}
+
+def micelioOtaDebugConfig = tasks.register('micelioOtaDebugConfig', MicelioOtaDebugConfig) {
+    config = providers.environmentVariable('MICELIO_OTA_TEST_CONFIG')
+            .map { file(it).getText('UTF-8') }
+            .orElse('{"manifestUrl":"","urlPrefix":"","channel":"stable","checkIntervalSeconds":3600,"keys":{}}\n')
+    outputDir = layout.buildDirectory.dir('generated/ota-res')
+}
+
+androidComponents {
+    onVariants(selector().withBuildType('debug')) { variant ->
+        variant.sources.res.addGeneratedSourceDirectory(micelioOtaDebugConfig, MicelioOtaDebugConfig::getOutputDir)
     }
 }
 

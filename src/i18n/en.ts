@@ -845,7 +845,6 @@ export const en: Catalog = {
   'settings.title': 'Settings',
   'settings.install': 'Install the app',
   'settings.install.button': 'Install Micelio',
-  'settings.install.done': 'You are playing in the installed app.',
   'settings.install.justInstalled': 'Installed: open it from your home screen or your app list.',
   'settings.install.ios':
     'On iPhone or iPad, in Safari: the Share button, then “Add to Home Screen”. The app cannot see your Safari save: export it below and import it in the app.',
@@ -885,6 +884,8 @@ export const en: Catalog = {
   'settings.import.error.shape': "This text doesn't look like a Micelio save.",
   'settings.import.error.version':
     "This save comes from a version of Micelio that this game doesn't recognize.",
+  'settings.import.error.newer':
+    'This save comes from a newer version of Micelio. Update the game to import it: on Android, install the new .apk over the one you have, without uninstalling.',
   'settings.import.error.migration': "This save is from an old version that couldn't be updated.",
   'settings.import.error.invalid': 'This save has impossible values and cannot be loaded.',
   'settings.import.confirm.title': 'Replace your save?',

@@ -1,0 +1,246 @@
+{
+  "app": "io.github.pipeherreral.micelio",
+  "nativeLevel": 1,
+  "keyRoles": { "test": "11edcfae", "new": "90ad257c", "other": "9d094987" },
+  "cases": [
+    {
+      "name": "ok-one-key",
+      "file": "ok-one-key.json",
+      "description": "Firmado con la clave de la app.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-unknown-and-known",
+      "file": "ok-unknown-and-known.json",
+      "description": "Una firma de una clave ajena y otra de la de la app: basta la conocida.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-two-keys",
+      "file": "ok-two-keys.json",
+      "description": "Firmado con las dos claves que conoce la app (rotación): se anotan las dos, en orden.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae", "90ad257c"]
+    },
+    {
+      "name": "ok-new-key-only",
+      "file": "ok-new-key-only.json",
+      "description": "Firmado solo con la clave nueva de la rotación.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["90ad257c"]
+    },
+    {
+      "name": "ok-same-key-twice",
+      "file": "ok-same-key-twice.json",
+      "description": "Dos firmas válidas de la misma clave: se anota una vez.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-eight-signatures",
+      "file": "ok-eight-signatures.json",
+      "description": "Ocho firmas, el tope: siete de una clave ajena y la última de la app.",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-size-at-limit",
+      "file": "ok-size-at-limit.json",
+      "description": "El zip mide justo el tope (10 MiB).",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "ok-unpacked-at-limit",
+      "file": "ok-unpacked-at-limit.json",
+      "description": "Descomprimido mide justo el tope (30 MiB).",
+      "verdict": "ok",
+      "version": "1.6.2",
+      "keyIds": ["11edcfae"]
+    },
+    {
+      "name": "unknown-key",
+      "file": "unknown-key.json",
+      "description": "Firmado solo con una clave que la app no conoce.",
+      "verdict": "signature"
+    },
+    {
+      "name": "tampered-payload",
+      "file": "tampered-payload.json",
+      "description": "La versión cambiada después de firmar.",
+      "verdict": "signature"
+    },
+    {
+      "name": "no-domain",
+      "file": "no-domain.json",
+      "description": "Firmado sin el prefijo «micelio-ota-v1\\n».",
+      "verdict": "signature"
+    },
+    {
+      "name": "other-domain",
+      "file": "other-domain.json",
+      "description": "Firmado con otro prefijo («micelio-ota-v2\\n»).",
+      "verdict": "signature"
+    },
+    {
+      "name": "signature-not-base64",
+      "file": "signature-not-base64.json",
+      "description": "La única firma no es base64.",
+      "verdict": "signature"
+    },
+    {
+      "name": "signature-relabelled",
+      "file": "signature-relabelled.json",
+      "description": "La firma de una clave ajena con el keyId de la de la app.",
+      "verdict": "signature"
+    },
+    {
+      "name": "no-signatures",
+      "file": "no-signatures.json",
+      "description": "Sin firmas.",
+      "verdict": "signature"
+    },
+    {
+      "name": "too-many-signatures",
+      "file": "too-many-signatures.json",
+      "description": "Nueve firmas, una más que el tope, aunque la última sea buena.",
+      "verdict": "format"
+    },
+    {
+      "name": "not-json",
+      "file": "not-json.txt",
+      "description": "JSON cortado a la mitad.",
+      "verdict": "format"
+    },
+    {
+      "name": "not-object",
+      "file": "not-object.json",
+      "description": "JSON que no es un objeto.",
+      "verdict": "format"
+    },
+    {
+      "name": "format-2",
+      "file": "format-2.json",
+      "description": "Otro formato, sin pedir el .apk nuevo.",
+      "verdict": "format"
+    },
+    {
+      "name": "min-format-2",
+      "file": "min-format-2.json",
+      "description": "Un formato que esta app ya no entiende: pide el .apk nuevo.",
+      "verdict": "minFormat"
+    },
+    {
+      "name": "payload-base64url",
+      "file": "payload-base64url.json",
+      "description": "El payload en base64url, no en base64.",
+      "verdict": "format"
+    },
+    {
+      "name": "payload-base64-noncanonical",
+      "file": "payload-base64-noncanonical.json",
+      "description": "El payload en base64 con los bits de relleno a 1 (los mismos bytes para un decodificador indulgente).",
+      "verdict": "format"
+    },
+    {
+      "name": "payload-not-json",
+      "file": "payload-not-json.json",
+      "description": "El payload firmado no es JSON.",
+      "verdict": "format"
+    },
+    { "name": "other-app", "file": "other-app.json", "description": "Para otra app.", "verdict": "app" },
+    {
+      "name": "staging",
+      "file": "staging.json",
+      "description": "Del canal staging, en una app del canal stable.",
+      "verdict": "channel"
+    },
+    {
+      "name": "version-patch-100",
+      "file": "version-patch-100.json",
+      "description": "Parche 100: no cabe en el versionCode.",
+      "verdict": "version"
+    },
+    {
+      "name": "min-native-2",
+      "file": "min-native-2.json",
+      "description": "Pide un nivel nativo que este .apk no tiene.",
+      "verdict": "minNative"
+    },
+    {
+      "name": "other-url",
+      "file": "other-url.json",
+      "description": "El zip fuera de las releases del repositorio.",
+      "verdict": "url"
+    },
+    {
+      "name": "size-over-limit",
+      "file": "size-over-limit.json",
+      "description": "El zip pasa del tope por un byte.",
+      "verdict": "size"
+    },
+    {
+      "name": "size-string",
+      "file": "size-string.json",
+      "description": "El tamaño como texto.",
+      "verdict": "size"
+    },
+    {
+      "name": "unpacked-mismatch",
+      "file": "unpacked-mismatch.json",
+      "description": "«unpacked» no es la suma de los archivos.",
+      "verdict": "size"
+    },
+    {
+      "name": "unpacked-over-limit",
+      "file": "unpacked-over-limit.json",
+      "description": "Descomprimido pasa del tope por un byte.",
+      "verdict": "size"
+    },
+    {
+      "name": "sha256-uppercase",
+      "file": "sha256-uppercase.json",
+      "description": "El SHA-256 del zip en mayúsculas.",
+      "verdict": "sha256"
+    },
+    {
+      "name": "files-short-entry",
+      "file": "files-short-entry.json",
+      "description": "Un archivo sin su SHA-256.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-long-entry",
+      "file": "files-long-entry.json",
+      "description": "Un archivo con un cuarto campo.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-fraction-size",
+      "file": "files-fraction-size.json",
+      "description": "Un archivo que mide 1,5 bytes.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-negative-size",
+      "file": "files-negative-size.json",
+      "description": "Un archivo que mide -1 bytes.",
+      "verdict": "files"
+    },
+    {
+      "name": "files-empty-path",
+      "file": "files-empty-path.json",
+      "description": "Un archivo sin ruta.",
+      "verdict": "files"
+    }
+  ]
+}

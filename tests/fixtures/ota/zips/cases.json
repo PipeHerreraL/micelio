@@ -1,0 +1,776 @@
+{
+  "cases": [
+    {
+      "name": "good",
+      "zip": "good.zip",
+      "description": "Lo que escribe ota-pack.",
+      "verdict": "ok",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "b4a4d60fa1fd428a1ef44a226c9bee437c689ab14ffbb771c8d88c032c8ca44a",
+        "unpacked": 5086,
+        "files": [
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"]
+        ]
+      }
+    },
+    {
+      "name": "size-mismatch",
+      "zip": "good.zip",
+      "description": "El payload firma otro tamaño.",
+      "verdict": "size",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1802,
+        "sha256": "b4a4d60fa1fd428a1ef44a226c9bee437c689ab14ffbb771c8d88c032c8ca44a",
+        "unpacked": 5086,
+        "files": [
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"]
+        ]
+      }
+    },
+    {
+      "name": "sha256-mismatch",
+      "zip": "good.zip",
+      "description": "El payload firma otro SHA-256.",
+      "verdict": "sha256",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "352fdf9e11805393d261656fa292b80db8a5dc0264dfe4959915f43a176d010f",
+        "unpacked": 5086,
+        "files": [
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"]
+        ]
+      }
+    },
+    {
+      "name": "dotdot",
+      "zip": "dotdot.zip",
+      "description": "Una entrada «../x.js».",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1904,
+        "sha256": "f68a82f36897e1afe6645320160e8f93073f3512b9fd1daf2ea0735521812203",
+        "unpacked": 5097,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["../x.js", 11, "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"]
+        ]
+      }
+    },
+    {
+      "name": "absolute",
+      "zip": "absolute.zip",
+      "description": "Una entrada «/x.js».",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1900,
+        "sha256": "0012ce9158a1956500d76cc583f2c1d2b791f8f359925fa6cc4ad3943efb243f",
+        "unpacked": 5097,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["/x.js", 11, "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"]
+        ]
+      }
+    },
+    {
+      "name": "backslash",
+      "zip": "backslash.zip",
+      "description": "Una entrada «assets\\x.js».",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1912,
+        "sha256": "4e1fb29b7d7800b19839f7af4bea4875c460d4f2bb3db30dd32b81b58752c62a",
+        "unpacked": 5097,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["assets\\x.js", 11, "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"]
+        ]
+      }
+    },
+    {
+      "name": "name-with-nul",
+      "zip": "name-with-nul.zip",
+      "description": "Una entrada con un NUL en el nombre.",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1914,
+        "sha256": "7f38dac723c4ecf90c3314c38ec19318bee2364b211ac5d3bfd11d564c873746",
+        "unpacked": 5097,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["assets/x\u0000.js", 11, "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"]
+        ]
+      }
+    },
+    {
+      "name": "dot-segment",
+      "zip": "dot-segment.zip",
+      "description": "Una entrada «./x.js».",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1902,
+        "sha256": "05661d3ef8021e6330a6a4a1cef4f4b9daba521e2abe41272b88fac1bc3051b8",
+        "unpacked": 5097,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"],
+          ["./x.js", 11, "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"]
+        ]
+      }
+    },
+    {
+      "name": "duplicate",
+      "zip": "duplicate.zip",
+      "description": "index.html dos veces.",
+      "verdict": "zipPath",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 2029,
+        "sha256": "4ad884b8bd458cee3f9f5e44f6fcb02ac3a1d6ee97d6c66e0e784e7f295e8dd8",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "extra-file",
+      "zip": "extra-file.zip",
+      "description": "Un archivo que no está en «files».",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1920,
+        "sha256": "acd753a9980a6c857445ad99762a7e4f9dd578acb36929aea681cb7fe01535e4",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "changed-content",
+      "zip": "changed-content.zip",
+      "description": "index.html con un byte distinto del firmado (mismo tamaño).",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "909317c8de9c05afd9ccdcc13d830288c9d35d4a36767d129000b5e21a61185f",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "missing-file",
+      "zip": "missing-file.zip",
+      "description": "Falta un archivo de «files».",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1641,
+        "sha256": "9c27964784e476ec5af8b6134ffb588879c0515759ea1e139e3c42d652d11bcc",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "renamed-file",
+      "zip": "renamed-file.zip",
+      "description": "Tantos archivos como «files», pero uno con otro nombre.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "e3e1caafad5468c81b66c9a0f023bbfe5071b66099775454222ecfb2b0d77f85",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "stored",
+      "zip": "stored.zip",
+      "description": "index.html guardado sin comprimir (método 0): vale como deflate.",
+      "verdict": "ok",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1846,
+        "sha256": "fb8f8fb1e1e64d3f3509c0156e003060fd96c80c8bdb2f2fca175b4c01ef8aa0",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "unknown-method",
+      "zip": "unknown-method.zip",
+      "description": "index.html con un método de compresión que la app no lee (12, bzip2).",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "d9964524ff034a23b566a804fd3b8798941c755187cf2dd01dc846ced9934011",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "encrypted",
+      "zip": "encrypted.zip",
+      "description": "index.html marcado como cifrado.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "66b1599a1e8151436c54a6e85b91b35ac3db4b3a3c79fb703be92f8995f2fac0",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "longer-file",
+      "zip": "longer-file.zip",
+      "description": "index.html con un byte más que lo firmado tras su contenido, y las cabeceras dicen su tamaño.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1802,
+        "sha256": "f26dd61214ca9d6deee9a44031ebf7accb1dbca372c6c3998f54008a0cbce33f",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "bomb",
+      "zip": "bomb.zip",
+      "description": "index.html sigue con 31 MiB de ceros tras su contenido firmado, y las cabeceras dicen su tamaño.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 33414,
+        "sha256": "e97348c092262bbb749ef765c5d38ed8a22592441de4c9ca243d49c3da3ab87e",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "too-many",
+      "zip": "too-many.zip",
+      "description": "1001 entradas vacías.",
+      "verdict": "size",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 81886,
+        "sha256": "65e081a5e020c2a38dbf8fb0cb0a43fbf0d56dbdad9e3e8a453fcb04007912dc",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "local-header-signature",
+      "zip": "local-header-signature.zip",
+      "description": "La cabecera local de la primera entrada sin su firma; todo lo demás se lee bien.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "6fb5a8382d63e0813bff904ea1b430e843cf6ac2d2a98aab4f28f2cef15a175d",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "data-past-directory",
+      "zip": "data-past-directory.zip",
+      "description": "Los datos de la primera entrada, según el directorio central, se meten en el propio directorio.",
+      "verdict": "files",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "978c255e69683df37cd1c1076ec4faae096731e8a10247e4ba63e11594946fa7",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "no-index",
+      "zip": "no-index.zip",
+      "description": "Sin index.html.",
+      "verdict": "bundle",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1573,
+        "sha256": "e7d7c591c2c0fbe468f9abb3bda307bfa2e9935130169f628eb123122900595e",
+        "unpacked": 4909,
+        "files": [
+          ["micelio-bundle.json", 33, "e3337a8df06e3f93b3291b683e0f2779b1c191dedada36d4468f7e7d37b02588"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "bundle-version",
+      "zip": "bundle-version.zip",
+      "description": "micelio-bundle.json dice otra versión que el payload.",
+      "verdict": "bundle",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "8324ac6dbc00d4db827dad6c8cfef2c7102592bb25e9a2fcf017af58565a0321",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "7cbd3b1023644fa54b096d32d3510ef0f0251be33576936f14bbfea7e0f68d2b"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    },
+    {
+      "name": "bundle-min-native",
+      "zip": "bundle-min-native.zip",
+      "description": "micelio-bundle.json pide otro nivel nativo que el payload.",
+      "verdict": "bundle",
+      "payload": {
+        "app": "io.github.pipeherreral.micelio",
+        "channel": "stable",
+        "version": "1.6.2",
+        "minNative": 1,
+        "url": "https://github.com/PipeHerreraL/micelio/releases/download/v1.6.2/micelio-web.zip",
+        "size": 1801,
+        "sha256": "544fac7c7482dbbd168af3d81f9f6aec709353eebf7ebf62cd58fe157bc14217",
+        "unpacked": 5086,
+        "files": [
+          ["index.html", 177, "32873f2d4540fe544cc32a7db247b1bdc8e311c5c02438e823c20bcb9d48460e"],
+          ["micelio-bundle.json", 33, "d358f07e0117ab6c0c8a49625b8a623e672b4bf25f2616d3be3de5375b2ea3cb"],
+          [
+            "assets/index-fixture.js",
+            4330,
+            "1b1fa9ce9b81dc8807f6136347ac824fbb58bbbed155d9bff5fb7ce0aa4282de"
+          ],
+          [
+            "assets/index-fixture.css",
+            34,
+            "30fc446cf40f2557fb66ab7cec048846739f2b214891782fc1d29e23789d629c"
+          ],
+          ["cordova.js", 0, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"],
+          ["icons/noise.png", 512, "c3b63510ed8818a068889767397d008fead1ca5f3463495468bbc1accb47c710"]
+        ]
+      }
+    }
+  ]
+}

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { randomRange } from '../../src/core/rng.ts';
+import type { GameState } from '../../src/core/state.ts';
 import { BACKUP_KEY, SAVE_KEY, SAVE_VERSION } from '../../src/systems/save.ts';
 import { isMobile, savedState, seedRawSave, seedSave, stateWith } from './helpers.ts';
 
@@ -233,6 +235,34 @@ test('una versión anterior no pisa la partida que guardó una más nueva, ni al
   );
   expect(stored).toEqual([newer, null]);
   await expect(page.locator('.toast--sticky')).toContainText('versión más nueva');
+});
+
+// BUG-JOURNAL #32
+test('una versión anterior tampoco pisa la partida de una más nueva cuyo plasmodio no entiende', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  // save-v7.json con Avena por encima del tope de esta versión, escrito por una que lo subió: la
+  // carga indulgente reiniciaba el plasmodio y el autoguardado pisaba la partida.
+  const raw = JSON.parse(readFileSync(new URL('../fixtures/save-v7.json', import.meta.url), 'utf8')) as {
+    state: GameState;
+  };
+  const plasmodium = raw.state.partners.plasmodium;
+  if (!plasmodium) throw new Error('save-v7.json debería llevar el plasmodio');
+  plasmodium.upgrades.oats = 4;
+  const newer = JSON.stringify({ ...raw, game: '99.0.0' });
+  await seedRawSave(page, newer);
+  await page.goto('./');
+  await expect(page.locator('.toast--sticky')).toHaveCount(1);
+  await expect(page.locator('.toast--sticky')).toContainText('versión más nueva');
+
+  await page.locator('.core__button').click();
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const stored = await page.evaluate(
+    ([save, backup]) => [localStorage.getItem(save), localStorage.getItem(backup)],
+    [SAVE_KEY, BACKUP_KEY] as const,
+  );
+  expect(stored).toEqual([newer, null]);
 });
 
 // BUG-JOURNAL #12

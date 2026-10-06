@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "minFormat": 1,
+  "payload": "bm8gZXMganNvbg==",
+  "signatures": [
+    {
+      "keyId": "11edcfae",
+      "sig": "MEYCIQDFOuSwH2xLNy49WXMMA7p6/DV4JV90BfBZ0zl6ILJFagIhANMjEz8lEAWGEWj+iK+YPurL9Fobh+FekHImJ9+u8SFw"
+    }
+  ]
+}
