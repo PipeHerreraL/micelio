@@ -13,7 +13,9 @@
  * Esporas por rango de Esporada, en «r, g, b» para el degradado del sprite: el crema del micelio
  * (rango 0, como en la 1.5), rosa, herrumbre y púrpura negruzca, colores de esporada reales. El
  * púrpura está aclarado hasta 3:1 contra la hojarasca y el humus de cada suelo
- * (tests/palettes.test.ts): el de una esporada de verdad no se vería sobre la tierra oscura.
+ * (tests/palettes.test.ts): el de una esporada de verdad no se vería sobre la tierra oscura. Por eso
+ * el rango 3 se llama «púrpura» (`adapt.sporePrint.color.3`), que es lo que se ve, y la
+ * descripción guarda el dato real.
  */
 export const SPORE_PRINT_TONES = ['#EFE6D2', '#E8B4A8', '#B5683C', '#8C6385'] as const;
 

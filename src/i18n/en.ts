@@ -337,11 +337,11 @@ export const en: Catalog = {
   'adapt.lockedVow': 'Opens when you complete a cycle without breaking the “{vow}” vow.',
   'adapt.sporePrint.name': 'Spore print',
   'adapt.sporePrint.desc':
-    'The color of a spore print helps identify a mushroom. It is made with the cap on a sheet of paper under a glass: in the still, damp air the gills keep shooting spores, which fall without a draft carrying them off. It only changes the look: the spores on the canvas come out pink, rust or purple-black, depending on the rank.',
+    'The color of a spore print helps identify a mushroom. It is made with the cap on a sheet of paper under a glass: in the still, damp air the gills keep shooting spores, which fall without a draft carrying them off. It only changes the look: depending on the rank, the spores on the canvas come out pink, rust or purple. A real purple spore print is purple-black; on the canvas it is lightened so it shows against the soil.',
   'adapt.sporePrint.effect': 'Spore print: {color}.',
   'adapt.sporePrint.color.1': 'pink',
   'adapt.sporePrint.color.2': 'rust',
-  'adapt.sporePrint.color.3': 'purple-black',
+  'adapt.sporePrint.color.3': 'purple',
   'adapt.blackCords.name': 'Black bootlaces',
   'adapt.blackCords.desc':
     'Armillaria lays black rhizomorphs under the bark and through the soil, the “bootlaces”, which make their own way from one tree to the next. It only changes the look: the rhizomorphs on the canvas turn black, with a pale rim, and thicker with each rank.',

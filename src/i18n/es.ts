@@ -343,11 +343,11 @@ export const es = {
   'adapt.lockedVow': 'Se abre al cumplir un ciclo sin romper el voto «{vow}».',
   'adapt.sporePrint.name': 'Esporada',
   'adapt.sporePrint.desc':
-    'El color de la esporada ayuda a reconocer una seta. Se hace con el sombrero sobre un papel, tapado con un vaso: en el aire quieto y húmedo las láminas siguen disparando esporas, que caen sin que ninguna corriente se las lleve. Solo cambia cómo se ve: las esporas del lienzo salen rosas, de color herrumbre o de un púrpura negruzco, según el rango.',
+    'El color de la esporada ayuda a reconocer una seta. Se hace con el sombrero sobre un papel, tapado con un vaso: en el aire quieto y húmedo las láminas siguen disparando esporas, que caen sin que ninguna corriente se las lleve. Solo cambia cómo se ve: según el rango, las esporas del lienzo salen rosas, de color herrumbre o púrpuras. La esporada púrpura de verdad es negruzca; en el lienzo se aclara para que se vea sobre la tierra.',
   'adapt.sporePrint.effect': 'Esporada {color}.',
   'adapt.sporePrint.color.1': 'rosa',
   'adapt.sporePrint.color.2': 'color herrumbre',
-  'adapt.sporePrint.color.3': 'púrpura negruzca',
+  'adapt.sporePrint.color.3': 'púrpura',
   'adapt.blackCords.name': 'Cordones negros',
   'adapt.blackCords.desc':
     'Armillaria tiende bajo la corteza y por el suelo rizomorfos negros, los «cordones de zapato», que avanzan solos de un árbol a otro. Solo cambia cómo se ve: los rizomorfos del lienzo se vuelven negros, con un filo claro, y más gruesos por rango.',

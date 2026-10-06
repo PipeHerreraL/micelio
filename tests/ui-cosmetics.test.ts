@@ -120,9 +120,8 @@ describe('las cosméticas de los votos bajo Adaptaciones (fase 10)', () => {
     expect(row(view, 'Cordones negros')?.querySelector('.adapt__effect')?.textContent).toBe(
       'Rizomorfos negros con filo claro.',
     );
-    expect(row(view, 'Esporada')?.querySelector('.adapt__effect')?.textContent).toBe(
-      'Esporada púrpura negruzca.',
-    );
+    // El nombre dice lo que se ve: el púrpura del lienzo está aclarado (render/cosmetics.ts).
+    expect(row(view, 'Esporada')?.querySelector('.adapt__effect')?.textContent).toBe('Esporada púrpura.');
     expect(row(view, 'Cordones negros')?.querySelector('.adapt__cost')?.textContent).toBe('Al máximo');
   });
 });
