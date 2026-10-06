@@ -8,6 +8,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const CI = Boolean(process.env.CI);
 const PORT = 4174;
+/** Servidor de desarrollo: solo ahí existe `?pseudo` (tests/e2e/helpers.ts, DEV_URL). */
+const DEV_PORT = 4175;
 const chromiumChannel = CI ? {} : { channel: 'msedge' as const };
 
 export default defineConfig({
@@ -30,12 +32,22 @@ export default defineConfig({
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
   },
-  webServer: {
-    command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}/micelio/`,
-    reuseExistingServer: !CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `npm run build && npx vite preview --port ${PORT} --strictPort`,
+      url: `http://localhost:${PORT}/micelio/`,
+      reuseExistingServer: !CI,
+      timeout: 120_000,
+    },
+    // El pseudoidioma (textos un 40 % más largos) no llega al build: las pruebas que revisan con él
+    // que nada se corta a 375 px (fase 10) abren el juego en el servidor de desarrollo.
+    {
+      command: `npx vite --port ${DEV_PORT} --strictPort`,
+      url: `http://localhost:${DEV_PORT}/micelio/`,
+      reuseExistingServer: !CI,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: 'chromium',

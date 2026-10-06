@@ -66,7 +66,9 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
   const value = h('span', { class: 'counter__value tabular' });
   const rate = h('span', { class: 'counter__rate tabular' });
   // Desde que aparece Esporular, el HUD dice siempre cuántas esporas darías ahora y cuántos
-  // nutrientes faltan para la siguiente (PROMPT.md §10).
+  // nutrientes faltan para la siguiente (PROMPT.md §10). Sin el «en este bosque» de Esporular (fase
+  // 10): en la franja fija del móvil, a 375 px, la línea pasaba a dos según el nombre de la cifra
+  // («945 billones», «1,99 mil millones») y toda la franja saltaba 19 px a mitad de partida.
   const sporeNow = h('span', { class: 'counter__spores tabular' });
   const sporeNext = h('span', { class: 'counter__spores-next tabular' });
   const spores = h('p', { class: 'counter__line counter__line--spores', attrs: { hidden: true } }, [
@@ -131,7 +133,7 @@ export function createHud(store: Store, onAbsorb: (button: HTMLButtonElement) =>
     setHidden(spores, !showSpores);
     if (showSpores) {
       setText(sporeNow, tp('sporulate.gain', sporeGain(state)));
-      setText(sporeNext, t('sporulate.next', { value: fmt(nutrientsToNextSpore(state)) }));
+      setText(sporeNext, t('hud.nextSpore', { value: fmt(nutrientsToNextSpore(state)) }));
     }
     const started = state.stats.clicks > 0 || state.owned.hypha > 0 || state.stats.sporulations > 0;
     setHidden(keyHint, started);

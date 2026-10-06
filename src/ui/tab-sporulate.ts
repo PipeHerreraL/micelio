@@ -211,8 +211,13 @@ export function createSporulateTab(store: Store): TabView {
     setAttr(button, 'aria-disabled', ready ? 'false' : 'true');
     toggleClass(button, 'is-unaffordable', !ready);
     const completes = completesGoal(state);
-    setHidden(goalNote, !completes);
-    if (completes) setText(goalNote, completesText(state));
+    // En El regreso y en un ciclo la línea guarda su sitio aunque aún no toque decirla: aparece a
+    // mitad de partida, al crecer la ganancia, y empujaría Viento, que va debajo.
+    const goal = forestGoal(state).kind;
+    const reserved = !completes && (goal === 'return' || goal === 'cycle');
+    setHidden(goalNote, !completes && !reserved);
+    toggleClass(goalNote, 'is-reserved', reserved);
+    if (completes || reserved) setText(goalNote, completesText(state));
     // Un aviso oculto citado por id se lee igual: sin aviso, no se cita (tab-mutations.ts).
     setAttr(button, 'aria-describedby', completes ? goalNote.id : null);
     hint.update(true);

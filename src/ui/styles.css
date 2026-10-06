@@ -1733,6 +1733,11 @@ body::before {
   color: var(--fuego-fatuo);
 }
 
+/* El sitio de la línea, sin decirla (ni al lector): ver tab-sporulate.ts. */
+.spore__goal.is-reserved {
+  visibility: hidden;
+}
+
 .modal__lead {
   font-family: var(--font-title);
   font-size: 1.3rem;
@@ -2592,22 +2597,52 @@ body::before {
   list-style: none;
 }
 
+/* Fila de destino compacta (fase 10): 110–150 px a 375 px, para que en el móvil se vean dos a la
+   vez. La cabecera (suelo y nombre, y debajo el estilo o el récord) es también el <summary> que
+   despliega las reglas: así el objetivo de toque de 44 px no suma una línea más. */
 .wind__dest {
   display: grid;
   gap: 0.4rem;
-  padding: 0.9rem 0;
+  padding: 0.6rem 0 0.75rem;
   border-top: 1px solid var(--filete);
+}
+
+.wind__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.15rem;
 }
 
 .wind__place {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  min-width: 0;
+}
+
+.soil-swatch--row {
+  width: 1.1rem;
+  height: 24px;
 }
 
 .wind__name {
   font-family: var(--font-title);
   font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.wind__style,
+.wind__record,
+.wind__goal {
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.wind__head > .wind__style,
+.wind__head > .wind__record {
+  grid-column: 1 / -1;
 }
 
 .wind__style,
@@ -2615,6 +2650,61 @@ body::before {
 .adapt__why {
   color: var(--micelio-tenue);
   font-size: 0.9rem;
+}
+
+.wind__why {
+  margin-bottom: 0.5rem;
+}
+
+/* Sin el triángulo nativo, que con una cabecera en rejilla caía en su propia línea (Chromium y
+   Safari): «Reglas» y un galón que gira al abrir dicen que la fila se despliega. */
+.wind__summary {
+  min-height: var(--tap);
+  list-style: none;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.wind__summary::-webkit-details-marker {
+  display: none;
+}
+
+.wind__summary:focus-visible {
+  outline: 2px solid var(--rebozuelo);
+  outline-offset: 2px;
+}
+
+.wind__more {
+  grid-row: 1;
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--micelio-tenue);
+  font-size: 0.85rem;
+}
+
+.wind__more::after {
+  content: '';
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: -0.2rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.wind__details[open] .wind__more::after {
+  margin-top: 0.2rem;
+  transform: rotate(-135deg);
+}
+
+.wind__details > .wind__style {
+  margin-top: 0.4rem;
+}
+
+.wind__details > .wind__rules {
+  margin-top: 0.4rem;
 }
 
 .wind__rules,
@@ -2628,21 +2718,6 @@ body::before {
 .wind__go {
   justify-self: start;
   gap: 0.5rem;
-}
-
-/* Ciclo libre (fase 10): el récord del bioma y sus reglas plegadas, con un objetivo de toque entero. */
-.wind__record {
-  font-size: 0.9rem;
-}
-
-/* Sin `display: flex`, que quita el triángulo de un <summary> en Chromium y Safari. */
-.wind__details > summary {
-  box-sizing: border-box;
-  min-height: var(--tap);
-  padding-block: 0.65rem;
-  color: var(--micelio-tenue);
-  font-size: 0.9rem;
-  cursor: pointer;
 }
 
 .wind__end,

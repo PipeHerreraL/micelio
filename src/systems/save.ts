@@ -18,6 +18,7 @@ import {
   MAX_LEG,
   RETURN_LEG,
   getBiome,
+  getBiomeAdaptation,
   isBiomeId,
   ringOfLeg,
   type BiomeAdaptationId,
@@ -506,9 +507,8 @@ function validateBiomeAdaptations(
   for (const id of BIOME_ADAPTATION_IDS) {
     const rank = raw[id];
     if (!isCount(rank)) return null;
-    const def = BIOME_ADAPTATIONS.find((d) => d.id === id);
-    // Sin definición todavía (las de la pradera y la tundra), el único rango posible es 0.
-    if (def ? rank > def.max || (rank > 0 && !visited.has(def.biome)) : rank > 0) return null;
+    const def = getBiomeAdaptation(id);
+    if (rank > def.max || (rank > 0 && !visited.has(def.biome))) return null;
     ranks[id] = rank;
   }
   return ranks;

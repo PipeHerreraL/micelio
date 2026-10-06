@@ -76,3 +76,66 @@ export async function seedRawSave(page: Page, text: string): Promise<void> {
 export function isMobile(projectName: string): boolean {
   return projectName.startsWith('mobile');
 }
+
+/**
+ * Los dos teléfonos de la fase 10 (un iPhone SE y un Pixel 7). La interfaz del viaje y del ciclo se
+ * prueba con estos tamaños en los cinco perfiles: en los de escritorio, a ese ancho, es la misma
+ * maquetación del móvil con otro motor.
+ */
+export const PHONES = [
+  { width: 375, height: 667 },
+  { width: 412, height: 915 },
+] as const;
+
+/** El servidor de desarrollo (playwright.config.ts): solo ahí existe `?pseudo`. */
+export const DEV_URL = 'http://localhost:4175/micelio/';
+
+/**
+ * Abre el juego en el pseudoidioma (textos un 40 % más largos), que solo existe en desarrollo. El
+ * panel de desarrollo, fijo abajo a la derecha, tapa la barra de pestañas del móvil: se esconde.
+ */
+export async function gotoPseudo(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = '.dev { display: none !important; }';
+      document.head.append(style);
+    });
+  });
+  await page.goto(`${DEV_URL}?pseudo`);
+}
+
+/** Errores de la página y de la consola durante la prueba. */
+export function collectErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  return errors;
+}
+
+/**
+ * Lo que se corta: los elementos visibles dentro de `selector` que se salen de su caja por los
+ * lados, y el desplazamiento horizontal de la página. Vacío si todo cabe.
+ */
+export function cutOff(page: Page, selector: string): Promise<string[]> {
+  return page.evaluate((sel) => {
+    const out: string[] = [];
+    const root = document.querySelector(sel);
+    if (!root) return [`no existe ${sel}`];
+    const box = root.getBoundingClientRect();
+    for (const el of root.querySelectorAll<HTMLElement>('*')) {
+      if (el.getClientRects().length === 0) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width === 0) continue;
+      // Un píxel de margen por el redondeo; el galón de «Reglas» gira y asoma medio píxel.
+      if (r.left < box.left - 1 || r.right > box.right + 1) {
+        out.push(`${el.className || el.tagName}: ${Math.round(r.left)}–${Math.round(r.right)}`);
+      }
+    }
+    const extra = document.documentElement.scrollWidth - document.documentElement.clientWidth;
+    if (extra > 0) out.push(`la página se desplaza ${extra} px en horizontal`);
+    return out;
+  }, selector);
+}

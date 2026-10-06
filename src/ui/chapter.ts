@@ -11,6 +11,7 @@ import { isActOneClosed, isColonized, isReturnClosed, openRing, windTargets } fr
 import { hasSeen, type GameState } from '../core/state.ts';
 import {
   COLONIZE_LEVEL,
+  JOURNEY_LEGS,
   LINEAGE_FACTOR,
   RETURN_LEG,
   getBiome,
@@ -62,10 +63,13 @@ export function chapterSeenKey(chapter: Chapter): string {
   }
 }
 
-/** Bioma de cada tramo del viaje, del primer destino al actual. */
+/**
+ * Bioma de cada tramo del viaje, del primer destino al actual. Solo los tramos 1–4: el 5 es El
+ * regreso y el ciclo libre, que sembrado en un destino ya visitado volvería a encolar sus láminas.
+ */
 function legBiomes(state: GameState): DestinationId[] {
   const out: DestinationId[] = [];
-  for (let leg = 1; leg <= state.forest.leg; leg += 1) {
+  for (let leg = 1; leg <= Math.min(state.forest.leg, JOURNEY_LEGS); leg += 1) {
     const biome = leg === state.forest.leg ? state.forest.biome : state.chronicle[leg]?.biome;
     if (biome && biome !== 'natal') out.push(biome);
   }

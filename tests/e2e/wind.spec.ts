@@ -1,11 +1,18 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { disperse } from '../../src/core/actions.ts';
+import { drain } from '../../src/core/events.ts';
 import { createState, type GameState } from '../../src/core/state.ts';
 import { MUTATION_IDS } from '../../src/data/mutations.ts';
-import { isMobile, savedState, seedRawSave, seedSave, windState } from './helpers.ts';
+import { checkColonization } from '../../src/systems/journey.ts';
+import { PHONES, cutOff, isMobile, savedState, seedRawSave, seedSave, windState } from './helpers.ts';
 
-/** Viento de esporas (docs/ROADMAP.md, fase 8) en el navegador. */
+/**
+ * Viento de esporas (docs/ROADMAP.md, fases 8 y 10) en el navegador. Lo que depende del ancho (las
+ * filas compactas, la cartela) corre en los cinco perfiles con los tamaños de dos teléfonos; los
+ * recorridos que no dependen de él, en un perfil por motor. El muro de la 1.5, con un guardado real,
+ * vive en wall.spec.ts.
+ */
 
 const HOUR = 3600 * 1000;
 
@@ -52,34 +59,67 @@ test('«Ver el viento» lleva a Esporular con el foco en Viento de esporas', asy
   await expect(page.locator('#wind-title')).toBeFocused();
 });
 
-test('dispersar a la taiga cambia el suelo, abre la llegada y guarda el viaje', async ({ page }, info) => {
-  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
-  await seedSave(page, windState());
-  await page.goto('./');
-  await page.getByRole('tab', { name: /Esporular/ }).click();
-  const go = page.getByRole('button', { name: 'Dispersar hacia la taiga' });
-  await go.focus();
-  await page.keyboard.press('Enter');
-  // Dispersar no se deshace: el foco empieza en quedarse.
-  await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
-  await expect(dialog(page).getByText('Destino: Taiga, podzol.')).toBeVisible();
-  await dialog(page).getByRole('button', { name: 'Dispersar', exact: true }).click();
-  // El botón del destino desaparece (ya visitado): el foco no puede caer en <body>.
-  await expect(page.locator('#wind-title')).toBeFocused();
-  await expect(page.locator('.stage')).toHaveAttribute('data-biome', 'taiga');
-  const caption = page.locator('.caption');
-  await expect(caption).toContainText('Taiga · podzol');
-  await expect(caption).toContainText('Colonización: nivel 0 de 500');
-  // Tras la animación, la lámina de llegada.
-  await expect(dialog(page).getByRole('heading', { name: 'La taiga' })).toBeVisible({ timeout: 10_000 });
-  await dialog(page).getByRole('button', { name: 'Empezar a crecer' }).click();
-  await expect(page.locator('.core__button')).toBeFocused();
-  const saved = await savedState(page);
-  expect(saved.forest.biome).toBe('taiga');
-  expect(saved.forest.leg).toBe(1);
-  expect(saved.spores).toEqual({ level: 0, available: 1725 });
-  expect(saved.chronicle[0]?.leftAt).not.toBeNull();
-});
+/** Altos de las filas de destino a la vista, en px. */
+function rowHeights(page: Page): Promise<number[]> {
+  return page
+    .locator('.wind__dest:visible')
+    .evaluateAll((rows) => rows.map((row) => Math.round(row.getBoundingClientRect().height)));
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, las filas del viaje son compactas, sus reglas se abren con el teclado y dispersar a la taiga deja el foco arriba`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    await seedSave(page, windState());
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Esporular/ }).click();
+    // Fase 10: unos 110–150 px por fila, para que en el móvil quepan dos a la vista; nada se corta.
+    const heights = await rowHeights(page);
+    expect(heights).toHaveLength(2);
+    for (const height of heights) {
+      expect(height).toBeGreaterThanOrEqual(110);
+      expect(height).toBeLessThanOrEqual(150);
+    }
+    expect(await cutOff(page, '.wind')).toEqual([]);
+    const row = page.locator('.wind__dest:visible').first();
+    const go = row.getByRole('button', { name: 'Dispersar hacia la taiga' });
+    // El botón, a todo el ancho de la fila y con su objetivo de toque.
+    const [rowBox, goBox] = [await row.boundingBox(), await go.boundingBox()];
+    expect(goBox?.width ?? 0).toBeGreaterThanOrEqual((rowBox?.width ?? 0) - 1);
+    expect(goBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    // Las reglas, plegadas: la cabecera de la fila las abre y las cierra con el teclado.
+    const rules = row.locator('.wind__rules');
+    await expect(rules).toBeHidden();
+    const summary = row.locator('summary');
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(rules).toBeVisible();
+    await expect(rules).toContainText('Llueve la mitad');
+    await page.keyboard.press('Enter');
+    await expect(rules).toBeHidden();
+
+    await go.focus();
+    await page.keyboard.press('Enter');
+    // Dispersar no se deshace: el foco empieza en quedarse.
+    await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
+    await expect(dialog(page).getByText('Destino: Taiga, podzol.')).toBeVisible();
+    await dialog(page).getByRole('button', { name: 'Dispersar', exact: true }).click();
+    // El botón del destino desaparece (ya visitado): el foco no puede caer en <body>.
+    await expect(page.locator('#wind-title')).toBeFocused();
+    await expect(page.locator('.stage')).toHaveAttribute('data-biome', 'taiga');
+    await expect(page.locator('.caption__progress')).toHaveText('Colonización: nivel 0 de 500');
+    // Tras la animación, la lámina de llegada.
+    await expect(dialog(page).getByRole('heading', { name: 'La taiga' })).toBeVisible({ timeout: 10_000 });
+    await dialog(page).getByRole('button', { name: 'Empezar a crecer' }).click();
+    await expect(page.locator('.core__button')).toBeFocused();
+    const saved = await savedState(page);
+    expect(saved.forest.biome).toBe('taiga');
+    expect(saved.forest.leg).toBe(1);
+    expect(saved.spores).toEqual({ level: 0, available: 1725 });
+    expect(saved.chronicle[0]?.leftAt).not.toBeNull();
+  });
+}
 
 /** Rectángulos que se cruzan (con un píxel de margen por el redondeo). */
 function overlaps(
@@ -129,153 +169,26 @@ for (const viewport of [
   });
 }
 
-/**
- * En el Chocó, segundo destino, colonizado tras la taiga: el muro de la 1.5. `seen` lleva las
- * láminas de la 1.5 que se dan por vistas.
- */
-function wallState(seen: readonly string[]): GameState {
-  const now = Date.now();
-  return windState((s) => {
-    s.stats.sporulations = 24;
-    s.stats.totalTime = 40_000;
-    s.lifetimeEarned = 1e16;
-    s.forest = {
-      biome: 'choco',
-      leg: 2,
-      earned: 1e15,
-      arrivedAt: now - 2 * HOUR,
-      arrivalSporulations: 18,
-      arrivalPlayTime: 30_000,
-    };
-    const natal = s.chronicle[0];
-    if (natal) Object.assign(natal, { leftAt: now - 6 * HOUR, levelReached: 1941 });
-    s.chronicle.push(
-      {
-        biome: 'taiga',
-        leg: 1,
-        arrivedAt: now - 6 * HOUR,
-        colonizedAt: now - 3 * HOUR,
-        sporulations: 6,
-        playTime: 11_000,
-        leftAt: now - 2 * HOUR,
-        levelReached: 580,
-      },
-      {
-        biome: 'choco',
-        leg: 2,
-        arrivedAt: now - 2 * HOUR,
-        colonizedAt: now - HOUR,
-        sporulations: 6,
-        playTime: 8000,
-        leftAt: null,
-        levelReached: null,
-      },
-    );
-    s.spores.level = 640;
-    s.seen.push(...seen);
-  });
-}
-
-test('en el muro sale la lámina del anillo 2, lleva al viento y se dispersa a la pradera', async ({
-  page,
-}, info) => {
-  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
-  await seedSave(
-    page,
-    wallState([
-      'chapter.arrive.taiga',
-      'chapter.colonize.taiga',
-      'chapter.arrive.choco',
-      'chapter.colonize.choco',
-    ]),
-  );
-  await page.goto('./');
-  // El muro de la 1.5 (fase 10): la lámina sale del estado, sin marca de la migración.
-  await expect(dialog(page).getByText('Acto III · Donde acaban los árboles')).toBeVisible();
-  await expect(dialog(page).getByRole('heading', { name: 'Hierba y hielo' })).toBeVisible();
-  await expect(dialog(page).getByRole('button', { name: 'Seguir creciendo' })).toBeFocused();
-  await dialog(page).getByRole('button', { name: 'Ver el viento' }).click();
-  await expect(dialog(page)).toBeHidden();
-  await expect(page.getByRole('tab', { name: /Esporular/ })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('#wind-title')).toBeFocused();
-  // Donde no quedaba ningún destino, ahora hay dos.
-  await expect(page.locator('.wind__go:visible')).toHaveText([
-    'Dispersar hacia la pradera',
-    'Dispersar hacia la tundra',
-  ]);
-  await expect(page.getByText('No quedan biomas nuevos', { exact: false })).toBeHidden();
-  const go = page.getByRole('button', { name: 'Dispersar hacia la pradera' });
-  await go.focus();
-  await page.keyboard.press('Enter');
-  await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
-  await expect(dialog(page).getByText('Destino: Pradera, chernozem.')).toBeVisible();
-  await expect(dialog(page).getByText('El Anillo de hadas rinde ×6.')).toBeVisible();
-  await dialog(page).getByRole('button', { name: 'Dispersar', exact: true }).click();
-  await expect(page.locator('#wind-title')).toBeFocused();
-  await expect(page.locator('.stage')).toHaveAttribute('data-biome', 'prairie');
-  const caption = page.locator('.caption');
-  await expect(caption).toContainText('Pradera · chernozem');
-  await expect(caption).toContainText('Colonización: nivel 0 de 500');
-  // La llegada: Acto III, sus reglas, la meta y sus adaptaciones.
-  await expect(dialog(page).getByRole('heading', { name: 'La pradera' })).toBeVisible({ timeout: 10_000 });
-  await expect(dialog(page).getByText('Acto III · Donde acaban los árboles')).toBeVisible();
-  await expect(dialog(page).getByRole('button', { name: 'Ver las adaptaciones' })).toHaveCount(1);
-  await dialog(page).getByRole('button', { name: 'Empezar a crecer' }).click();
-  await expect(page.locator('.core__button')).toBeFocused();
-  const saved = await savedState(page);
-  expect(saved.forest).toMatchObject({ biome: 'prairie', leg: 3 });
-  expect(saved.spores).toEqual({ level: 0, available: 1725 });
-  expect(saved.chronicle[2]?.leftAt).not.toBeNull();
-  expect(saved.seen).toContain('chapter.ring2');
-  await page.getByRole('tab', { name: /Crónica/ }).click();
-  await expect(page.locator('.chronicle__title')).toHaveText([
-    'Bosque natal · Acto I',
-    'Taiga · colonizado',
-    'Selva del Chocó · colonizado',
-    'Pradera · en curso',
-  ]);
-});
-
-test('la colonización que cierra el primer anillo no lleva al viento: lo hace la lámina siguiente', async ({
-  page,
-}, info) => {
-  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
-  await seedSave(page, wallState(['chapter.arrive.taiga', 'chapter.colonize.taiga', 'chapter.arrive.choco']));
-  await page.goto('./');
-  await expect(dialog(page).getByText('Bioma colonizado')).toBeVisible();
-  // Dos «Ver el viento» seguidos sobrarían: aquí solo se sigue creciendo.
-  await expect(dialog(page).getByRole('button', { name: 'Ver el viento' })).toHaveCount(0);
-  await expect(dialog(page).getByRole('button', { name: 'Seguir creciendo' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(dialog(page).getByRole('heading', { name: 'Hierba y hielo' })).toBeVisible();
-  await expect(dialog(page).getByRole('button', { name: 'Ver el viento' })).toHaveCount(1);
-});
-
 test('al volver tras 24 h a la tundra, el informe dice cuánto rindió entera la red bajo la nieve', async ({
   page,
 }, info) => {
   test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
   const now = Date.now();
-  const state = wallState([
-    'chapter.arrive.taiga',
-    'chapter.colonize.taiga',
-    'chapter.arrive.choco',
-    'chapter.colonize.choco',
-    'chapter.ring2',
-    'chapter.arrive.tundra',
-  ]);
-  // Del Chocó colonizado a la tundra, tercer destino, hace 25 h.
-  const choco = state.chronicle[2];
-  if (choco) Object.assign(choco, { leftAt: now - 25 * HOUR, levelReached: 640 });
-  state.forest = {
-    biome: 'tundra',
-    leg: 3,
-    earned: 0,
-    arrivedAt: now - 25 * HOUR,
-    arrivalSporulations: 24,
-    arrivalPlayTime: 40_000,
-  };
-  state.spores.level = 0;
+  // Taiga y Chocó colonizados y la tundra, tercer destino, hace 25 h, por el camino del juego.
+  const state = windState((s) => {
+    for (const [i, to] of (['taiga', 'choco'] as const).entries()) {
+      disperse(s, { to, now: now - (40 - i * 5) * HOUR });
+      s.spores.level = 520;
+      checkColonization(s, now - (38 - i * 5) * HOUR);
+    }
+    disperse(s, { to: 'tundra', now: now - 25 * HOUR });
+    drain();
+    s.seen.push(
+      ...['taiga', 'choco'].flatMap((b) => [`chapter.arrive.${b}`, `chapter.colonize.${b}`]),
+      'chapter.ring2',
+      'chapter.arrive.tundra',
+    );
+  }, now);
   await seedSave(page, state, now - 24 * HOUR);
   await page.goto('./');
   await expect(dialog(page).getByRole('heading', { name: 'Mientras no estabas…' })).toBeVisible();

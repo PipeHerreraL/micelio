@@ -86,14 +86,18 @@ describe('Viento en el ciclo libre (fase 10)', () => {
     expect(wind.root.querySelector('.tab__intro')?.textContent).toBe(
       'El viaje está cerrado: ahora el viento lleva tu linaje a cualquier bioma, también al que habitas. Cada siembra es un ciclo con el nivel de esporas en 0 y la meta en el nivel 500; cumplirlo deja tu mejor tiempo como récord.',
     );
-    // Las reglas, plegadas y con el bioma en el <summary>; el natal no tiene reglas ni estilo propios.
+    // Las reglas y el estilo, que ya se conocen del viaje, plegados bajo una cabecera que nombra el
+    // bioma y su récord (el <summary>); el natal no tiene reglas ni estilo propios.
     const [natal, taiga] = rows;
     expect(natal?.querySelector('details')).toBeNull();
     expect(natal?.querySelector('.wind__style')).toBeNull();
     const details = taiga?.querySelector('details');
     expect(details?.open).toBe(false);
-    expect(details?.querySelector('summary')?.textContent).toBe('Reglas del bioma: Taiga');
-    expect(details?.textContent).toContain('Llueve la mitad');
+    expect(details?.querySelector('summary')?.textContent).toBe('Taiga · podzol Aún sin récord Reglas');
+    expect(details?.querySelector(':scope > .wind__style')?.textContent).toBe(
+      'Para quien deja crecer: los árboles trabajan solos.',
+    );
+    expect(details?.querySelector(':scope > .wind__rules')?.textContent).toContain('Llueve la mitad');
     // Tras El regreso no hay meta al pie: el natal libre no persigue nada.
     expect(wind.root.querySelector<HTMLElement>('.wind__end')?.hidden).toBe(true);
   });
@@ -149,16 +153,25 @@ describe('Viento en el ciclo libre (fase 10)', () => {
     expect(wind.root.querySelector<HTMLElement>('.wind__end')?.hidden).toBe(true);
   });
 
-  it('sin 300 esporas, cada fila dice cuántas faltan para sembrar', () => {
+  it('sin 300 esporas, cuántas faltan se dice una vez, sobre la lista, y lo cita cada botón', () => {
     const state = taigaDone();
     state.spores.available = 120;
     invalidate(state);
     const wind = windOf(createStore(state));
-    const button = visibleRows(wind.root)[2]?.querySelector('.wind__go');
-    expect(button?.getAttribute('aria-disabled')).toBe('true');
-    expect(document.getElementById(button?.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
-      'Faltan 180 esporas para el viaje.',
+    const buttons = visibleRows(wind.root).map((row) => row.querySelector('.wind__go'));
+    expect(buttons).toHaveLength(5);
+    for (const button of buttons) {
+      expect(button?.getAttribute('aria-disabled')).toBe('true');
+      expect(document.getElementById(button?.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+        'Faltan 180 esporas para el viaje.',
+      );
+    }
+    // Cinco veces la misma línea alargaba cada fila sin decir nada nuevo.
+    const reasons = Array.from(wind.root.querySelectorAll<HTMLElement>('.wind__why')).filter(
+      (p) => !p.hidden,
     );
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]?.closest('.wind__dest')).toBeNull();
   });
 });
 
@@ -259,6 +272,21 @@ describe('el ciclo libre en la Crónica y en Estadísticas (fase 10)', () => {
     reachLevel(state, 520, CYCLE_NOW + 72 * HOUR);
     tab.update();
     expect(records().map((li) => li.querySelector('p')?.textContent)).toEqual(['Bosque natal', 'Taiga']);
+    expect(tab.root.querySelector('.chronicle__cycle')?.textContent).toContain('2 ciclos cumplidos');
+  });
+
+  it('cumplir otra vez la taiga, más rápido, rehace la Crónica aunque no haya un récord más', () => {
+    const state = taigaDone();
+    const tab = chronicleOf(state);
+    disperse(state, { to: 'taiga', now: CYCLE_NOW + 70 * HOUR });
+    tab.update();
+    // Sembrar suma un ciclo empezado y rehace la lista; cumplir solo suma uno cumplido y mejora el
+    // récord en su sitio: la lista de récords no crece.
+    reachLevel(state, 520, CYCLE_NOW + 71 * HOUR);
+    tab.update();
+    const records = Array.from(tab.root.querySelectorAll<HTMLElement>('ul.chronicle__records > li'));
+    expect(records).toHaveLength(1);
+    expect(records[0]?.querySelectorAll('p')[1]?.textContent).toMatch(/^1 h · 1 partida · /);
     expect(tab.root.querySelector('.chronicle__cycle')?.textContent).toContain('2 ciclos cumplidos');
   });
 

@@ -97,7 +97,6 @@ interface TargetRow {
   kind: WindTargetKind;
   root: HTMLElement;
   button: HTMLButtonElement;
-  why: HTMLElement;
   /** El mejor ciclo del bioma, en las filas del ciclo libre. */
   record: HTMLElement | null;
 }
@@ -196,19 +195,23 @@ export function createWindSection(store: Store): WindSection {
   const cost = h('p', { class: 'wind__cost tabular', text: tp('wind.cost', DISPERSE_COST) });
   const heading = h('h4', { class: 'wind__heading', text: t('wind.destinations') });
   const list = h('ul', { class: 'wind__list' });
+  // Por qué no se puede partir: el mismo motivo para todas las filas (colonizar el bosque actual o
+  // juntar las esporas), así que se dice una vez, sobre la lista, y cada botón lo cita.
+  const why = h('p', { class: 'wind__why', id: 'wind-why', attrs: { hidden: true } });
   // Antes del anillo 2, una línea dice cuándo se abre, en vez de dos filas bloqueadas (fase 10).
   const ring2 = h('p', { class: 'wind__ring2', text: t('wind.ring2'), attrs: { hidden: true } });
   const end = h('p', { class: 'wind__end', attrs: { hidden: true } });
 
   /**
-   * Una fila: el suelo y el nombre, una línea de estilo, sus reglas y el botón de partir. En el ciclo
-   * libre, además, el récord del bioma, y las reglas plegadas en un <details>: ya se conocen del
-   * viaje, y así las cinco filas caben en el móvil.
+   * Una fila compacta (fase 10; 110–150 px a 375 px, para que en el móvil quepan dos a la vista):
+   * el suelo y el nombre, una línea (el estilo en el viaje, el récord en el ciclo libre) y el botón
+   * de partir a todo el ancho. Las reglas van plegadas en un <details> cuyo <summary> es la cabecera
+   * entera de la fila: con un <summary> aparte, de 44 px de toque, la fila pasaba de 160 px. En el
+   * ciclo libre el estilo también se pliega: ya se conoce del viaje. El regreso dice su meta a la
+   * vista, y el natal del ciclo no tiene reglas: sin <details>.
    */
   function targetRow(biome: BiomeId, kind: WindTargetKind): TargetRow {
     const style = targetStyle(biome, kind);
-    const rules = kind === 'return' ? [returnGoalText()] : biomeRules(biome);
-    const why = h('p', { class: 'wind__why', id: `wind-${kind}-${biome}-why`, attrs: { hidden: true } });
     const button = h('button', { class: 'button button--primary wind__go', attrs: { type: 'button' } }, [
       uiIcon('wind'),
       h('span', { text: targetLabel(biome, kind) }),
@@ -217,37 +220,52 @@ export function createWindSection(store: Store): WindSection {
       if (button.getAttribute('aria-disabled') === 'true') return;
       confirm(biome, kind);
     });
-    const ruleList = h(
-      'ul',
-      { class: 'wind__rules' },
-      rules.map((rule) => h('li', { text: rule })),
-    );
-    const record = kind === 'cycle' ? h('p', { class: 'wind__record tabular' }) : null;
-    const parts: Node[] = [
-      h('div', { class: 'wind__place' }, [
-        soilSwatch(biome),
-        h('span', {
-          class: 'wind__name',
-          text: t('caption.place', { name: biomeName(biome), soil: biomeSoil(biome) }),
-        }),
-      ]),
-    ];
-    if (style !== null) parts.push(h('p', { class: 'wind__style', text: style }));
-    if (record === null) parts.push(ruleList);
-    else {
-      parts.push(record);
-      if (rules.length > 0) {
-        parts.push(
-          h('details', { class: 'wind__details' }, [
-            h('summary', { text: t('wind.rules.summary', { name: biomeName(biome) }) }),
-            ruleList,
-          ]),
-        );
-      }
+    const place = h('span', { class: 'wind__place' }, [
+      soilSwatch(biome, 'soil-swatch--row'),
+      h('span', {
+        class: 'wind__name',
+        text: t('caption.place', { name: biomeName(biome), soil: biomeSoil(biome) }),
+      }),
+    ]);
+    const record = kind === 'cycle' ? h('span', { class: 'wind__record tabular' }) : null;
+    const styleLine = (tag: 'span' | 'p'): HTMLElement | null =>
+      style === null ? null : h(tag, { class: 'wind__style', text: style });
+    const line = record ?? styleLine('span');
+    // Los espacios entre las piezas no se ven (son celdas de una rejilla), pero separan las frases
+    // en el nombre accesible del <summary>.
+    const head: (Node | string)[] = line ? [place, ' ', line] : [place];
+    const rules = kind === 'return' ? [] : biomeRules(biome);
+    const folded: Node[] = [];
+    if (record) {
+      const known = styleLine('p');
+      if (known) folded.push(known);
     }
-    const root = h('li', { class: 'wind__dest' }, [...parts, button, why]);
+    if (rules.length > 0) {
+      folded.push(
+        h(
+          'ul',
+          { class: 'wind__rules' },
+          rules.map((rule) => h('li', { text: rule })),
+        ),
+      );
+    }
+    const top =
+      folded.length > 0
+        ? h('details', { class: 'wind__details' }, [
+            // «Reglas» va al final: el nombre accesible empieza por el bioma, distinto en cada fila.
+            h('summary', { class: 'wind__head wind__summary' }, [
+              ...head,
+              ' ',
+              h('span', { class: 'wind__more', text: t('wind.rules.more') }),
+            ]),
+            ...folded,
+          ])
+        : h('div', { class: 'wind__head' }, head);
+    const parts: Node[] = [top];
+    if (kind === 'return') parts.push(h('p', { class: 'wind__goal', text: returnGoalText() }));
+    const root = h('li', { class: 'wind__dest' }, [...parts, button]);
     list.append(root);
-    return { biome, kind, root, button, why, record };
+    return { biome, kind, root, button, record };
   }
 
   const rows: TargetRow[] = [
@@ -264,6 +282,7 @@ export function createWindSection(store: Store): WindSection {
     lineage,
     intro,
     cost,
+    why,
     heading,
     list,
     ring2,
@@ -368,6 +387,11 @@ export function createWindSection(store: Store): WindSection {
 
       const block = disperseBlock(state);
       const missing = departureCost(state) - disperseFunds(state);
+      let reason: string | null = null;
+      if (block === 'colonize') reason = t('wind.needColonize', { goal: formatCount(COLONIZE_LEVEL) });
+      else if (block === 'spores') reason = tp('wind.needSpores', missing);
+      setHidden(why, none || reason === null);
+      if (reason !== null) setText(why, reason);
       for (const row of rows) {
         const offered = targets.some((target) => target.biome === row.biome && target.kind === row.kind);
         setHidden(row.root, !offered);
@@ -380,15 +404,10 @@ export function createWindSection(store: Store): WindSection {
               : t('wind.cycle.noRecord'),
           );
         }
-        let reason: string | null = null;
-        if (block === 'colonize') reason = t('wind.needColonize', { goal: formatCount(COLONIZE_LEVEL) });
-        else if (block === 'spores') reason = tp('wind.needSpores', missing);
         setAttr(row.button, 'aria-disabled', reason === null ? 'false' : 'true');
         toggleClass(row.button, 'is-unaffordable', reason !== null);
         // Un motivo oculto citado por id se lee igual: sin motivo, no se cita (tab-mutations.ts).
-        setAttr(row.button, 'aria-describedby', reason === null ? null : row.why.id);
-        setHidden(row.why, reason === null);
-        if (reason !== null) setText(row.why, reason);
+        setAttr(row.button, 'aria-describedby', reason === null ? null : why.id);
       }
     },
     destroy: () => {

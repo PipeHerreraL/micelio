@@ -134,6 +134,25 @@ describe('sección Viento de esporas', () => {
     }
   });
 
+  it('cada fila del viaje es compacta: el estilo a la vista y las reglas plegadas bajo una cabecera que nombra el bioma', () => {
+    const wind = windOf(createStore(actOneState()));
+    const rows = Array.from(wind.root.querySelectorAll<HTMLElement>('.wind__dest')).filter(
+      (row) => !row.closest('[hidden]'),
+    );
+    // El <summary> es la cabecera entera: su nombre accesible empieza por el bioma, distinto en cada fila.
+    expect(rows.map((row) => row.querySelector('summary')?.textContent)).toEqual([
+      'Taiga · podzol Para quien deja crecer: los árboles trabajan solos. Reglas',
+      'Selva del Chocó · ultisol Para quien está atento: la lluvia premia a quien la atrapa. Reglas',
+    ]);
+    for (const row of rows) {
+      const details = row.querySelector('details');
+      expect(details?.open).toBe(false);
+      expect(details?.querySelector(':scope > .wind__rules li')).not.toBeNull();
+      expect(row.querySelector('summary .wind__rules')).toBeNull();
+    }
+    expect(rows[0]?.querySelector('.wind__rules')?.textContent).toContain('Llueve la mitad');
+  });
+
   it('en la taiga sin colonizar, el botón del Chocó dice por qué no y sigue enfocable', () => {
     const wind = windOf(createStore(inTaiga()));
     const [choco] = visibleButtons(wind.root);
@@ -364,7 +383,7 @@ describe('Esporular en El regreso (fase 10)', () => {
     invalidate(s);
   }
 
-  it('cuando la esporulación cierra El regreso, el botón lo dice y lo cita; si no llega a 500, no', () => {
+  it('cuando la esporulación cierra El regreso, el botón lo dice y lo cita; si no llega a 500, la línea calla y guarda su sitio', () => {
     const state = inReturn();
     nearGoal(state);
     const tab = createSporulateTab(createStore(state));
@@ -376,12 +395,15 @@ describe('Esporular en El regreso (fase 10)', () => {
     expect(note?.hidden).toBe(false);
     expect(note?.textContent).toBe('Esta esporulación cierra El regreso.');
     expect(button?.getAttribute('aria-describedby')).toBe(note?.id);
-    // Desde el nivel 0, la misma partida da 508 de golpe: también cumple. Con 499, no.
+    expect(note?.classList.contains('is-reserved')).toBe(false);
+    // Desde el nivel 0, la misma partida da 508 de golpe: también cumple. Con 499, no: la línea no se
+    // dice ni se cita, pero guarda su sitio para no mover Viento cuando llegue.
     state.spores.level = 0;
     state.forest.earned = 4.8e13 * (499 / 18.75) ** 2 + 1e10;
     invalidate(state);
     tab.update();
-    expect(note?.hidden).toBe(true);
+    expect(note?.hidden).toBe(false);
+    expect(note?.classList.contains('is-reserved')).toBe(true);
     expect(button?.hasAttribute('aria-describedby')).toBe(false);
     tab.destroy();
   });

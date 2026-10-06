@@ -1,12 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
+import { disperse } from '../../src/core/actions.ts';
+import { drain } from '../../src/core/events.ts';
 import { MUTATION_IDS } from '../../src/data/mutations.ts';
 import {
   createPlasmodium,
   spreadConductivity,
   startHabituation,
 } from '../../src/partners/plasmodium/state.ts';
-import { checkActOne } from '../../src/systems/journey.ts';
-import { seedSave, stateWith } from './helpers.ts';
+import { checkActOne, checkColonization } from '../../src/systems/journey.ts';
+import { seedSave, stateWith, windState } from './helpers.ts';
 
 /**
  * Medición de fluidez (PROMPT.md §16: 60 fps estables). Una partida avanzada (red grande,
@@ -203,3 +205,78 @@ test('con la placa del plasmodio a la vista corre a 60 fps, también con la CPU 
   console.log(`[${info.project.name} plasmodio ×4] ${JSON.stringify(slow)}`);
   expect(slow.p50).toBeLessThanOrEqual(17.5);
 });
+
+/**
+ * Fase 10: la misma red avanzada en la tundra (permafrost con lentes de hielo, matas de liquen y
+ * arbustos enanos) y en El regreso, con tres enlaces de la Red planetaria encendidos (la banda va en
+ * el escenario en lugar del bosque lejano). El viaje se hace con las acciones del juego.
+ */
+async function phaseTenGame(page: Page, where: 'tundra' | 'return'): Promise<void> {
+  const now = Date.now();
+  const legs =
+    where === 'tundra' ? (['taiga', 'choco'] as const) : (['taiga', 'choco', 'prairie', 'tundra'] as const);
+  await seedSave(
+    page,
+    windState((s) => {
+      legs.forEach((to, i) => {
+        disperse(s, { to, now: now - (300 - i * 60) * 60_000 });
+        s.spores.level = 520;
+        checkColonization(s, now - (290 - i * 60) * 60_000);
+      });
+      disperse(s, { to: where === 'tundra' ? 'tundra' : 'natal', now: now - 30 * 60_000 });
+      drain();
+      s.spores.level = where === 'tundra' ? 120 : 380;
+      s.nutrients = 3e10;
+      s.owned = {
+        hypha: 120,
+        rhizomorph: 100,
+        primordium: 90,
+        mushroom: 80,
+        fairyRing: 60,
+        mycorrhiza: 50,
+        motherTree: 40,
+        ancientForest: 30,
+        malheur: 12,
+        planetary: 1,
+      };
+      s.effects = [{ kind: 'downpour', remaining: 50, duration: 60 }];
+      s.seen.push(
+        ...['taiga', 'choco', 'prairie', 'tundra'].flatMap((b) => [
+          `chapter.arrive.${b}`,
+          `chapter.colonize.${b}`,
+        ]),
+        'chapter.ring2',
+        'chapter.return.arrive',
+      );
+    }, now),
+    now,
+  );
+  await page.goto('./');
+  await page.waitForTimeout(1500);
+}
+
+for (const where of ['tundra', 'return'] as const) {
+  test(`${where === 'tundra' ? 'en la tundra' : 'en El regreso'} corre a 60 fps, también con la CPU frenada 4×`, async ({
+    page,
+    browserName,
+  }, info) => {
+    test.skip(Boolean(process.env.CI), 'Medición local: los runners de CI son ruidosos.');
+    await phaseTenGame(page, where);
+    await expect(page.locator('.stage')).toHaveAttribute(
+      'data-biome',
+      where === 'tundra' ? 'tundra' : 'natal',
+    );
+    const stats = await measure(page, 4000);
+    info.annotations.push({ type: `fps-${where}`, description: JSON.stringify(stats) });
+    console.log(`[${info.project.name} ${where}] ${JSON.stringify(stats)}`);
+    expect(stats.p50).toBeLessThanOrEqual(17.5);
+    if (browserName !== 'chromium') return;
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const slow = await measure(page, 4000);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    info.annotations.push({ type: `fps-${where}-throttled`, description: JSON.stringify(slow) });
+    console.log(`[${info.project.name} ${where} ×4] ${JSON.stringify(slow)}`);
+    expect(slow.p50).toBeLessThanOrEqual(17.5);
+  });
+}

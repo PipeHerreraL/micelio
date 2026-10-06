@@ -30,7 +30,8 @@ function plasmodiumState(mutate: (s: GameState) => void = () => undefined, plate
 
 /**
  * Archivos .js que no son del paquete inicial, según el manifiesto del build que se prueba, salvo
- * las noticias, que también llegan aparte pero se piden siempre (src/i18n/news).
+ * las noticias del sotobosque, que también llegan aparte pero se piden siempre (src/i18n/news/es.ts
+ * y en.ts). Las de los biomas (src/i18n/news/biomes) sí cuentan: solo se piden tras dispersar.
  */
 function lazyChunks(): string[] {
   const manifest = JSON.parse(
@@ -45,7 +46,7 @@ function lazyChunks(): string[] {
   for (const [key, chunk] of Object.entries(manifest)) if (chunk.isEntry) visit(key);
   return Object.entries(manifest)
     .filter(([key, chunk]) => !initial.has(key) && chunk.file.endsWith('.js'))
-    .filter(([key]) => !key.startsWith('src/i18n/news/'))
+    .filter(([key]) => !/^src\/i18n\/news\/(es|en)\.ts$/.test(key))
     .map(([, chunk]) => chunk.file);
 }
 

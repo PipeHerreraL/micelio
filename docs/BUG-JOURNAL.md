@@ -42,6 +42,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [22](#22) | `src/i18n/index.ts`                                                       | El nivel de esporas se leía con todas sus cifras                                           |
 | [23](#23) | `scripts/service-worker.ts`                                               | Sin conexión, la app instalada no arrancaba                                                |
 | [24](#24) | `src/systems/save.ts`, `src/main.ts`                                      | Una versión vieja, sin conexión, podía pisar la partida de una más nueva                   |
+| [25](#25) | `src/ui/hud.ts`, `src/i18n/`                                              | En el móvil, la franja fija de arriba saltaba a mitad de partida                           |
 
 ---
 
@@ -576,6 +577,30 @@ con conexión.
 **Qué lo sostiene.** `tests/save.test.ts` → «guardados de un juego más nuevo» (fallan sin el
 arreglo); `tests/e2e/regressions.spec.ts` → «una versión anterior no pisa la partida que guardó
 una más nueva, ni al borrar».
+
+---
+
+<a id="25"></a>
+
+## 25. En el móvil, la franja fija de arriba saltaba a mitad de partida
+
+**Zona:** `src/ui/hud.ts`, `src/i18n/` (familia de #20 y #21)
+
+**Síntoma.** Lo encontró la revisión de capturas a 375 px antes de cerrar la interfaz de la fase 10:
+la línea «Faltan 945 billones N en este bosque para la siguiente espora» cabía en una línea, y
+«Faltan 1,99 mil millones N en este bosque…», no. Al cambiar el nombre de la cifra a mitad de
+partida, la franja fija de arriba (#20) crecía o encogía 19 px y todo el panel de debajo saltaba. En
+los ciclos de la fase 10 las cifras viven justo en esa frontera (unos mil billones en el Chocó).
+
+**Causa.** El contador usaba el texto de Esporular, con «en este bosque», que a 375 px cabía o no
+según el largo del nombre de la magnitud (a 360 px no cabía nunca).
+
+**Arreglo.** El contador tiene su texto, más corto (`hud.nextSpore`, sin «en este bosque», que sigue
+en Esporular): de 360 a 412 px cabe en una línea con cualquier nombre hasta «mil sextillones».
+
+**Qué lo sostiene.** `tests/e2e/cycle.spec.ts` → «a 375 px, la franja fija de arriba no cambia de
+alto con el nombre de la cifra de la siguiente espora» (cinco perfiles, con los 1,56 mil billones de
+un ciclo en el Chocó). Falla sin el arreglo (comprobado: dos líneas en los cinco perfiles).
 
 ---
 
