@@ -182,12 +182,29 @@ fases la 1.6.1 y la 1.6.2, que el usuario pidió entre la fase 10 y la 11: suben
 Decidida el 2026-10-06. Hoy, para tener una versión nueva en la app de Android hay que descargar e
 instalar otra vez el .apk.
 
-- La app descarga el código web de cada release y lo usa en el arranque siguiente, sin reinstalar
-  el .apk. Con el plugin libre `@capgo/capacitor-updater` en modo propio, sin su nube: el paquete va
-  firmado y sale de las releases de GitHub.
-- Antes de nada, comprobar que la partida se conserva al actualizar: el origen sigue siendo
-  `https://localhost`, así que `localStorage` debería ser el mismo, pero hay que verlo en un teléfono.
-- Mientras tanto, quien quiera que el .apk se actualice solo puede usar Obtainium (README).
+- La app descarga el código web de cada release y lo usa en el arranque siguiente (o al pulsar
+  «Usar ahora»), sin reinstalar el .apk; solo un cambio en la parte nativa pide otro. ~~Con el
+  plugin libre `@capgo/capacitor-updater` en modo propio, sin su nube: el paquete va firmado y sale
+  de las releases de GitHub.~~
+- **Decisiones del usuario (2026-10-06)**, tras investigar capgo y sus alternativas y una revisión
+  adversarial del diseño: **un complemento propio** en Java, sin dependencias, en vez de capgo
+  (escribe en el `localStorage` de la partida cada 15 s, su firma no cubre la versión y lo que la
+  revisión pidió habría que construirlo igual por fuera de él), y **el paquete se firma en el PC del
+  dueño**, no en GitHub Actions, para que la cuenta de GitHub sola no llegue a las partidas. El
+  paquete sigue saliendo de las releases de GitHub. Diseño y descartes: ARCHITECTURE.md §4.34.
+- ~~Antes de nada, comprobar que la partida se conserva al actualizar: el origen sigue siendo
+  `https://localhost`, así que `localStorage` debería ser el mismo, pero hay que verlo en un
+  teléfono.~~ La partida se conserva: el origen sigue siendo `https://localhost` (Capacitor cambia
+  la carpeta que sirve, no el origen: comprobado en su código), una versión a prueba no escribe nada
+  del guardado, la que no entiende la partida se retira sola y una anterior nunca pisa una más nueva
+  (BUG-JOURNAL #32, también en la web). Lo comprueban emuladores de Android en el CI de cada cambio
+  y el teléfono del usuario: con la app de depuración por USB y, con la 1.6.2 publicada, en la de
+  verdad.
+- Se trabaja en la rama `ota-1.6.1`, con PR en borrador, porque los emuladores y el .apk tienen que
+  correr en el CI antes de publicar (AGENTS.md, «Git»).
+- Quien tenga la 1.5.0 o la 1.6.0 instala una vez el .apk de la 1.6.1 encima; desde la 1.6.2, las
+  versiones llegan solas. Mientras tanto, quien quiera que el .apk se actualice solo puede usar
+  Obtainium (README); después, solo hará falta para los cambios en la parte nativa.
 
 ### 1.6.2 — Rediseño de la interfaz y los textos (petición del usuario)
 

@@ -161,8 +161,10 @@ release) nunca dé 404:
 
 ## Git
 
-- Rama única `main`. Commits pequeños, uno por cambio con sentido, y cada uno deja el
-  proyecto en verde.
+- Rama única `main`, salvo una entrega que necesite el emulador o el .apk en el CI antes de
+  publicarse (como la 1.6.1, en `ota-1.6.1`): va en una rama con PR en borrador y se fusiona a
+  `main` antes del paso 1 de «Versiones». Commits pequeños, uno por cambio con sentido, y cada
+  uno deja el proyecto en verde.
 - El mensaje explica **por qué**. Si arregla un bug: síntoma, causa y qué lo sostiene.
 - El CI (`.github/workflows/ci.yml`) corre lint, pruebas y build en cada push y pull
   request; un push a `main` que pasa publica en GitHub Pages.
