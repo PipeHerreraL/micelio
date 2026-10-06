@@ -991,6 +991,15 @@ sobre el viejo y brota la red. Con «reducir movimiento», el cambio de suelo es
 
 Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
 
+- §4.8 (fase 8): en el Chocó la lluvia y el Aguacero sí se solapan; el Rocío sigue usando la
+  producción con el evento.
+- §4.9 (2026-10-01): el repositorio es público y no privado: con la cuenta gratuita, GitHub Pages
+  no publicaba desde uno privado.
+- §4.21 (fase 8): las esporas salen de los nutrientes del bosque actual, no de los de vida.
+- §4.23 (tras la 1.4.1): cada noticia se queda 20 s y no 12, y el bosque natal tiene 74 frases.
+- §4.24 (2026-10-01): la notación por defecto escribe el nombre del orden de magnitud («1,5
+  millones») y no sufijos cortos, que siguen en Ajustes; la científica empieza en 1e66, no en 1e36.
 - §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
   escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
-- §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba.
+- §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba; el
+  escenario pegajoso, que §4.30 descartaba, es lo que se eligió.
