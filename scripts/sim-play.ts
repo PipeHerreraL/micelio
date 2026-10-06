@@ -98,7 +98,8 @@ function shop(state: GameState, cps: number): void {
 
 /**
  * Con el árbol completo, gasta en adaptaciones: primero Cuerpo apical (el umbral de madurez),
- * luego la más barata de las demás que alcance. Fuego de zorro es cosmético y no se compra.
+ * luego la más barata de las demás que alcance. Fuego de zorro y las cosméticas de los votos
+ * (Esporada, Cordones negros e Higróforos) solo cambian cómo se ve: no se compran.
  * `reserve` son esporas que no se tocan (las del próximo viaje); las campañas del natal pasan
  * 0 y salen idénticas a las de la fase 7.
  */

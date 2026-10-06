@@ -338,6 +338,24 @@ export const es = {
   'adapt.foxfire.desc':
     'Algunos hongos brillan en la madera podrida. Solo cambia cómo se ve: los pulsos de la red brillan más.',
   'adapt.foxfire.effect': 'Los pulsos brillan más.',
+  // Cosméticas de los votos (fase 10, bloque B): cada una se abre con un récord que lleve su voto.
+  'adapt.group.vows': 'De los votos',
+  'adapt.lockedVow': 'Se abre al cumplir un ciclo sin romper el voto «{vow}».',
+  'adapt.sporePrint.name': 'Esporada',
+  'adapt.sporePrint.desc':
+    'El color de la esporada ayuda a reconocer una seta. Se hace con el sombrero sobre un papel, tapado con un vaso: en el aire quieto y húmedo las láminas siguen disparando esporas, que caen sin que ninguna corriente se las lleve. Solo cambia cómo se ve: las esporas del lienzo salen rosas, de color herrumbre o de un púrpura negruzco, según el rango.',
+  'adapt.sporePrint.effect': 'Esporada {color}.',
+  'adapt.sporePrint.color.1': 'rosa',
+  'adapt.sporePrint.color.2': 'color herrumbre',
+  'adapt.sporePrint.color.3': 'púrpura negruzca',
+  'adapt.blackCords.name': 'Cordones negros',
+  'adapt.blackCords.desc':
+    'Armillaria tiende bajo la corteza y por el suelo rizomorfos negros, los «cordones de zapato», que avanzan solos de un árbol a otro. Solo cambia cómo se ve: los rizomorfos del lienzo se vuelven negros, con un filo claro, y más gruesos por rango.',
+  'adapt.blackCords.effect': 'Rizomorfos negros con filo claro.',
+  'adapt.waxcaps.name': 'Higróforos',
+  'adapt.waxcaps.desc':
+    'Los higróforos, setas color de cera como el carmín de Hygrocybe punicea, solo abundan en praderas viejas que nadie abona: crecen sin ayuda. Solo cambia cómo se ve: brotan higróforos carmín y amarillo limón en la superficie, más por rango.',
+  'adapt.waxcaps.effect': '{count} higróforos en la superficie.',
   'hint.adaptations': 'Árbol completo. Las esporas que sobren ahora se invierten en adaptaciones.',
 
   // Viento de esporas (fase 8): biomas, reglas y cartela

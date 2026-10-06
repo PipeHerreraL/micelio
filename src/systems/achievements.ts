@@ -5,7 +5,7 @@
 import { ACHIEVEMENTS, type AchievementDef } from '../data/achievements.ts';
 import { BIOME_ADAPTATIONS, DESTINATION_IDS, isDestinationId } from '../data/biomes.ts';
 import { emit } from '../core/events.ts';
-import { isColonized, isReturnClosed } from '../core/forest.ts';
+import { hasVowRecord, isColonized, isReturnClosed } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { derived, invalidate } from '../core/selectors.ts';
 import type { GameState } from '../core/state.ts';
@@ -49,9 +49,7 @@ function isMet(state: GameState, def: AchievementDef): boolean {
     case 'cycles':
       return state.cycle.done >= c.count;
     case 'vowRecord':
-      // Del récord y no del ciclo vigente: un voto roto no cuenta, y el logro queda aunque el récord
-      // se mejore después con otros votos (los récords son por combinación y no se borran).
-      return state.records.some((record) => c.vows.every((vow) => record.vows.includes(vow)));
+      return hasVowRecord(state.records, c.vows);
   }
 }
 

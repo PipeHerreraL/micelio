@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS } from '../src/data/achievements.ts';
+import { ADAPTATIONS } from '../src/data/adaptations.ts';
 import { BIOME_ADAPTATIONS, BIOMES, DESTINATION_IDS } from '../src/data/biomes.ts';
 import { GENERATORS } from '../src/data/generators.ts';
 import { MUTATIONS } from '../src/data/mutations.ts';
@@ -93,6 +94,14 @@ describe('catálogos de idioma', () => {
       if (a.effect.kind === 'autoClicks')
         required.push(`badapt.${a.id}.effect.one`, `badapt.${a.id}.effect.other`);
       else required.push(`badapt.${a.id}.effect`);
+    }
+    // Adaptaciones de la red y cosméticas de los votos (fases 7 y 10): nombre, ciencia y efecto; las
+    // cosméticas, además, qué las abre y un color de Esporada por rango.
+    for (const a of ADAPTATIONS)
+      required.push(`adapt.${a.id}.name`, `adapt.${a.id}.desc`, `adapt.${a.id}.effect`);
+    required.push('adapt.group.vows', 'adapt.lockedVow');
+    for (let rank = 1; rank <= (ADAPTATIONS.find((a) => a.id === 'sporePrint')?.max ?? 0); rank += 1) {
+      required.push(`adapt.sporePrint.color.${rank}`);
     }
     for (const key of required) expect(keys.has(key), key).toBe(true);
   });

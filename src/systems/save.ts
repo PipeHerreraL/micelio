@@ -10,7 +10,7 @@
 import { GENERATOR_IDS, type GeneratorId } from '../data/generators.ts';
 import { isAchievementId } from '../data/achievements.ts';
 import { getMutation, isMutationId, type MutationId } from '../data/mutations.ts';
-import { ADAPTATION_IDS, ADAPTATIONS, type AdaptationId } from '../data/adaptations.ts';
+import { ADAPTATION_IDS, ADAPTATIONS, getAdaptation, type AdaptationId } from '../data/adaptations.ts';
 import {
   BIOME_ADAPTATION_IDS,
   BIOME_ADAPTATIONS,
@@ -27,7 +27,7 @@ import {
 import { CYCLE_GOAL_LEVEL, MAX_RECORDS, VOW_IDS, type VowId } from '../data/cycle.ts';
 import { HISTORY_LIMIT, SPORE_SOFTCAP_BASE } from '../data/prestige.ts';
 import { isUpgradeId } from '../data/upgrades.ts';
-import { offeredVows, sameVows } from '../core/forest.ts';
+import { isAdaptationOpen, offeredVows, sameVows } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { PARTNER_IDS, emptyPartners, type PartnerId } from '../partners/ids.ts';
 import { PARTNER_CORES, validatePartners, type ValidationMode } from '../partners/registry.ts';
@@ -337,9 +337,7 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   const adaptations = {} as Record<AdaptationId, number>;
   for (const id of ADAPTATION_IDS) {
     const rank = raw.adaptations[id];
-    const def = ADAPTATIONS.find((d) => d.id === id);
-    // Sin definición (las cosméticas, hasta sus votos), el único rango posible es 0.
-    const max = def ? def.max : 0;
+    const max = getAdaptation(id).max;
     if (!isCount(rank) || (max !== null && rank > max)) return null;
     adaptations[id] = rank;
   }
@@ -356,6 +354,9 @@ function checkState(raw: unknown, mode: ValidationMode): StateCheck | null {
   if (!cycle || !isStayValid(forest, chronicle, cycle)) return null;
   const records = validateRecords(raw.records, cycle, stats.sporulations);
   if (!records) return null;
+  // Una cosmética de voto con rangos sin el récord de su voto no sale del juego, que niega esa
+  // compra con la misma regla, y los récords nunca se borran: solo de un guardado editado.
+  if (ADAPTATION_IDS.some((id) => adaptations[id] > 0 && !isAdaptationOpen(records, id))) return null;
   // Con «sin lluvia» no cae ninguna gota (sembrar quita la que hubiera y el tick no las suelta): una
   // gota guardada solo sale de un guardado editado, y quitarla no cambia nada más.
   if (cycle.vows.includes('noRain')) rain.drop = null;

@@ -10,6 +10,8 @@
 export const PARTICLE_CREAM = 0;
 /** Tono fuego fatuo: reservado a la lluvia (ARCHITECTURE.md §11). */
 export const PARTICLE_GLOW = 1;
+/** Las esporas de la esporulación: crema, o el color de la Esporada (fase 10). */
+export const PARTICLE_SPORE = 2;
 
 /** Opacidad máxima: las partículas acompañan, no tapan la red. */
 const PARTICLE_ALPHA = 0.85;
@@ -39,6 +41,7 @@ export interface ParticlePool {
     scale: number,
     cream: CanvasImageSource,
     glow: CanvasImageSource,
+    spore: CanvasImageSource,
   ): void;
   clear(): void;
   activeCount(): number;
@@ -102,7 +105,7 @@ export function createParticlePool(capacity: number): ParticlePool {
       }
     },
 
-    draw(ctx, width, height, scale, cream, glow) {
+    draw(ctx, width, height, scale, cream, glow, spore) {
       if (active === 0) return;
       for (let k = 0; k < capacity; k++) {
         if (on[k] !== 1) continue;
@@ -112,8 +115,9 @@ export function createParticlePool(capacity: number): ParticlePool {
         if (bell <= 0) continue;
         const r = (size[k] ?? 1) * scale * SPRITE_SPREAD;
         ctx.globalAlpha = bell * PARTICLE_ALPHA;
+        const t = tone[k];
         ctx.drawImage(
-          tone[k] === PARTICLE_GLOW ? glow : cream,
+          t === PARTICLE_GLOW ? glow : t === PARTICLE_SPORE ? spore : cream,
           (px[k] ?? 0) * width - r,
           (py[k] ?? 0) * height - r,
           r * 2,

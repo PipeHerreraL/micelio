@@ -25,6 +25,9 @@
  * En el natal del tramo 5 (El regreso, fase 10), la banda de la Red planetaria
  * (render/planetary-band.ts) ocupa el sitio del bosque lejano en la capa acumulada; solo se
  * rehornea cuando se enciende un enlace, es decir, al esporular.
+ *
+ * Las cosméticas de los votos (render/cosmetics.ts) solo cambian al comprar un rango: los cordones
+ * negros y los higróforos rehornean la capa, y la Esporada vuelve a pintar el sprite de las esporas.
  */
 import type { GameEvent } from '../core/events.ts';
 import { dispersalCount } from '../core/forest.ts';
@@ -42,7 +45,15 @@ import {
   type SoilPalette,
   type SoilThreads,
 } from './palettes.ts';
-import { createParticlePool, PARTICLE_CREAM, PARTICLE_GLOW } from './particles.ts';
+import {
+  sporePrintRgb,
+  strokeCordCore,
+  strokeCordRim,
+  WAXCAP_MAX,
+  WAXCAP_TONES,
+  waxcapCount,
+} from './cosmetics.ts';
+import { createParticlePool, PARTICLE_CREAM, PARTICLE_GLOW, PARTICLE_SPORE } from './particles.ts';
 import { drawPlanetaryBand, planetaryLit, planetaryStrips, showsPlanetaryBand } from './planetary-band.ts';
 import { createSeededRandom, mixSeed } from './random.ts';
 
@@ -250,6 +261,11 @@ const PHASE_FADE_IN = 5;
 const PHASE_SOIL = 6;
 
 const DECOR_SALT = 0x51ed;
+/**
+ * Sal de los huecos de los higróforos: con su propio azar, los adornos de siempre salen de la misma
+ * secuencia que antes y no se mueven al comprar la cosmética.
+ */
+const WAXCAP_SALT = 0x3a7c;
 /** Sal del grano del fondo; cada bioma suma su índice (el natal, 0: el mismo grano de la 1.2). */
 const BACKGROUND_SALT = 0xb0b;
 /**
@@ -334,6 +350,7 @@ export function createNetworkView(
   const layerCanvas = document.createElement('canvas');
   const creamSprite = document.createElement('canvas');
   const glowSprite = document.createElement('canvas');
+  const sporeSprite = document.createElement('canvas');
   const maybeBg = bgCanvas.getContext('2d');
   const maybeLayer = layerCanvas.getContext('2d');
   if (!maybeCtx || !maybeBg || !maybeLayer) return createInertView();
@@ -417,6 +434,20 @@ export function createNetworkView(
     forestScale[k] = 0.6 + 0.6 * decor.next();
   }
 
+  const waxX = new Float32Array(WAXCAP_MAX);
+  const waxScale = new Float32Array(WAXCAP_MAX);
+  const waxTilt = new Float32Array(WAXCAP_MAX);
+  const waxTone = new Uint8Array(WAXCAP_MAX);
+  const waxRandom = createSeededRandom(mixSeed(seed, WAXCAP_SALT));
+  g = waxRandom.next();
+  for (let k = 0; k < WAXCAP_MAX; k++) {
+    g = (g + GOLDEN) % 1;
+    waxX[k] = 0.05 + 0.9 * g;
+    waxScale[k] = 0.75 + 0.25 * waxRandom.next();
+    waxTilt[k] = (waxRandom.next() - 0.5) * 0.4;
+    waxTone[k] = waxRandom.next() < 0.5 ? 0 : 1;
+  }
+
   // Grosor y opacidad de una hifa según sus saltos desde la raíz: más fina cuanto más lejos.
   const hyphaWidth = new Float32Array(HOP_LUT_SIZE);
   const hyphaAlpha = new Float32Array(HOP_LUT_SIZE);
@@ -460,6 +491,8 @@ export function createNetworkView(
   let ringCount = 0;
   let treeCount = 0;
   let forestCount = 0;
+  let waxCount = 0;
+  let cordRank = 0;
   let wantTarget = 0;
   let wantReach = 0.26;
   let wantSpread = 0.28;
@@ -468,6 +501,10 @@ export function createNetworkView(
   let wantRings = 0;
   let wantTrees = 0;
   let wantForest = 0;
+  let wantWax = 0;
+  let wantCordRank = 0;
+  /** Rango de Esporada con el que está pintado el sprite de las esporas. */
+  let sporeRank = 0;
   let wantSeed = 0;
   // La Red planetaria (fase 10) en lugar del bosque lejano, mientras el linaje vive en el natal del
   // tramo 5: si se ve y cuántos enlaces lleva encendidos. Las franjas solo cambian con la Crónica.
@@ -687,22 +724,50 @@ export function createNetworkView(
     c.stroke();
   }
 
-  /** Cordón (rizomorfo): se dibuja entero cuando el segmento termina de brotar. */
-  function strokeCord(c: CanvasRenderingContext2D, i: number): void {
+  function cordWidth(i: number): number {
     const hop = segHop[i] ?? 0;
     const taper = 1 - (0.55 * hop) / Math.max(1, cordMaxHop);
+    return (1.5 + 0.2 * cordTier) * taper * dpr;
+  }
+
+  /** Cordón (rizomorfo): se dibuja entero cuando el segmento termina de brotar. */
+  function strokeCord(c: CanvasRenderingContext2D, i: number): void {
     c.globalAlpha = 0.2;
-    c.lineWidth = (1.5 + 0.2 * cordTier) * taper * dpr;
+    c.lineWidth = cordWidth(i);
     c.beginPath();
     c.moveTo(nx(segX1[i] ?? 0) * W, ny(segY1[i] ?? 0) * H);
     c.lineTo(nx(segX2[i] ?? 0) * W, ny(segY2[i] ?? 0) * H);
     c.stroke();
   }
 
+  /** Filo crema de un cordón negro (Cordones negros, fase 10): va debajo de los núcleos. */
+  function strokeBlackRim(c: CanvasRenderingContext2D, i: number): void {
+    const x1 = nx(segX1[i] ?? 0) * W;
+    const y1 = ny(segY1[i] ?? 0) * H;
+    strokeCordRim(c, x1, y1, nx(segX2[i] ?? 0) * W, ny(segY2[i] ?? 0) * H, cordWidth(i), cordRank, dpr);
+  }
+
+  function strokeBlackCore(c: CanvasRenderingContext2D, i: number): void {
+    const x1 = nx(segX1[i] ?? 0) * W;
+    const y1 = ny(segY1[i] ?? 0) * H;
+    strokeCordCore(c, x1, y1, nx(segX2[i] ?? 0) * W, ny(segY2[i] ?? 0) * H, cordWidth(i), cordRank);
+  }
+
   function finishSegment(i: number): void {
     if (!isCord(i)) return;
     layer.lineCap = 'round';
-    strokeCord(layer, i);
+    if (cordRank > 0) {
+      // El filo nuevo pisa la punta del núcleo del padre en la unión: el del padre, opaco, se vuelve
+      // a trazar encima y queda igual. Un hermano de la misma bifurcación puede quedar con una punta
+      // de filo encima hasta el siguiente horneado, que traza todos los filos antes que los núcleos.
+      strokeBlackRim(layer, i);
+      const parent = segParent[i] ?? -1;
+      if (parent >= 0 && isCord(parent) && (drawn[parent] ?? 0) >= 1) strokeBlackCore(layer, parent);
+      strokeBlackCore(layer, i);
+      layer.strokeStyle = MICELIO;
+    } else {
+      strokeCord(layer, i);
+    }
     layer.lineCap = 'butt';
   }
 
@@ -788,7 +853,14 @@ export function createNetworkView(
     return LITTER_DEPTH * H;
   }
 
-  function drawMushroom(x: number, base: number, h: number, tilt: number, tone: number, alpha: number): void {
+  function drawMushroom(
+    x: number,
+    base: number,
+    h: number,
+    tilt: number,
+    capTone: string,
+    alpha: number,
+  ): void {
     const c = layer;
     const stemHalf = h * 0.085;
     const capRx = h * 0.42;
@@ -825,7 +897,7 @@ export function createNetworkView(
     c.stroke();
 
     c.globalAlpha = alpha;
-    c.fillStyle = CAP_TONES[tone] ?? '#8E6544';
+    c.fillStyle = capTone;
     c.beginPath();
     c.ellipse(topX, topY, capRx, capRy, rot, Math.PI, TAU);
     c.closePath();
@@ -848,7 +920,27 @@ export function createNetworkView(
         surfaceY(xN) * H + dpr,
         maxH * (mushScale[k] ?? 1),
         mushTilt[k] ?? 0,
-        mushTone[k] ?? 0,
+        CAP_TONES[mushTone[k] ?? 0] ?? '#8E6544',
+        1,
+      );
+    }
+  }
+
+  /**
+   * Higróforos (fase 10): setas pequeñas color de cera en sus propios huecos de la superficie, más
+   * bajas que las del generador Seta para no tapar ninguna entera.
+   */
+  function drawWaxcaps(): void {
+    const band = litterPx();
+    const maxH = clamp(band * 0.5, 6 * dpr, 26 * dpr);
+    for (let k = 0; k < waxCount; k++) {
+      const xN = waxX[k] ?? 0.5;
+      drawMushroom(
+        xN * W,
+        surfaceY(xN) * H + dpr,
+        maxH * (waxScale[k] ?? 1),
+        waxTilt[k] ?? 0,
+        WAXCAP_TONES[waxTone[k] ?? 0] ?? WAXCAP_TONES[0],
         1,
       );
     }
@@ -896,7 +988,7 @@ export function createNetworkView(
             base,
             size * (0.7 + 0.3 * depth),
             0,
-            j % 2 === 0 ? RING_CAP_TONE : RING_CAP_TONE - 1,
+            CAP_TONES[j % 2 === 0 ? RING_CAP_TONE : RING_CAP_TONE - 1] ?? '#8E6544',
             0.7 + 0.3 * depth,
           );
         }
@@ -1221,12 +1313,24 @@ export function createNetworkView(
     }
     if (cordTier > 0) {
       layer.lineCap = 'round';
-      for (let i = 0; i < count; i++) {
-        if ((drawn[i] ?? 0) >= 1 && isCord(i)) strokeCord(layer, i);
+      if (cordRank > 0) {
+        // Todos los filos antes que los núcleos: así ningún filo cruza el núcleo de otro cordón.
+        for (let i = 0; i < count; i++) {
+          if ((drawn[i] ?? 0) >= 1 && isCord(i)) strokeBlackRim(layer, i);
+        }
+        for (let i = 0; i < count; i++) {
+          if ((drawn[i] ?? 0) >= 1 && isCord(i)) strokeBlackCore(layer, i);
+        }
+        layer.strokeStyle = MICELIO;
+      } else {
+        for (let i = 0; i < count; i++) {
+          if ((drawn[i] ?? 0) >= 1 && isCord(i)) strokeCord(layer, i);
+        }
       }
     }
     drawTreeLinks(p);
     drawRings();
+    drawWaxcaps();
     drawMushrooms();
     layer.globalAlpha = 1;
     layer.lineCap = 'butt';
@@ -1650,7 +1754,7 @@ export function createNetworkView(
         -0.02,
         wind ? WIND_LIFE_MIN + Math.random() * WIND_LIFE_RANGE : 1 + Math.random() * 0.6,
         1.3 + Math.random() * 0.8,
-        PARTICLE_CREAM,
+        PARTICLE_SPORE,
       );
     }
   }
@@ -1884,6 +1988,14 @@ export function createNetworkView(
 
   function readState(state: GameState): void {
     pulseGlow = 1 + FOXFIRE_GLOW_PER_RANK * state.adaptations.foxfire;
+    wantCordRank = state.adaptations.blackCords;
+    wantWax = waxcapCount(state.adaptations.waxcaps);
+    const print = state.adaptations.sporePrint;
+    if (print !== sporeRank) {
+      // Solo al comprar un rango o al leer otra partida, nunca en cada frame.
+      sporeRank = print;
+      if (ready) paintSprite(sporeSprite, sporePrintRgb(sporeRank));
+    }
     let weighted = 0;
     let highest = -1;
     for (const [tier, id] of GENERATOR_IDS.entries()) {
@@ -1965,6 +2077,8 @@ export function createNetworkView(
       ringCount !== wantRings ||
       treeCount !== wantTrees ||
       forestCount !== wantForest ||
+      waxCount !== wantWax ||
+      cordRank !== wantCordRank ||
       band !== wantBand ||
       bandLit !== wantBandLit;
     reach = wantReach;
@@ -1977,6 +2091,8 @@ export function createNetworkView(
     ringCount = wantRings;
     treeCount = wantTrees;
     forestCount = wantForest;
+    waxCount = wantWax;
+    cordRank = wantCordRank;
     band = wantBand;
     bandLit = wantBandLit;
     return changed;
@@ -2026,6 +2142,7 @@ export function createNetworkView(
       if (!ready) return;
       paintSprite(creamSprite, MICELIO_RGB);
       paintSprite(glowSprite, FUEGO_FATUO_RGB);
+      paintSprite(sporeSprite, sporePrintRgb(sporeRank));
       paintBackground(bg, bgBiome);
       stormGradient = ctx.createLinearGradient(0, 0, 0, H * 0.6);
       stormGradient.addColorStop(0, `rgba(${MICELIO_RGB}, 1)`);
@@ -2195,7 +2312,7 @@ export function createNetworkView(
       updateAndDrawRain(dt);
       updateAndDrawPulses(dt);
       particles.update(dt);
-      particles.draw(ctx, W, H, dpr, creamSprite, glowSprite);
+      particles.draw(ctx, W, H, dpr, creamSprite, glowSprite, sporeSprite);
       ctx.globalAlpha = 1;
     },
 
@@ -2235,6 +2352,8 @@ export function createNetworkView(
       creamSprite.height = 0;
       glowSprite.width = 0;
       glowSprite.height = 0;
+      sporeSprite.width = 0;
+      sporeSprite.height = 0;
     },
   };
 

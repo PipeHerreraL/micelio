@@ -400,3 +400,145 @@ for (const phone of PHONES) {
     expect(errors).toEqual([]);
   });
 }
+
+/**
+ * Cumplido un ciclo en la pradera con «sin lluvia» tras el de la taiga: el récord con el voto abre
+ * la Esporada. Con esporas para comprarla.
+ */
+function noRainRecord(now: number): GameState {
+  const s = taigaCycleDone(now);
+  disperse(s, { to: 'prairie', now: now - 4 * MINUTE, vows: ['noRain'] });
+  prime(s, 520);
+  sporulate(s, { now: now - 2 * MINUTE });
+  drain();
+  s.spores.available = 2000;
+  return s;
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, las cosméticas de los votos salen bajo Adaptaciones, cerradas con su motivo, y la Esporada se compra con el teclado sin perder el foco`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const errors = collectErrors(page);
+    const now = Date.now();
+    await seedSave(page, noRainRecord(now), now);
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Mutaciones/ }).click();
+    await expect(page.getByRole('heading', { name: 'De los votos' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Adaptar: Cordones negros' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    await expect(
+      page.getByText('Se abre al cumplir un ciclo sin romper el voto «solo autocompra».'),
+    ).toBeVisible();
+    const buy = page.getByRole('button', { name: 'Adaptar: Esporada' });
+    await expect(buy).toHaveAttribute('aria-disabled', 'false');
+    await buy.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Esporada rosa.')).toBeVisible();
+    // El botón sigue en su sitio y con el foco: el siguiente Espacio no absorbe.
+    await expect(buy).toBeFocused();
+    expect(await cutOff(page, '.adapt')).toEqual([]);
+    const saved = await savedState(page);
+    expect(saved.adaptations).toMatchObject({ sporePrint: 1, blackCords: 0, waxcaps: 0 });
+    expect(saved.spores.available).toBe(1700);
+    expect(errors).toEqual([]);
+  });
+}
+
+test('las cosméticas se ven en el lienzo: Cordones negros, Higróforos y el color de la Esporada; sin ellas, nada cambia', async ({
+  page,
+}, info) => {
+  test.skip(isMobile(info.project.name), 'Basta con un perfil por motor.');
+  // La vista de la red con un lienzo de verdad: en el servidor de desarrollo se importan sus módulos.
+  await page.goto(DEV_URL);
+  const errors = collectErrors(page);
+  const state = windState((s) => {
+    s.owned.rhizomorph = 40;
+    s.owned.mushroom = 2;
+  });
+  const result = await page.evaluate(
+    async ({ raw, base }) => {
+      const network = (await import(/* @vite-ignore */ `${base}src/render/network.ts`)) as typeof Network;
+      const random = Math.random;
+      /**
+       * Dibuja la red con estos rangos y devuelve sus píxeles; con `sporulate`, a media
+       * esporulación, con las esporas en el aire. El azar del dibujo (esporas, pulsos, lluvia) sale
+       * de la misma semilla en cada dibujo: dos dibujos solo difieren por los rangos.
+       */
+      const pixels = (
+        ranks: { blackCords: number; waxcaps: number; sporePrint: number },
+        sporulate = false,
+      ): Uint8ClampedArray => {
+        let seed = 42;
+        Math.random = () => {
+          seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+          return seed / 4294967296;
+        };
+        const s = JSON.parse(raw) as GameState;
+        Object.assign(s.adaptations, ranks);
+        const canvas = document.createElement('canvas');
+        canvas.style.cssText = 'position: fixed; top: 0; left: 0; width: 480px; height: 300px;';
+        document.body.append(canvas);
+        const view = network.createNetworkView(canvas, { seed: 7, biome: s.forest.biome });
+        view.setReducedMotion(!sporulate);
+        view.resize();
+        view.sync(s);
+        view.frame(1000);
+        if (sporulate) {
+          // El brillo dura 1 s; después salen las esporas y la red se disuelve.
+          view.onEvent({ type: 'sporulate', gained: 10, level: 10 });
+          for (let t = 16; t <= 1300; t += 16) view.frame(1000 + t);
+        }
+        const data = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data;
+        view.destroy();
+        canvas.remove();
+        Math.random = random;
+        return data ?? new Uint8ClampedArray();
+      };
+      const differ = (a: Uint8ClampedArray, b: Uint8ClampedArray): number => {
+        let n = 0;
+        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++;
+        return a.length > 0 && a.length === b.length ? n : -1;
+      };
+      /** Píxeles cerca de un color: los de los higróforos no salen en ningún otro sitio del lienzo. */
+      const near = (data: Uint8ClampedArray, [r, g, b]: [number, number, number]): number => {
+        let n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const d =
+            Math.abs((data[i] ?? 0) - r) +
+            Math.abs((data[i + 1] ?? 0) - g) +
+            Math.abs((data[i + 2] ?? 0) - b);
+          if (d < 30) n++;
+        }
+        return n;
+      };
+      const none = { blackCords: 0, waxcaps: 0, sporePrint: 0 };
+      const plain = pixels(none);
+      const waxcaps = pixels({ ...none, waxcaps: 3 });
+      const carmine: [number, number, number] = [0xd0, 0x34, 0x4a];
+      const lemon: [number, number, number] = [0xe0, 0xce, 0x45];
+      const spores = pixels(none, true);
+      return {
+        again: differ(plain, pixels(none)),
+        cords: differ(plain, pixels({ ...none, blackCords: 3 })),
+        plainWax: near(plain, carmine) + near(plain, lemon),
+        carmine: near(waxcaps, carmine),
+        lemon: near(waxcaps, lemon),
+        sporesAgain: differ(spores, pixels(none, true)),
+        sporePrint: differ(spores, pixels({ ...none, sporePrint: 2 }, true)),
+        // La Esporada solo tiñe las esporas: sin esporular, el lienzo es el mismo.
+        sporePrintStill: differ(plain, pixels({ ...none, sporePrint: 2 })),
+      };
+    },
+    { raw: JSON.stringify(state), base: DEV_URL },
+  );
+  expect(result).toMatchObject({ again: 0, plainWax: 0, sporesAgain: 0, sporePrintStill: 0 });
+  expect(result.cords).toBeGreaterThan(0);
+  expect(result.carmine).toBeGreaterThan(0);
+  expect(result.lemon).toBeGreaterThan(0);
+  expect(result.sporePrint).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});

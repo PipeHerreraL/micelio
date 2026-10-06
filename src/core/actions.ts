@@ -41,6 +41,7 @@ import {
   biomeAdaptationGate,
   forestGoal,
   isActOneClosed,
+  isAdaptationOpen,
   isForestColonized,
   nextBiomeAdaptationCost,
   offeredVows,
@@ -438,9 +439,13 @@ export function nextAdaptationCost(state: GameState, id: AdaptationId): number |
   return adaptationCost(def.baseCost, def.growth, rank);
 }
 
-/** Compra un rango de una adaptación con esporas disponibles. No baja el nivel. */
+/**
+ * Compra un rango de una adaptación con esporas disponibles. No baja el nivel. Una cosmética de voto
+ * sin el récord de su voto no se compra (el guardado la rechazaría).
+ */
 export function buyAdaptation(state: GameState, payload: { id: AdaptationId }): void {
   if (!isAdaptationId(payload.id) || !adaptationsUnlocked(state)) return;
+  if (!isAdaptationOpen(state.records, payload.id)) return;
   const cost = nextAdaptationCost(state, payload.id);
   if (cost === null || state.spores.available < cost) return;
   state.spores.available -= cost;

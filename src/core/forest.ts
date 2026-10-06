@@ -5,6 +5,7 @@
  * Lo colonizado y lo visitado no se guardan aparte: se deducen de la Crónica, así la regla vive
  * en un solo sitio (ARCHITECTURE.md §4.28).
  */
+import { getAdaptation, type AdaptationId } from '../data/adaptations.ts';
 import {
   BIOME_ADAPTATIONS,
   BIOME_IDS,
@@ -262,6 +263,26 @@ export function windTargets(state: GameState): WindTarget[] {
 /** Los votos de dos récords son la misma combinación (los dos van en el orden de VOW_IDS). */
 export function sameVows(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((vow, i) => vow === b[i]);
+}
+
+/**
+ * Algún récord lleva todos estos votos: se mantuvieron hasta cumplir un ciclo. Del récord y no del
+ * ciclo vigente, así que un voto roto no cuenta y lo ganado queda aunque el récord se mejore luego
+ * con otros votos (los récords son por combinación y no se borran). Lo leen los logros de los votos
+ * y las cosméticas que abren.
+ */
+export function hasVowRecord(records: readonly CycleRecord[], vows: readonly VowId[]): boolean {
+  return records.some((record) => vows.every((vow) => record.vows.includes(vow)));
+}
+
+/**
+ * Si una adaptación se puede tener: las cosméticas de los votos piden un récord con el suyo, y las
+ * demás no esperan a ningún voto (todas piden además el árbol completo, `adaptationsUnlocked`). La
+ * misma regla niega la compra y rechaza un guardado con un rango sin derecho.
+ */
+export function isAdaptationOpen(records: readonly CycleRecord[], id: AdaptationId): boolean {
+  const vow = getAdaptation(id).unlock;
+  return vow === undefined || hasVowRecord(records, [vow]);
 }
 
 /** El mejor ciclo cumplido en un bioma, con cualquier combinación de votos; null si no hay. */

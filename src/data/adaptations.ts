@@ -9,10 +9,12 @@
  * definitivos los fija `npm run sim`, ver docs/BALANCE.md).
  */
 
+import type { VowId } from './cycle.ts';
+
 /**
  * Esporada, Cordones negros e Higróforos (fase 10, bloque B) son adaptaciones cosméticas que se
- * abren con los votos. Su clave está en el guardado desde la v7 y vale 0 hasta que llegue su
- * definición: un id sin definición en ADAPTATIONS no se puede comprar.
+ * abren con los votos: cada una pide un récord que lleve el suyo. Su clave está en el guardado
+ * desde la v7.
  */
 export const ADAPTATION_IDS = [
   'apicalBody',
@@ -35,6 +37,8 @@ export interface AdaptationDef {
   growth: number;
   /** Rango máximo (null = sin tope). */
   max: number | null;
+  /** Solo las cosméticas de los votos: se compran con un récord que lleve este voto. */
+  unlock?: VowId;
 }
 
 export const ADAPTATIONS: readonly AdaptationDef[] = [
@@ -44,6 +48,13 @@ export const ADAPTATIONS: readonly AdaptationDef[] = [
   { id: 'hydraulicLift', baseCost: 150, growth: 2.5, max: 4 },
   { id: 'deepTorpor', baseCost: 300, growth: 2, max: 4 },
   { id: 'foxfire', baseCost: 1000, growth: 4, max: 3 },
+  // Cosméticas de los votos: 300·2^r y tres rangos, 2.100 esporas cada una. Con unas 200 esporas
+  // netas por ciclo, el primer rango llega unos dos ciclos después del récord que la abre; con
+  // 1000·2^r harían falta unos 33 ciclos por cosmética, y con 150·2^r saldría barata frente a Fuego
+  // de zorro (especificación de la fase 10, D13). Pagarlas mantiene el sumidero de esporas.
+  { id: 'sporePrint', baseCost: 300, growth: 2, max: 3, unlock: 'noRain' },
+  { id: 'blackCords', baseCost: 300, growth: 2, max: 3, unlock: 'autoOnly' },
+  { id: 'waxcaps', baseCost: 300, growth: 2, max: 3, unlock: 'noMutations' },
 ];
 
 /** Cuerpo apical: cada rango multiplica el umbral de madurez por esto. */

@@ -332,6 +332,24 @@ export const en: Catalog = {
   'adapt.foxfire.desc':
     'Some fungi glow in rotting wood. It only changes the look: the network pulses glow brighter.',
   'adapt.foxfire.effect': 'The pulses glow brighter.',
+  // Cosméticas de los votos (fase 10, bloque B)
+  'adapt.group.vows': 'From the vows',
+  'adapt.lockedVow': 'Opens when you complete a cycle without breaking the “{vow}” vow.',
+  'adapt.sporePrint.name': 'Spore print',
+  'adapt.sporePrint.desc':
+    'The color of a spore print helps identify a mushroom. It is made with the cap on a sheet of paper under a glass: in the still, damp air the gills keep shooting spores, which fall without a draft carrying them off. It only changes the look: the spores on the canvas come out pink, rust or purple-black, depending on the rank.',
+  'adapt.sporePrint.effect': 'Spore print: {color}.',
+  'adapt.sporePrint.color.1': 'pink',
+  'adapt.sporePrint.color.2': 'rust',
+  'adapt.sporePrint.color.3': 'purple-black',
+  'adapt.blackCords.name': 'Black bootlaces',
+  'adapt.blackCords.desc':
+    'Armillaria lays black rhizomorphs under the bark and through the soil, the “bootlaces”, which make their own way from one tree to the next. It only changes the look: the rhizomorphs on the canvas turn black, with a pale rim, and thicker with each rank.',
+  'adapt.blackCords.effect': 'Black rhizomorphs with a pale rim.',
+  'adapt.waxcaps.name': 'Waxcaps',
+  'adapt.waxcaps.desc':
+    'Waxcaps, mushrooms the colors of wax like the crimson of Hygrocybe punicea, only thrive in old meadows that nobody fertilizes: they grow without help. It only changes the look: crimson and lemon-yellow waxcaps sprout on the surface, more with each rank.',
+  'adapt.waxcaps.effect': '{count} waxcaps on the surface.',
   'hint.adaptations': 'Tree complete. Spare spores now go into adaptations.',
 
   // Viento de esporas (fase 8): biomas, reglas y cartela

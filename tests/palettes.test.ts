@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BIOME_IDS } from '../src/data/biomes.ts';
+import {
+  CORD_CORE_TONES,
+  CORD_RIM_ALPHA,
+  CORD_RIM_TONE,
+  SPORE_PRINT_TONES,
+  WAXCAP_TONES,
+} from '../src/render/cosmetics.ts';
 import { BIRCH_TONE, LITTER_DEPTH, SOIL_PALETTES, type SoilPalette } from '../src/render/palettes.ts';
 
 const MICELIO = '#EFE6D2';
@@ -29,6 +36,20 @@ function over(base: string, top: string, alpha: number): string {
       .padStart(2, '0'),
   );
   return `#${mixed.join('')}`;
+}
+
+/** Tono en grados (HSL) de un #RRGGBB. */
+function hue(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16)) as [
+    number,
+    number,
+    number,
+  ];
+  const max = Math.max(r, g, b);
+  const span = max - Math.min(r, g, b);
+  if (span === 0) return 0;
+  const h = max === r ? ((g - b) / span) % 6 : max === g ? (b - r) / span + 2 : (r - g) / span + 4;
+  return (h * 60 + 360) % 360;
 }
 
 /** Las franjas del suelo sobre las que crece la red, de la hojarasca al fondo. */
@@ -190,6 +211,51 @@ describe('paletas del suelo', () => {
         expect(contrast(tone, MICELIO), `${id} ${tone} y el micelio`).toBeGreaterThanOrEqual(floor);
         expect(contrast(tone, FUEGO_FATUO), `${id} ${tone} y el fuego fatuo`).toBeGreaterThanOrEqual(floor);
       }
+    }
+  });
+
+  it('el filo crema de los Cordones negros queda a 3:1 o más de la hojarasca, el humus y el primer horizonte de cada suelo', () => {
+    // Los cordones nacen bajo la hojarasca y bajan por el humus hasta el primer horizonte: sin un
+    // filo que se lea, el cordón negro desaparecería sobre la tierra oscura.
+    for (const id of BIOME_IDS) {
+      const p = SOIL_PALETTES[id];
+      for (const base of [p.litter, p.humusTop, p.humus, p.band]) {
+        const rim = over(base, CORD_RIM_TONE, CORD_RIM_ALPHA);
+        expect(contrast(rim, base), `${id} ${base}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+    // El filo se ve contra su propio núcleo, también con el núcleo más claro.
+    for (const core of CORD_CORE_TONES) {
+      expect(contrast(core, CORD_RIM_TONE)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('las esporas de cada Esporada y los higróforos se distinguen del suelo por donde pasan', () => {
+    // Las esporas suben por el humus y la hojarasca; las setas se apoyan en la hojarasca.
+    for (const id of BIOME_IDS) {
+      const p = SOIL_PALETTES[id];
+      for (const tone of SPORE_PRINT_TONES) {
+        for (const base of [p.litter, p.humusTop, p.humus]) {
+          expect(contrast(tone, base), `${id} ${tone} sobre ${base}`).toBeGreaterThanOrEqual(3);
+        }
+      }
+      for (const tone of WAXCAP_TONES) {
+        expect(contrast(tone, p.litter), `${id} ${tone}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it('ningún color de las cosméticas es el rebozuelo ni un naranja que se le parezca', () => {
+    // El rebozuelo (#E8A93A, tono 38°) es el acento de compras de la interfaz.
+    for (const tone of [...SPORE_PRINT_TONES, ...WAXCAP_TONES, ...CORD_CORE_TONES, CORD_RIM_TONE]) {
+      expect(tone).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(tone.toUpperCase()).not.toBe('#E8A93A');
+    }
+    // Los colores vivos (el crema y los núcleos casi negros apenas tienen tono): a 10° o más.
+    const chanterelle = hue('#E8A93A');
+    for (const tone of [...SPORE_PRINT_TONES.slice(1), ...WAXCAP_TONES]) {
+      const away = Math.abs(hue(tone) - chanterelle);
+      expect(Math.min(away, 360 - away), tone).toBeGreaterThanOrEqual(10);
     }
   });
 
