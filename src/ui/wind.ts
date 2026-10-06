@@ -198,7 +198,7 @@ export function departureText(
     // Con «sin mutaciones» viajan, pero dormidas: «viajan contigo» a secas sería falso.
     vows.includes('noMutations') ? t('wind.confirm.keepAsleep') : t('wind.confirm.keep'),
   );
-  // «No se puede volver a un bioma que dejaste» sería falso de camino a casa y en el ciclo libre.
+  // Solo en el viaje: de camino a casa y en el ciclo libre, no poder volver sería falso.
   if (kind === 'journey') lines.push(t('wind.confirm.oneWay'));
   switch (kind) {
     case 'journey':

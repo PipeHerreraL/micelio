@@ -117,7 +117,7 @@ for (const phone of PHONES) {
     await page.keyboard.press('Enter');
     await expect(dialog(page).getByRole('heading', { name: '¿Sembrar un ciclo nuevo?' })).toBeVisible();
     await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
-    await expect(dialog(page).getByText('no se puede volver', { exact: false })).toHaveCount(0);
+    await expect(dialog(page).getByText('No podrás volver', { exact: false })).toHaveCount(0);
     await dialog(page).getByRole('button', { name: 'Sembrar', exact: true }).click();
     await expect(page.locator('#wind-title')).toBeFocused();
     await expect(page.locator('.caption__progress')).toHaveText('Ciclo 2: nivel 0 de 500');

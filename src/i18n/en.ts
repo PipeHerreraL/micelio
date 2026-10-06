@@ -438,8 +438,7 @@ export const en: Catalog = {
     "You will lose: this biome's spore level and everything in the run (nutrients, generators, upgrades, milestones and active effects).",
   'wind.confirm.keep':
     'Traveling with you: available spores, mutations, adaptations, lineage, achievements, autobuy, lifetime stats and settings.',
-  'wind.confirm.oneWay':
-    "In this version you can't return to a biome you leave. It stays written in the Chronicle.",
+  'wind.confirm.oneWay': 'No coming back here during the journey: it stays in the Chronicle.',
   'wind.confirm.yes': 'Disperse',
   'wind.confirm.no': 'Stay here',
   'wind.leaving': 'The wind carries your lineage away. Destination: {name}.',

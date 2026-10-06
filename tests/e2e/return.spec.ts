@@ -75,8 +75,8 @@ for (const phone of PHONES) {
     await expect(dialog(page).getByRole('heading', { name: '¿Volver al bosque natal?' })).toBeVisible();
     await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
     await expect(dialog(page).getByText('Destino: Bosque natal, suelo pardo.')).toBeVisible();
-    // De camino a casa no vale «no se puede volver a un bioma que dejaste».
-    await expect(dialog(page).getByText('no se puede volver', { exact: false })).toHaveCount(0);
+    // De camino a casa no vale «No podrás volver aquí durante el viaje».
+    await expect(dialog(page).getByText('No podrás volver', { exact: false })).toHaveCount(0);
     await dialog(page).getByRole('button', { name: 'Volver', exact: true }).click();
     // La fila desaparece: el foco no puede caer en <body>.
     await expect(page.locator('#wind-title')).toBeFocused();

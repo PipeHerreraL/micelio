@@ -15,6 +15,7 @@ import { createWindSection, departureText } from '../src/ui/wind.ts';
 import {
   CYCLE_NOW,
   HOUR,
+  actOneClosed,
   fourthColonized,
   inReturn,
   primeLevel,
@@ -181,7 +182,7 @@ describe('confirmación de partir (fase 10)', () => {
     expect(text.title).toBe('¿Sembrar un ciclo nuevo?');
     expect(text.yes).toBe('Sembrar');
     expect(text.rules[0]).toContain('×5');
-    expect(text.lines.join(' ')).not.toContain('no se puede volver');
+    expect(text.lines.join(' ')).not.toContain('No podrás volver');
     // Tras El regreso, sin ciclo empezado, no hay récord que ganar ni perder.
     expect(text.lines.join(' ')).not.toContain('récord');
   });
@@ -200,14 +201,19 @@ describe('confirmación de partir (fase 10)', () => {
     expect(lines.join(' ')).not.toContain('no dejará récord');
   });
 
-  it('el viaje dice que no se puede volver; la vuelta a casa, no', () => {
+  it('el viaje dice que no se vuelve durante el viaje; la vuelta a casa, no', () => {
     const fourth = fourthColonized();
     const home = departureText(fourth, 'natal', 'return');
     expect(home.title).toBe('¿Volver al bosque natal?');
     expect(home.rules).toEqual(['Llega al nivel 500 en el bosque natal para cerrar el viaje.']);
-    expect(home.lines.join(' ')).not.toContain('no se puede volver');
+    expect(home.lines.join(' ')).not.toContain('No podrás volver');
+    // Desde la 1.6.0 se vuelve: al natal con El regreso y a cualquier bioma en el ciclo libre. «En
+    // esta versión no se puede volver a un bioma que dejaste» ya no era cierto.
     const journey = departureText(fourth, 'tundra', 'journey');
-    expect(journey.lines.at(-1)).toContain('no se puede volver');
+    expect(journey.lines.at(-1)).toBe('No podrás volver aquí durante el viaje: quedará en la Crónica.');
+    expect(departureText(actOneClosed(), 'taiga', 'journey').lines.join(' ')).not.toContain(
+      'En esta versión',
+    );
   });
 });
 

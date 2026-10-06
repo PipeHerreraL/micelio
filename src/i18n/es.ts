@@ -445,8 +445,7 @@ export const es = {
     'Se pierden: el nivel de esporas de este bioma y todo lo de la partida (nutrientes, generadores, mejoras, hitos y efectos activos).',
   'wind.confirm.keep':
     'Viajan contigo: esporas disponibles, mutaciones, adaptaciones, linaje, logros, autocompra, estadísticas de vida y ajustes.',
-  'wind.confirm.oneWay':
-    'En esta versión no se puede volver a un bioma que dejaste. Quedará escrito en la Crónica.',
+  'wind.confirm.oneWay': 'No podrás volver aquí durante el viaje: quedará en la Crónica.',
   'wind.confirm.yes': 'Dispersar',
   'wind.confirm.no': 'Quedarme aquí',
   'wind.leaving': 'El viento se lleva tu linaje. Destino: {name}.',
