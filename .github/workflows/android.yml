@@ -60,10 +60,17 @@ jobs:
 
       # El Java del actualizador (ARCHITECTURE.md §4.34): JUnit con las fixtures que comparte con
       # Node, y lint de NewApi, fatal (android/app/build.gradle). Después de build:android, que crea
-      # capacitor-cordova-android-plugins, sin el que Gradle no configura el proyecto.
+      # capacitor-cordova-android-plugins, sin el que Gradle no configura el proyecto. Solo :app:
+      # sin el prefijo, lintDebug corre también el lint de Capacitor con su propia configuración.
       - name: Pruebas de Java y lint
         working-directory: android
-        run: ./gradlew --no-daemon testDebugUnitTest lintDebug
+        run: |
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug
+          # Cuántas corrieron: un filtro mal puesto daría verde con ninguna.
+          TESTS=$(grep -ho '<testsuite [^>]*' app/build/test-results/testDebugUnitTest/TEST-*.xml |
+            sed -E 's/.* tests="([0-9]+)".*/\1/' | awk '{ n += $1 } END { print n + 0 }')
+          echo "JUnit: $TESTS pruebas" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$TESTS" -gt 0 ]
 
       # La clave solo se usa al publicar: un .apk de prueba firmado con ella se instalaría encima
       # de la app del jugador.
