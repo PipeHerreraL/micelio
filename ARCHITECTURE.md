@@ -670,6 +670,13 @@ Resuelve el muro de la 1.5: tras el último bioma no quedaba destino y cada part
   +1 % por la regla de Viento (§4.28). Descartados: R y linaje que crecieran con los ciclos (el techo
   de 1e63 llegaría hacia el ciclo 150, estimación), un ciclo sin volver el nivel a 0 (el muro otra
   vez) y exigir cumplir antes de irse (ataría cada ciclo a 2–4 h).
+- **Sumideros de esporas** (la regla común del ROADMAP: crecen ×2 por nivel, al ritmo del ingreso).
+  Las adaptaciones de bioma y las cosméticas (§4.33) la cumplen, ×2 por rango. Dos excepciones, a
+  propósito y por la misma razón: sembrar, 300 fijas (arriba), y despertar una mutación dormida con
+  «sin mutaciones», a su coste de siempre (§4.33). Las dos son gastos por ciclo, que vuelven en
+  cada ciclo, y el ingreso de un ciclo es plano (R y linaje fijos: unas 500 esporas brutas). Un
+  coste que creciera con los ciclos acabaría por no pagarse; despertar, además, solo gasta esporas
+  del ciclo (`wakeBudget`), y el árbol entero (287) cabe en ellas.
 - **Cumplir y récords** (`src/systems/cycle.ts`). `checkCycleDone` actúa en la esporulación que
   lleva el nivel a 500 en un ciclo, también en la que `disperse` hace antes de sembrar (si no,
   cumplir al partir se perdía). Suma `cycle.done` y escribe o mejora en su sitio el récord de
@@ -797,7 +804,8 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
   sin conexión, autocompra y desbloqueos). Con el voto las compradas duermen: `wakeMutation`
   despierta una por lo de siempre en esporas disponibles, con sus requisitos despiertos y solo con
   esporas del ciclo (`wakeBudget`: el nivel, que empezó en 0, menos lo ya despertado; se deduce y no
-  se guarda). Romper el voto, cumplir o sembrar las despierta todas. Mientras duermen no hay Red
+  se guarda). Ese coste fijo es una excepción a «todo sumidero crece ×2 por nivel»: el gasto es por
+  ciclo y el ingreso de un ciclo es plano (§4.32, sumideros). Romper el voto, cumplir o sembrar las despierta todas. Mientras duermen no hay Red
   planetaria (su fila sigue en su sitio, dormida y con su motivo), Herencia ni Instinto, el sin
   conexión vuelve a 50 % y 8 h y k a 15. Confundir las dos preguntas dejaría recomprar una dormida o
   cerrar mal el Acto I: hay una prueba por cada sitio que las lee. Al pie de la letra, sin despertar

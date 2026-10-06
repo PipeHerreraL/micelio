@@ -37,7 +37,10 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
   global.
 - Todo sumidero de esporas crece ×2 por nivel, al ritmo del ingreso. Excepción medida:
   Dispersar cuesta 300 fijas, porque el ingreso por bioma es plano (el nivel vuelve a 0); por lo
-  mismo, sembrar en el ciclo libre (fase 10) también cuesta 300 fijas.
+  mismo, sembrar en el ciclo libre (fase 10) también cuesta 300 fijas. Y despertar una mutación
+  dormida con el voto «sin mutaciones» (fase 10) cuesta lo de siempre, fijo: es un gasto por ciclo,
+  que vuelve en cada ciclo con el voto y se paga con las esporas de ese ciclo, y el ingreso de un
+  ciclo también es plano (el árbol entero, 287 esporas, cabe en las unas 500 de un ciclo).
   Los logros de Viento sí suman al +1 %: Viento no es un sistema con moneda propia
   (ARCHITECTURE.md §4.28).
 - Cada fase es jugable y publicable sola, con su migración de guardado y sus objetivos en el
