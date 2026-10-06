@@ -838,6 +838,11 @@ export interface VowCycle {
   time: number | null;
   /** Esporas ganadas en el ciclo (sin las de la esporulación de sembrar, que son del anterior). */
   spores: number;
+  /**
+   * Guardados inválidos tras sembrar y tras cada partida, también las de espera. Solo los de este
+   * ciclo: el viaje del que sale ya los contó.
+   */
+  invalidSaves: number;
 }
 
 /**
@@ -856,7 +861,20 @@ export function playVowCycle(
   stable: boolean,
 ): VowCycle {
   const state = journey.state;
-  const result: VowCycle = { biome, vows: [...vows], threshold, runs: [], time: null, spores: 0 };
+  const result: VowCycle = {
+    biome,
+    vows: [...vows],
+    threshold,
+    runs: [],
+    time: null,
+    spores: 0,
+    invalidSaves: 0,
+  };
+  // Con votos el guardado lleva `cycle.vows` y `cycle.woken`, que el validador cruza con el bioma,
+  // el nivel y el árbol: cada ciclo de la matriz pasa por él, como el viaje.
+  const check = (at: number): void => {
+    if (!saveIsValid(state, START_TIME + at * 1000)) result.invalidSaves += 1;
+  };
   if (!journey.going || !windTargets(state).some((target) => target.kind === 'cycle')) return result;
   if (stable) maxBiomeAdaptations(state);
   for (let waits = 0; disperseBlock(state) === 'spores' && waits < 10; waits += 1) {
@@ -869,12 +887,14 @@ export function playVowCycle(
       departWhen: (s) => disperseFunds(s) >= departureCost(s),
     });
     journey.elapsed += run.duration;
+    check(journey.elapsed);
     if (run.sporesGained > 0) shopBetweenRuns(state);
   }
   setAutobuyThreshold(state, { threshold });
   const stays = state.cycle.stays;
   disperse(state, { to: biome, now: START_TIME + journey.elapsed * 1000, vows });
   drain();
+  check(journey.elapsed);
   if (state.cycle.stays !== stays + 1 || !sameVows(state.cycle.vows, vows)) return result;
   buyBiomeAdaptations(state, journeyReserve(state));
   const start = journey.elapsed;
@@ -883,8 +903,9 @@ export function playVowCycle(
     PROFILES.active,
     journey.policy,
     start,
-    (run) => {
+    (run, at) => {
       result.spores += run.sporesGained;
+      check(at);
     },
     undefined,
     isCycleDone,

@@ -1,14 +1,16 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { journeyPlan, startJourney, type Journey, type SimTask } from '../scripts/sim-play.ts';
+import { journeyPlan, playVowCycle, startJourney, type Journey, type SimTask } from '../scripts/sim-play.ts';
 import { createPool, poolSize, type SimPool } from '../scripts/sim-pool.ts';
-import { BIOME_ADAPTATIONS } from '../src/data/biomes.ts';
+import { disperseBlock } from '../src/core/actions.ts';
+import { BIOME_ADAPTATIONS, type BiomeId } from '../src/data/biomes.ts';
 import { returnClosed } from './cycle-states.ts';
 
 /**
  * Simulador de la red repartido entre hilos (fase 10): lo que juega no puede depender de cuántos
  * hilos haya ni de cuál juegue cada tarea, y un orden del viaje jugado en trozos (prefijo y rama,
  * sobre copias) debe dar lo mismo que de un tirón. Si no, `npm run sim` daría otras cifras en
- * otro ordenador y las filas de docs/BALANCE.md no se podrían comparar entre commits.
+ * otro ordenador y las filas de docs/BALANCE.md no se podrían comparar entre commits. Al final, que
+ * los ciclos con votos también pasan su guardado por el validador.
  */
 
 const pools: SimPool[] = [];
@@ -137,6 +139,7 @@ describe('reparto del simulador entre hilos', () => {
     expect(one).toMatchObject({ biome: 'tundra', vows: ['autoOnly', 'noMutations'], threshold: 1 });
     expect(one.time).not.toBeNull();
     expect(one.runs.length).toBeGreaterThan(0);
+    expect(one.invalidSaves).toBe(0);
     expect(four).toEqual(one);
     expect(inline).toEqual(one);
   }, 120_000);
@@ -195,4 +198,32 @@ describe('órdenes del viaje en el simulador', () => {
     ]);
     expect(split).toEqual(straight);
   }, 60_000);
+});
+
+describe('guardados en el simulador (fase 10)', () => {
+  it('un ciclo con votos pasa el guardado por el validador tras sembrar y tras cada partida', () => {
+    // Un récord de un bioma que no existe hace inválido cada guardado sin estorbar al juego: así se
+    // ve que cada comprobación cuenta. La métrica «Viento: guardados inválidos» los suma.
+    const state = returnClosed();
+    state.records.push({ biome: 'atlantis' as BiomeId, vows: [], time: 1, runs: 1, at: 0 });
+    // Sin partidas de espera: las 300 esporas de sembrar ya están.
+    expect(disperseBlock(state)).toBeNull();
+    const journey = startJourney(
+      {
+        state,
+        elapsed: 0,
+        actOneAt: null,
+        waitRuns: 0,
+        maxValue: 0,
+        earnedSpores: 0,
+        invalidSaves: 0,
+        partnerAt: null,
+      },
+      'doubling',
+      false,
+    );
+    const cycle = playVowCycle(journey, 'natal', ['noRain'], 1, false);
+    expect(cycle.runs.length).toBeGreaterThan(0);
+    expect(cycle.invalidSaves).toBe(cycle.runs.length + 1);
+  }, 120_000);
 });

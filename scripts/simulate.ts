@@ -574,9 +574,11 @@ metrics.push({
   name: 'Viento: guardados inválidos tras esporular, dispersar o colonizar',
   target: '0',
   // El régimen estable copia el viaje: su cuenta ya lleva la del viaje y la de la primera vuelta.
+  // Los ciclos con votos juegan sobre copias y cuentan solo los suyos (tras sembrar y cada partida).
   values: [
     natals.reduce((sum, n) => sum + n.invalidSaves, 0) +
-      stables.flat().reduce((sum, w) => sum + w.invalidSaves, 0),
+      stables.flat().reduce((sum, w) => sum + w.invalidSaves, 0) +
+      [...vowFirst, ...vowStable].flat().reduce((sum, c) => sum + c.invalidSaves, 0),
   ],
   format: (v) => (v === null ? '—' : String(v)),
   pass: (m) => m === 0,
