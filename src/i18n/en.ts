@@ -737,6 +737,14 @@ export const en: Catalog = {
   'ach.return.1.desc': 'Complete the return: your network grows again in your home forest.',
   'ach.cycle.1.name': 'Begin again',
   'ach.cycle.1.desc': 'Complete a cycle in a biome you sowed after the return.',
+  'ach.vow.noRain.name': 'Dry year',
+  'ach.vow.noRain.desc': 'Complete a cycle without breaking the “no rain” vow.',
+  'ach.vow.autoOnly.name': 'The network decides',
+  'ach.vow.autoOnly.desc': 'Complete a cycle without breaking the “autobuy only” vow.',
+  'ach.vow.noMutations.name': 'Awakening',
+  'ach.vow.noMutations.desc': 'Complete a cycle without breaking the “no mutations” vow.',
+  'ach.vow.all.name': 'Fungal fast',
+  'ach.vow.all.desc': 'Complete a cycle with all three vows, breaking none.',
 
   // Lluvia
   'rain.drop.label': 'Catch the raindrop',

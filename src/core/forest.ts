@@ -22,7 +22,7 @@ import {
   type BiomeId,
   type DestinationId,
 } from '../data/biomes.ts';
-import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
+import { CYCLE_GOAL_LEVEL, VOW_IDS, type VowId } from '../data/cycle.ts';
 import type { GeneratorId } from '../data/generators.ts';
 import { SPORE_SCALE, SPORULATE_REQUIREMENT } from '../data/prestige.ts';
 import { RAIN_EFFECTS, type RainEffectDef } from '../data/rain.ts';
@@ -42,6 +42,15 @@ function legScale(state: GameState): number {
 }
 
 /**
+ * R del tramo 5: la fija del bioma (`cycleScale`) × el factor de los votos vigentes. Sin votos el
+ * factor es 1 y la R queda idéntica bit a bit; romper un voto la sube en el acto (la meta sube de
+ * verdad: las esporas que da E(L) con la R nueva pueden quedar por debajo del nivel).
+ */
+function cycleR(state: GameState): number {
+  return getBiome(state.forest.biome).cycleScale * cycleGoalFactor(state);
+}
+
+/**
  * Nutrientes ganados en la partida que pide Esporular en este bosque. En el tramo 5 (El regreso y
  * el ciclo libre), unas 6 R del bioma: con 1 R el nivel se duplicaba hasta pasar de largo la meta
  * (256 → 512) y la última partida duraba 1:30 h.
@@ -49,23 +58,51 @@ function legScale(state: GameState): number {
 export function sporulateRequirement(state: GameState): Num {
   const leg = state.forest.leg;
   if (leg === 0) return SPORULATE_REQUIREMENT;
-  if (leg === RETURN_LEG) {
-    const biome = getBiome(state.forest.biome);
-    return biome.cycleRequirement * biome.cycleScale;
-  }
+  if (leg === RETURN_LEG) return getBiome(state.forest.biome).cycleRequirement * cycleR(state);
   return legScale(state);
 }
 
 /**
  * Escala R de la fórmula de esporas E = ⌊k √(L / R)⌋ en este bosque. En el tramo 5 es fija por
- * bioma (`cycleScale`): ni crece con los viajes ni encoge, y el suelo lineal de la 1.x, que solo
- * rige en el tramo 0, tampoco la toca.
+ * bioma (`cycleScale`, con sus votos): ni crece con los viajes ni encoge, y el suelo lineal de la
+ * 1.x, que solo rige en el tramo 0, tampoco la toca.
  */
 export function sporeScale(state: GameState): Num {
   const leg = state.forest.leg;
   if (leg === 0) return SPORE_SCALE;
-  if (leg === RETURN_LEG) return getBiome(state.forest.biome).cycleScale;
+  if (leg === RETURN_LEG) return cycleR(state);
   return legScale(state);
+}
+
+// ---------------------------------------------------------------------------------------
+// Votos del ciclo libre (fase 10, bloque B)
+
+/** El voto rige en el ciclo actual. Solo hay votos en un ciclo empezado (los valida el guardado). */
+export function vowActive(state: Readonly<GameState>, vow: VowId): boolean {
+  return state.cycle.vows.includes(vow);
+}
+
+/** Votos que se pueden jurar al sembrar `biome`, en el orden de VOW_IDS. */
+export function offeredVows(biome: BiomeId): VowId[] {
+  const goal = getBiome(biome).vowGoal;
+  return VOW_IDS.filter((vow) => goal[vow] !== undefined);
+}
+
+/**
+ * Factor de R de unos votos en un bioma: el producto de sus `vowGoal` (con los tres, en el natal,
+ * ×0,03). Sin votos, 1. Lo leen la R del ciclo y la confirmación de sembrar, que dice la meta antes
+ * de jurarlos.
+ */
+export function vowGoalFactor(biome: BiomeId, vows: readonly VowId[]): number {
+  const goal = getBiome(biome).vowGoal;
+  let factor = 1;
+  for (const vow of vows) factor *= goal[vow] ?? 1;
+  return factor;
+}
+
+/** Factor de R del ciclo actual por sus votos vigentes (1 fuera del ciclo libre, sin votos). */
+export function cycleGoalFactor(state: Readonly<GameState>): number {
+  return vowGoalFactor(state.forest.biome, state.cycle.vows);
 }
 
 /** El Acto I es la entrada del tramo 0 de la Crónica (systems/journey.ts la escribe). */

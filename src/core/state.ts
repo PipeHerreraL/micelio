@@ -308,12 +308,14 @@ export function ownsMutation(state: GameState, id: MutationId): boolean {
 
 /**
  * El efecto de la mutación rige: es lo que leen la producción, la lluvia, el sin conexión, la
- * autocompra y los desbloqueos. Hoy coincide con tenerla comprada; el voto «sin mutaciones» de la
- * fase 10 dormirá mutaciones compradas, y por eso son dos preguntas y no una (confundirlas dejaría
- * recomprar una dormida o cerrar mal el Acto I).
+ * autocompra y los desbloqueos. Con el voto «sin mutaciones» (fase 10) las compradas duermen hasta
+ * despertarlas en el ciclo, y por eso son dos preguntas y no una: confundirlas dejaría recomprar una
+ * dormida o cerrar mal el Acto I. `cycle.vows` y `cycle.woken` solo cambian al sembrar, romper un
+ * voto, despertar o cumplir, y las cuatro invalidan los derivados.
  */
 export function hasMutation(state: GameState, id: MutationId): boolean {
-  return ownsMutation(state, id);
+  if (!ownsMutation(state, id)) return false;
+  return !state.cycle.vows.includes('noMutations') || state.cycle.woken.includes(id);
 }
 
 /** Árbol de mutaciones completo: abre las Adaptaciones y es la mitad del Acto I. */

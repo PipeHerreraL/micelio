@@ -8,8 +8,10 @@
 import { disperse, sporulate } from '../src/core/actions.ts';
 import { drain } from '../src/core/events.ts';
 import { sporeScale, sporulateRequirement } from '../src/core/forest.ts';
+import { derived } from '../src/core/selectors.ts';
 import { createState, type GameState } from '../src/core/state.ts';
 import type { BiomeId } from '../src/data/biomes.ts';
+import type { VowId } from '../src/data/cycle.ts';
 import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { checkActOne } from '../src/systems/journey.ts';
 
@@ -18,8 +20,10 @@ export const HOUR = 3_600_000;
 
 /** Deja la partida lista para que esporular (o partir) lleve el nivel local a `level`. */
 export function primeLevel(s: GameState, level: number): void {
-  // E = ⌊18,75 · √(L / R)⌋ con k = 18,75 (Esporas aladas): L = R · (level / 18,75)² y un poco más.
-  const earned = sporeScale(s) * (level / 18.75) ** 2 * 1.000001;
+  // E = ⌊k · √(L / R)⌋: L = R · (level / k)² y un poco más. k es 18,75 con Esporas aladas y 15 si
+  // duermen (el voto «sin mutaciones»).
+  const k = derived(s).sporeK;
+  const earned = sporeScale(s) * (level / k) ** 2 * 1.000001;
   s.lifetimeEarned = s.lifetimeEarned + earned - s.forest.earned;
   s.forest.earned = earned;
   s.runEarned = sporulateRequirement(s);
@@ -33,11 +37,8 @@ export function reachLevel(s: GameState, level: number, now: number): void {
   if (s.spores.level !== level) throw new Error(`nivel ${s.spores.level} y no ${level}`);
 }
 
-/**
- * La tundra colonizada, cuarto destino: el Acto I, los cuatro viajes (taiga → Chocó → pradera →
- * tundra) y cada colonización por la esporulación que llega al nivel 520.
- */
-export function fourthColonized(): GameState {
+/** El Acto I cerrado en el natal, con esporas para el viaje. */
+export function actOneClosed(): GameState {
   const s = createState(17, CYCLE_NOW);
   s.mutations = [...MUTATION_IDS];
   s.achievements = ['own.planetary.1'];
@@ -45,6 +46,15 @@ export function fourthColonized(): GameState {
   s.stats.totalTime = 11_000;
   s.spores = { level: 1941, available: 2025 };
   checkActOne(s);
+  return s;
+}
+
+/**
+ * La tundra colonizada, cuarto destino: el Acto I, los cuatro viajes (taiga → Chocó → pradera →
+ * tundra) y cada colonización por la esporulación que llega al nivel 520.
+ */
+export function fourthColonized(): GameState {
+  const s = actOneClosed();
   const legs = ['taiga', 'choco', 'prairie', 'tundra'] as const;
   legs.forEach((to, i) => {
     disperse(s, { to, now: CYCLE_NOW + (i * 10 + 1) * HOUR });
@@ -70,11 +80,11 @@ export function returnClosed(): GameState {
   return s;
 }
 
-/** Recién sembrado `biome` a la hora `at` (tras El regreso, en el ciclo 1). */
-export function sownIn(biome: BiomeId, at = CYCLE_NOW + 60 * HOUR): GameState {
+/** Recién sembrado `biome` a la hora `at` (tras El regreso, en el ciclo 1), con `vows` jurados. */
+export function sownIn(biome: BiomeId, at = CYCLE_NOW + 60 * HOUR, vows: readonly VowId[] = []): GameState {
   const s = returnClosed();
-  disperse(s, { to: biome, now: at });
-  if (s.forest.biome !== biome) throw new Error(`no se sembró ${biome}`);
+  disperse(s, { to: biome, now: at, vows });
+  if (s.forest.biome !== biome || s.cycle.stays !== 1) throw new Error(`no se sembró ${biome}`);
   drain();
   return s;
 }

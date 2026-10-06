@@ -8,6 +8,7 @@
  * comentarios son de esos prototipos salvo donde se dice «simulador»: explican por qué se eligió
  * cada valor frente a sus alternativas, que el simulador no vuelve a medir.
  */
+import type { VowId } from './cycle.ts';
 import type { GeneratorId } from './generators.ts';
 import { SPORE_SCALE } from './prestige.ts';
 import type { RainEffectDef } from './rain.ts';
@@ -62,6 +63,16 @@ export interface BiomeDef {
   cycleScale: number;
   /** Requisito para esporular en el tramo 5, en múltiplos de `cycleScale`. */
   cycleRequirement: number;
+  /**
+   * Factor de la R del ciclo por cada voto vigente (fase 10, bloque B): un voto quita algo y rebaja
+   * la meta para compensar, y cuánto pesa lo que quita depende del bioma (con un factor común, la
+   * taiga sin lluvia salía más rápida que sin votos). Un voto que no aparece no se ofrece aquí. Se
+   * calibra en el régimen estable para que ningún voto acorte el ciclo (≥ 1,0× sin votos, también
+   * «solo autocompra» con su umbral más rápido): si no, el voto sería la forma más rápida de sacar
+   * récords. Con los de partida de la especificación (0,4, 0,6 y 0,6), en el natal «sin lluvia»
+   * tardaba 2,04 veces lo que sin votos y en la taiga «sin mutaciones», 0,96 (simulador).
+   */
+  vowGoal: Readonly<Partial<Record<VowId, number>>>;
 }
 
 /**
@@ -97,6 +108,11 @@ export const BIOMES: readonly BiomeDef[] = [
     // 2,29 h con partidas de 26:00 y la más larga en 41:59 (simulador).
     cycleScale: 4.8e13,
     cycleRequirement: 6,
+    // Votos: aquí la lluvia pesa más que en ningún sitio (la Tormenta multiplica el clic ×500), y «sin
+    // lluvia» pide ×0,15. Con factores que dejaban cada voto cerca de 1,0× en el régimen estable (0,12,
+    // 0,25 y 0,45), los tres juntos tardaban 0,72 veces el ciclo sin votos; con estos, cada voto suelto
+    // cuesta 1,10–1,28 y los tres juntos, 1,12–1,18 (simulador).
+    vowGoal: { noRain: 0.15, autoOnly: 0.38, noMutations: 0.53 },
   },
   {
     // Red micorrícica y Árbol madre ×5: con ×3 las partidas medianas duraban 36:22 y colonizar,
@@ -119,6 +135,9 @@ export const BIOMES: readonly BiomeDef[] = [
     // (sin la que cumple la meta) queda en 10:12, al borde de los 10 min.
     cycleScale: 4.6e13,
     cycleRequirement: 5,
+    // Votos: cada uno cuesta 1,04–1,09 veces el ciclo sin votos en el régimen estable, y los tres
+    // juntos, 1,00–1,04 (simulador; con los factores justos para 1,0×, los tres daban 0,90).
+    vowGoal: { noRain: 0.33, autoOnly: 0.56, noMutations: 0.71 },
   },
   {
     // Escala mayor que la de la taiga: la bonificación de la taiga cae en generadores medios y la
@@ -143,6 +162,11 @@ export const BIOMES: readonly BiomeDef[] = [
     // la más larga ≤ 60 min: es el muro que la fase resuelve.
     cycleScale: 5.4e14,
     cycleRequirement: 6,
+    // Votos: sin «sin lluvia» (Lloró está entre los lugares más lluviosos del planeta). Con «solo
+    // autocompra» a ×1, el ciclo estable tardaba 1,35 veces el de sin votos con el umbral más rápido;
+    // con ×0,7, 1,04 (y 1,35 con el umbral del 10 %). «Sin mutaciones» a ×0,6 tardaba 1,49; con ×0,35,
+    // 1,07 (simulador).
+    vowGoal: { autoOnly: 0.7, noMutations: 0.35 },
   },
   {
     // Chernozem. El motor es un generador barato, el quinto: Anillo de hadas ×6, medido también
@@ -167,6 +191,13 @@ export const BIOMES: readonly BiomeDef[] = [
     // encima de 35 min; con 3,7e13, 31:52, el ciclo en 3,05 h y la más larga en 55:23 (simulador).
     cycleScale: 3.7e13,
     cycleRequirement: 6,
+    // Votos: al límite entre dos objetivos. En el régimen estable cada voto cuesta 1,03–1,04 veces
+    // el ciclo sin votos (con el umbral más rápido); en la primera siembra tras El regreso, sus
+    // partidas duran 45:51–47:13 (≤ 50 min). Con factores más bajos (0,28, 0,36 y 0,5) las partidas
+    // bajaban a 39–41 min, pero el estable quedaba en 0,90–0,97: el voto acortaba el ciclo. Por eso
+    // los tres juntos tardan 0,85–0,89 veces el de sin votos: subir los sueltos alargaría la primera
+    // siembra pasado su objetivo.
+    vowGoal: { noRain: 0.35, autoOnly: 0.44, noMutations: 0.59 },
   },
   {
     // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
@@ -196,6 +227,10 @@ export const BIOMES: readonly BiomeDef[] = [
     // 4,6e12, 33:55 y el ciclo en 2,97 h (simulador).
     cycleScale: 4.6e12,
     cycleRequirement: 6,
+    // Votos: como la pradera, al límite entre dos objetivos. «Solo autocompra» cuesta 1,04 veces en
+    // el estable y sus partidas duran 48:46 en la primera siembra tras El regreso; con ×0,27 bajaban a
+    // 43:21 y el estable quedaba en 0,93 (simulador).
+    vowGoal: { noRain: 0.38, autoOnly: 0.36, noMutations: 0.62 },
   },
 ];
 

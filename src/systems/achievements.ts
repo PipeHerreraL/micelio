@@ -48,6 +48,10 @@ function isMet(state: GameState, def: AchievementDef): boolean {
       return isReturnClosed(state);
     case 'cycles':
       return state.cycle.done >= c.count;
+    case 'vowRecord':
+      // Del récord y no del ciclo vigente: un voto roto no cuenta, y el logro queda aunque el récord
+      // se mejore después con otros votos (los récords son por combinación y no se borran).
+      return state.records.some((record) => c.vows.every((vow) => record.vows.includes(vow)));
   }
 }
 

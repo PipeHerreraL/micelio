@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { completesGoal, disperse, disperseBlock, sporeGain } from '../src/core/actions.ts';
+import { completesGoal, disperse, disperseBlock, sporeGain, wakeMutation } from '../src/core/actions.ts';
 import { drain, type GameEvent } from '../src/core/events.ts';
 import {
   bestRecord,
@@ -7,6 +7,7 @@ import {
   forestGoal,
   isFreeStay,
   lineageFactor,
+  offeredVows,
   sporeScale,
   sporulateRequirement,
   windTargets,
@@ -16,11 +17,13 @@ import { derived, invalidate } from '../src/core/selectors.ts';
 import { emptyOwned, type GameState } from '../src/core/state.ts';
 import { BIOME_IDS } from '../src/data/biomes.ts';
 import { MAX_RECORDS } from '../src/data/cycle.ts';
+import { MUTATION_IDS } from '../src/data/mutations.ts';
 import { HISTORY_LIMIT } from '../src/data/prestige.ts';
 import { parseSave, saveGame, serializeSave, SAVE_VERSION, type StorageLike } from '../src/systems/save.ts';
 import {
   CYCLE_NOW,
   HOUR,
+  actOneClosed,
   fourthColonized,
   inReturn,
   primeLevel,
@@ -123,11 +126,13 @@ describe('el ciclo libre: sembrar (fase 10)', () => {
     expect(drain().some((e) => e.type === 'cycleDone')).toBe(false);
   });
 
-  it('los votos llegan con su bloque: con votos, sembrar no hace nada', () => {
-    const s = returnClosed();
+  it('un viaje no lleva votos: con votos, dispersar a un destino no hace nada (se juran al sembrar, tests/vows.test.ts)', () => {
+    const s = actOneClosed();
     const before = structuredClone(s);
-    disperse(s, { to: 'taiga', now: NOW + 60 * HOUR, vows: ['noRain'] });
+    disperse(s, { to: 'taiga', now: NOW + HOUR, vows: ['noRain'] });
     expect(s).toEqual(before);
+    disperse(s, { to: 'taiga', now: NOW + HOUR });
+    expect(s.forest.biome).toBe('taiga');
   });
 });
 
@@ -330,15 +335,15 @@ describe('guardado del ciclo libre (fase 10)', () => {
     expect(loadsAfter(secondCycle, (s) => Object.assign(s.cycle, { stays: '2' }))).toBe(false);
   });
 
-  it('los votos y las mutaciones despiertas llegan con su bloque: hasta entonces solo valen vacíos', () => {
-    expect(loadsAfter(secondCycle, (s) => (s.cycle.vows = ['noRain']))).toBe(false);
+  it('un ciclo empezado admite votos; las mutaciones despiertas, solo con «sin mutaciones» (las reglas, en tests/vows.test.ts)', () => {
+    expect(loadsAfter(secondCycle, (s) => (s.cycle.vows = ['noRain']))).toBe(true);
     expect(loadsAfter(secondCycle, (s) => (s.cycle.woken = ['soilMemory']))).toBe(false);
     expect(
       loadsAfter(secondCycle, (s) => {
         const record = s.records[0];
         if (record) record.vows = ['autoOnly'];
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('un récord pide un ciclo cumplido, un bioma conocido, partidas entre 1 y las esporulaciones y una fecha', () => {
@@ -405,17 +410,24 @@ describe('el guardado no crece con los ciclos (fase 10)', () => {
   /**
    * Un ciclo entero por acciones: sembrar el bioma que toca y cumplirlo en cinco partidas de 30 min
    * de reloj, con los niveles del ciclo medido (46 → 92 → 184 → 368 → 500 y algo). Con cinco
-   * partidas por ciclo el historial ya está lleno tras 10 ciclos, como en una partida de verdad.
+   * partidas por ciclo el historial ya está lleno tras 10 ciclos, como en una partida de verdad. Los
+   * ciclos impares llevan todos los votos que ofrece su bioma y despiertan entre partidas lo que
+   * alcanza; en 10 ciclos ya salen las diez combinaciones de bioma y votos que se repiten después.
    */
   function playCycle(s: GameState, i: number): void {
     const biome = BIOME_IDS[i % BIOME_IDS.length] ?? 'natal';
     const start = NOW + (100 + i * 3) * HOUR;
-    disperse(s, { to: biome, now: start });
+    disperse(s, { to: biome, now: start, vows: i % 2 === 1 ? offeredVows(biome) : [] });
     [46, 92, 184, 368, 520].forEach((level, run) => {
       reachLevel(s, level, start + (run + 1) * 30 * 60_000);
+      for (const id of MUTATION_IDS) wakeMutation(s, { id });
+      maxVows = Math.max(maxVows, s.cycle.vows.length);
+      maxWoken = Math.max(maxWoken, s.cycle.woken.length);
     });
     drain();
   }
+  let maxVows = 0;
+  let maxWoken = 0;
 
   it('tras 100 ciclos: Crónica de seis, historial, récords y votos acotados, sin marcas nuevas y unos bytes más que tras 10', () => {
     const s = returnClosed();
@@ -427,10 +439,12 @@ describe('el guardado no crece con los ciclos (fase 10)', () => {
     expect(s.cycle).toEqual({ stays: 100, done: 100, vows: [], woken: [] });
     expect(s.chronicle).toHaveLength(6);
     expect(s.history.length).toBeLessThanOrEqual(HISTORY_LIMIT);
-    expect(s.records).toHaveLength(BIOME_IDS.length);
+    // Cinco biomas sin votos y cinco con todos los que ofrecen.
+    expect(s.records).toHaveLength(2 * BIOME_IDS.length);
     expect(s.records.length).toBeLessThanOrEqual(MAX_RECORDS);
-    expect(s.cycle.vows.length).toBeLessThanOrEqual(3);
-    expect(s.cycle.woken.length).toBeLessThanOrEqual(12);
+    expect(maxVows).toBe(3);
+    // Las doce despiertan en los ciclos con «sin mutaciones»: el árbol cuesta 287 esporas y el ciclo da 520.
+    expect(maxWoken).toBe(12);
     expect(s.seen).toEqual(seen);
     const after100 = serializeSave(s, SAVED_AT).length;
     expect(after100).toBeLessThanOrEqual(after10 + 300);

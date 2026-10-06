@@ -17,7 +17,7 @@ import {
   type BiomeAdaptationId,
   type BiomeId,
 } from '../data/biomes.ts';
-import { SOW_COST, type VowId } from '../data/cycle.ts';
+import { SOW_COST, VOW_IDS, type VowId } from '../data/cycle.ts';
 import { GENERATORS, getGenerator, isGeneratorId, type GeneratorId } from '../data/generators.ts';
 import {
   INHERITANCE_GENERATORS,
@@ -43,9 +43,11 @@ import {
   isActOneClosed,
   isForestColonized,
   nextBiomeAdaptationCost,
+  offeredVows,
   sporeScale,
   sporulateRequirement,
   startUnits,
+  vowActive,
   windTargets,
 } from './forest.ts';
 import { adaptationCost, nutrientsForSpores, sporesFor } from './formulas.ts';
@@ -77,20 +79,25 @@ export function click(state: GameState, _payload: Record<string, never> = {}): v
   emit({ type: 'click', value });
 }
 
-/** Compra `amount` unidades (o el máximo) de un generador: la acción del jugador. */
+/**
+ * Compra `amount` unidades (o el máximo) de un generador: la acción del jugador. Con el voto «solo
+ * autocompra» (fase 10) se niega: la red compra sola (systems/autobuy.ts).
+ */
 export function buyGenerator(state: GameState, payload: { id: GeneratorId; amount: BuyAmount }): void {
+  if (vowActive(state, 'autoOnly')) return;
   purchaseGenerator(state, payload);
 }
 
-/** Compra una mejora disponible: la acción del jugador. */
+/** Compra una mejora disponible: la acción del jugador. Con «solo autocompra», tampoco. */
 export function buyUpgrade(state: GameState, payload: { id: string }): void {
+  if (vowActive(state, 'autoOnly')) return;
   purchaseUpgrade(state, payload);
 }
 
 /**
  * La compra de un generador, si está desbloqueado y alcanza, sin mirar quién compra. La acción del
  * jugador y la autocompra pasan por aquí, y la autocompra no pasa por la acción: el voto «solo
- * autocompra» de la fase 10 negará la del jugador y la red seguirá comprando sola.
+ * autocompra» niega la del jugador y la red sigue comprando sola.
  */
 export function purchaseGenerator(state: GameState, payload: { id: GeneratorId; amount: BuyAmount }): void {
   if (!isGeneratorId(payload.id)) return;
@@ -241,13 +248,24 @@ export function disperseBlock(state: GameState): DisperseBlock | null {
 }
 
 /**
+ * Los votos que se juran al sembrar `to`, en el orden de VOW_IDS, o null si la lista no vale: un id
+ * desconocido o repetido, o un voto que ese bioma no ofrece (en el Chocó, «sin lluvia»).
+ */
+function swornVows(to: BiomeId, vows: readonly unknown[]): VowId[] | null {
+  const offered = offeredVows(to);
+  if (new Set(vows).size !== vows.length) return null;
+  if (!vows.every((vow) => offered.some((id) => id === vow))) return null;
+  return VOW_IDS.filter((vow) => vows.includes(vow));
+}
+
+/**
  * Dispersar: el linaje viaja a otro bioma, tras el cuarto vuelve al natal (El regreso, fase 10) y,
  * cumplido El regreso, siembra cualquier bioma (el ciclo libre, sin cambiar de tramo). Si la
  * partida puede esporular, termina esporulando (mismas cuentas que `sporulate`) y esas esporas
  * ayudan a pagar el viaje; en un ciclo, esa esporulación también puede cumplirlo antes de irse. El
  * nivel vuelve a 0 (el territorio no viaja); las esporas que quedan, las mutaciones y las
  * adaptaciones viajan en las esporas. Todo se valida antes de mutar. Los votos solo se juran al
- * sembrar, y llegan con su bloque: hasta entonces ningún viaje lleva votos.
+ * sembrar (El regreso va sin votos) y nunca se añaden a mitad de ciclo: solo se rompen.
  */
 export function disperse(
   state: GameState,
@@ -255,8 +273,13 @@ export function disperse(
 ): void {
   const to = payload.to;
   if (!isBiomeId(to) || !isValidTime(payload.now)) return;
-  if (payload.vows !== undefined && payload.vows.length > 0) return;
-  if (disperseBlock(state) !== null || !windTargets(state).some((target) => target.biome === to)) return;
+  if (disperseBlock(state) !== null) return;
+  const target = windTargets(state).find((t) => t.biome === to);
+  if (!target) return;
+  const requested: readonly unknown[] = payload.vows ?? [];
+  if (!Array.isArray(requested) || (requested.length > 0 && target.kind !== 'cycle')) return;
+  const vows = swornVows(to, requested);
+  if (vows === null) return;
   const now = payload.now;
   const from = state.forest.biome;
   const sowing = state.forest.leg === RETURN_LEG;
@@ -288,7 +311,7 @@ export function disperse(
   };
   if (sowing) {
     state.cycle.stays += 1;
-    state.cycle.vows = [];
+    state.cycle.vows = vows;
     state.cycle.woken = [];
   }
   // Con el bosque ya cambiado: la espera de la lluvia se sortea con la del destino.
@@ -347,6 +370,59 @@ export function buyMutation(state: GameState, payload: { id: MutationId }): void
   state.mutations.push(def.id);
   invalidate(state);
   emit({ type: 'buyMutation', id: def.id });
+}
+
+/**
+ * Romper un voto (fase 10): quita uno de los vigentes; nunca se añade otro a mitad de ciclo. La R
+ * del ciclo sube (core/forest.ts) y, si era «sin mutaciones», todas despiertan. El nivel alcanzado
+ * se conserva: las esporas que da E(L) con la R nueva pueden quedar por debajo de él, y la meta sube
+ * de verdad. Cambia los derivados, así que invalida.
+ */
+export function renounceVow(state: GameState, payload: { vow: VowId }): void {
+  const vow = payload.vow;
+  if (!vowActive(state, vow)) return;
+  state.cycle.vows = state.cycle.vows.filter((v) => v !== vow);
+  if (vow === 'noMutations') state.cycle.woken = [];
+  invalidate(state);
+  emit({ type: 'vowRenounced', vow });
+}
+
+/** La mutación está comprada y duerme: el voto «sin mutaciones» rige y aún no se despertó. */
+export function isMutationAsleep(state: GameState, id: MutationId): boolean {
+  return ownsMutation(state, id) && !hasMutation(state, id);
+}
+
+/**
+ * Esporas de este ciclo que quedan para despertar mutaciones: el nivel (que empezó en 0 al sembrar)
+ * menos lo que costaron las ya despertadas. Se deduce del estado y no se guarda: el nivel solo sube
+ * dentro del ciclo y `woken` se vacía al sembrar.
+ */
+export function wakeBudget(state: GameState): number {
+  let spent = 0;
+  for (const id of state.cycle.woken) spent += getMutation(id).cost;
+  return Math.max(0, state.spores.level - spent);
+}
+
+/** Se puede despertar: duerme y sus requisitos ya están despiertos (lo alcance o no). */
+export function isMutationWakeable(state: GameState, id: MutationId): boolean {
+  return isMutationAsleep(state, id) && getMutation(id).requires.every((req) => hasMutation(state, req));
+}
+
+/**
+ * Despierta una mutación dormida con «sin mutaciones» (fase 10): cuesta lo de siempre en esporas
+ * disponibles y solo gasta esporas de este ciclo (`wakeBudget`). Es el árbol en miniatura, que se
+ * vuelve a recorrer con lo que da el ciclo: así el voto se puede jugar (al pie de la letra, sin
+ * despertar nada, los ciclos duraban de 8,6 a 25,6 h en el prototipo). Invalida los derivados.
+ */
+export function wakeMutation(state: GameState, payload: { id: MutationId }): void {
+  const id = payload.id;
+  if (!isMutationId(id) || !isMutationWakeable(state, id)) return;
+  const cost = getMutation(id).cost;
+  if (state.spores.available < cost || wakeBudget(state) < cost) return;
+  state.spores.available -= cost;
+  state.cycle.woken.push(id);
+  invalidate(state);
+  emit({ type: 'mutationWoken', id });
 }
 
 /** Las adaptaciones aparecen con el árbol de mutaciones completo. */

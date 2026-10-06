@@ -18,7 +18,9 @@ import {
   type BiomeId,
   type DestinationId,
 } from '../src/data/biomes.ts';
-import { SOW_COST } from '../src/data/cycle.ts';
+import { offeredVows, sameVows, vowGoalFactor } from '../src/core/forest.ts';
+import { AUTOBUY_THRESHOLDS, createState, type AutobuyThreshold } from '../src/core/state.ts';
+import { SOW_COST, VOW_IDS, type VowId } from '../src/data/cycle.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import { UPGRADES } from '../src/data/upgrades.ts';
 import { fmt, setLocale, setNotation } from '../src/i18n/index.ts';
@@ -29,6 +31,7 @@ import {
   type CycleLeg,
   type Journey,
   type RunRecord,
+  type VowCycle,
 } from './sim-play.ts';
 import { createPool, poolSize, type SimPool } from './sim-pool.ts';
 import { SEEDS, clock, hours, median, present, row, writeBlock, type Metric } from './sim-report.ts';
@@ -69,6 +72,39 @@ const LAP_BASE: readonly BiomeId[] = [...DESTINATION_IDS, HOME_BIOME];
 const lapOf = (order: number): BiomeId[] =>
   LAP_BASE.map((_, i) => LAP_BASE[(i + order) % LAP_BASE.length] ?? HOME_BIOME);
 
+/**
+ * Matriz de votos (fase 10, bloque B): cada voto suelto en cada bioma que lo ofrece, junto al ciclo
+ * sin votos del mismo bioma, desde el mismo estado, y los tres votos juntos. «Solo autocompra» se
+ * juega con los tres umbrales: la Poda no rige con el voto y el umbral decide cuánto cuesta (con 0,1
+ * es el más lento en casi todos los biomas). Los demás, con el umbral de partida, que con ellos no
+ * compra nada: el bot no enciende los interruptores.
+ */
+interface VowCase {
+  biome: BiomeId;
+  vows: VowId[];
+  threshold: AutobuyThreshold;
+}
+const DEFAULT_THRESHOLD = createState(0, 0).autobuy.threshold;
+const thresholdsFor = (vows: readonly VowId[]): readonly AutobuyThreshold[] =>
+  vows.includes('autoOnly') ? AUTOBUY_THRESHOLDS : [DEFAULT_THRESHOLD];
+const SINGLE_VOW_CASES: readonly VowCase[] = BIOME_IDS.flatMap((biome) => [
+  { biome, vows: [], threshold: DEFAULT_THRESHOLD },
+  ...offeredVows(biome).flatMap((vow) =>
+    thresholdsFor([vow]).map((threshold) => ({ biome, vows: [vow], threshold })),
+  ),
+]);
+/** Los biomas que ofrecen los tres votos (todos menos el Chocó, sin «sin lluvia»). */
+const ALL_VOWS_BIOMES: readonly BiomeId[] = BIOME_IDS.filter(
+  (biome) => offeredVows(biome).length === VOW_IDS.length,
+);
+const ALL_VOWS_CASES: readonly VowCase[] = ALL_VOWS_BIOMES.flatMap((biome) =>
+  thresholdsFor(VOW_IDS).map((threshold) => ({ biome, vows: [...VOW_IDS], threshold })),
+);
+/** Los tres votos se miden en el régimen estable, junto a los sueltos y sus ciclos sin votos. */
+const STABLE_VOW_CASES: readonly VowCase[] = [...SINGLE_VOW_CASES, ...ALL_VOWS_CASES];
+/** Tope de los tres votos: un ciclo así debe caber en una jornada larga (§6.2). */
+const ALL_VOWS_MAX_SECONDS = 9 * 3600;
+
 // ---------------------------------------------------------------------------------------
 // Corridas
 
@@ -104,6 +140,15 @@ async function playAll(pool: SimPool) {
   const stableRuns = lapRuns.map((bySeed, o) =>
     bySeed.map(async (lap) => pool.run({ kind: 'lap', journey: await lap, biomes: lapOf(o), stable: true })),
   );
+  // La matriz de votos, sobre el primer orden: cada combinación es la primera siembra tras cerrar El
+  // regreso (la «primera vuelta» de los votos, sin encadenar biomas) y, sobre el final de su primera
+  // vuelta con las adaptaciones de bioma al máximo, el régimen estable. Cada ciclo es una tarea.
+  const vowCycles = (journey: Promise<Journey>, cases: readonly VowCase[], stable: boolean) =>
+    journey.then((j) =>
+      Promise.all(cases.map((c) => pool.run({ kind: 'vowCycle', journey: j, ...c, stable }))),
+    );
+  const vowFirstRuns = (branchRuns[0] ?? []).map((branch) => vowCycles(branch, SINGLE_VOW_CASES, false));
+  const vowStableRuns = (lapRuns[0] ?? []).map((lap) => vowCycles(lap, STABLE_VOW_CASES, true));
   // Regla del mejor ritmo, informativa: natal y primer bioma (taiga), sin perfil pasivo.
   const rateRuns = perSeed(async (seed) => {
     const natal = await pool.run({ kind: 'natal', seed, policy: 'rate' });
@@ -145,6 +190,8 @@ async function playAll(pool: SimPool) {
     prefixes,
     winds,
     stables,
+    vowFirst,
+    vowStable,
     absents,
     rateJourneys,
     longDoubling,
@@ -157,6 +204,8 @@ async function playAll(pool: SimPool) {
     Promise.all(prefixRuns.map((runs) => Promise.all(runs))),
     Promise.all(lapRuns.map((runs) => Promise.all(runs))),
     Promise.all(stableRuns.map((runs) => Promise.all(runs))),
+    Promise.all(vowFirstRuns),
+    Promise.all(vowStableRuns),
     Promise.all(absentRuns.map((byHours) => Promise.all(byHours))),
     rateRuns,
     longDoublingRuns,
@@ -175,6 +224,8 @@ async function playAll(pool: SimPool) {
     prefixes,
     winds,
     stables,
+    vowFirst,
+    vowStable,
     absents,
     rateJourneys,
   };
@@ -193,6 +244,8 @@ const {
   prefixes,
   winds,
   stables,
+  vowFirst,
+  vowStable,
   absents,
   rateJourneys,
 } = await playAll(pool).finally(() => pool.close());
@@ -664,6 +717,165 @@ metrics.push({
   pass: (m) => m < 0.5,
 });
 
+// Votos (fase 10, bloque B). Cada combinación se compara con el ciclo sin votos del mismo bioma,
+// semilla a semilla y desde el mismo estado; la fila da la mediana de esas razones.
+const VOW_NAMES: Record<VowId, string> = {
+  noRain: 'sin lluvia',
+  autoOnly: 'solo autocompra',
+  noMutations: 'sin mutaciones',
+};
+const vowNames = (vows: readonly VowId[]): string =>
+  vows.length === 0 ? 'sin votos' : vows.map((v) => VOW_NAMES[v]).join(' + ');
+const percent = (v: number): string => `${Math.round(v * 100)} %`;
+/** Los ciclos de un caso en cada semilla; null si alguna semilla no lo cumplió (no se mide a medias). */
+const vowCyclesOf = (
+  results: readonly (readonly VowCycle[])[],
+  cases: readonly VowCase[],
+  c: VowCase,
+): VowCycle[] | null => {
+  const index = cases.indexOf(c);
+  const cycles = results.map((bySeed) => bySeed[index]);
+  return cycles.every((cycle): cycle is VowCycle => cycle !== undefined && cycle.time !== null)
+    ? cycles
+    : null;
+};
+const baseCase = (cases: readonly VowCase[], biome: BiomeId): VowCase | undefined =>
+  cases.find((c) => c.biome === biome && c.vows.length === 0);
+/** Mediana, entre semillas, del ciclo con votos ÷ el ciclo sin votos de la misma semilla. */
+const vowRatio = (
+  results: readonly (readonly VowCycle[])[],
+  cases: readonly VowCase[],
+  c: VowCase,
+): number | null => {
+  const base = baseCase(cases, c.biome);
+  const withVows = vowCyclesOf(results, cases, c);
+  const without = base ? vowCyclesOf(results, cases, base) : null;
+  if (!withVows || !without) return null;
+  return median(withVows.map((cycle, i) => (cycle.time ?? 0) / (without[i]?.time ?? Number.NaN)));
+};
+const vowRuns = (
+  results: readonly (readonly VowCycle[])[],
+  cases: readonly VowCase[],
+  c: VowCase,
+): number | null => {
+  const cycles = vowCyclesOf(results, cases, c);
+  return cycles ? median(cycles.flatMap((cycle) => cycle.runs)) : null;
+};
+/** Los casos de un voto suelto, agrupados por bioma y voto (los tres umbrales de «solo autocompra» juntos). */
+const singleVowGroups = BIOME_IDS.flatMap((biome) =>
+  offeredVows(biome).map((vow) => ({
+    biome,
+    vow,
+    cases: SINGLE_VOW_CASES.filter((c) => c.biome === biome && sameVows(c.vows, [vow])),
+  })),
+);
+/** El caso con el umbral de partida: el que tiene quien no lo ha cambiado. */
+const atDefault = (cases: readonly VowCase[]): VowCase | undefined =>
+  cases.find((c) => c.threshold === DEFAULT_THRESHOLD) ?? cases[0];
+const worstOf = (
+  values: readonly (number | null)[],
+  pick: (a: number, b: number) => number,
+): number | null =>
+  values.some((v) => v === null) ? null : values.reduce<number>((a, v) => pick(a, v ?? 0), values[0] ?? 0);
+const firstLabel = `Votos, primera siembra tras El regreso (un voto, ${singleVowGroups.length} combinaciones; «solo autocompra» con el umbral de partida, ${percent(DEFAULT_THRESHOLD)})`;
+// La especificación pedía ≤ 45 min, sin medir. Desde El regreso recién cumplido, sin votos, las partidas
+// de la pradera y la tundra ya duran 39–40 min (aún faltan casi todas las adaptaciones de bioma), y un
+// voto que no acorte el régimen estable (≥ 1,0×) las alarga más de un 12 %: «solo autocompra» en la
+// tundra llega a 48:46 con el estable en 1,04×, y con el factor que bajaba sus partidas a 43:21 el
+// estable caía a 0,93× (el voto acortaba el ciclo). Manda que ningún voto acorte; el tope sigue lejos
+// de la hora que marca el muro.
+metrics.push({
+  name: `${firstLabel}: partidas hasta cumplirlo (todas, mediana), la peor combinación`,
+  target: '≤ 50 min',
+  values: singleVowGroups.map((g) => {
+    const c = atDefault(g.cases);
+    return c ? vowRuns(vowFirst, SINGLE_VOW_CASES, c) : null;
+  }),
+  format: clock,
+  pass: (m) => m <= 50 * 60,
+  every: true,
+});
+metrics.push({
+  name: `${firstLabel}: ciclo frente a sin votos, la peor combinación`,
+  target: '≤ 2,5 ×',
+  values: singleVowGroups.map((g) => {
+    const c = atDefault(g.cases);
+    return c ? vowRatio(vowFirst, SINGLE_VOW_CASES, c) : null;
+  }),
+  format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+  pass: (m) => m <= 2.5,
+  every: true,
+});
+const stableVowLabel = `Votos, régimen estable (un voto, ${singleVowGroups.length} combinaciones)`;
+metrics.push({
+  name: `${stableVowLabel}: ciclo frente a sin votos, la peor; «solo autocompra» con el umbral más rápido de los tres (ningún voto acorta el ciclo)`,
+  target: '≥ 1,0 ×',
+  values: singleVowGroups.map((g) =>
+    worstOf(
+      g.cases.map((c) => vowRatio(vowStable, STABLE_VOW_CASES, c)),
+      Math.min,
+    ),
+  ),
+  format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+  pass: (m) => m >= 1,
+  every: true,
+});
+metrics.push({
+  name: `${stableVowLabel}: ciclo frente a sin votos, la peor; «solo autocompra» con el umbral más lento de los tres`,
+  target: '≤ 2,25 ×',
+  values: singleVowGroups.map((g) =>
+    worstOf(
+      g.cases.map((c) => vowRatio(vowStable, STABLE_VOW_CASES, c)),
+      Math.max,
+    ),
+  ),
+  format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+  pass: (m) => m <= 2.25,
+  every: true,
+});
+const allVowsLabel = `Votos, los tres juntos, régimen estable (${ALL_VOWS_BIOMES.length} biomas; «solo autocompra» con el umbral más lento de los tres)`;
+const allVowsCasesOf = (biome: BiomeId): VowCase[] => ALL_VOWS_CASES.filter((c) => c.biome === biome);
+metrics.push({
+  name: `${allVowsLabel}: ciclo frente a sin votos, el peor bioma`,
+  target: '≤ 3 ×',
+  values: ALL_VOWS_BIOMES.map((biome) =>
+    worstOf(
+      allVowsCasesOf(biome).map((c) => vowRatio(vowStable, STABLE_VOW_CASES, c)),
+      Math.max,
+    ),
+  ),
+  format: (v) => (v === null ? '—' : `${v.toFixed(2)} ×`),
+  pass: (m) => m <= 3,
+  every: true,
+});
+// Por semilla y bioma, el ciclo más largo de los tres umbrales; uno que no se cumplió no cuenta.
+const allVowsTimes = ALL_VOWS_BIOMES.flatMap((biome) =>
+  vowStable.map((bySeed) => {
+    const times = allVowsCasesOf(biome).map((c) => bySeed[STABLE_VOW_CASES.indexOf(c)]?.time ?? null);
+    return times.every((t) => t !== null) ? Math.max(...present(times)) : null;
+  }),
+);
+metrics.push({
+  name: `${allVowsLabel}: semillas que lo cumplen en ≤ ${ALL_VOWS_MAX_SECONDS / 3600} h`,
+  target: `${allVowsTimes.length} de ${allVowsTimes.length}`,
+  values: [allVowsTimes.filter((t) => t !== null && t <= ALL_VOWS_MAX_SECONDS).length],
+  format: (v) => (v === null ? '—' : `${v} de ${allVowsTimes.length}`),
+  pass: (m) => m === allVowsTimes.length,
+});
+metrics.push({
+  name: `${allVowsLabel}: partidas hasta cumplirlo (todas, mediana), el peor bioma`,
+  target: '≤ 60 min',
+  values: ALL_VOWS_BIOMES.map((biome) =>
+    worstOf(
+      allVowsCasesOf(biome).map((c) => vowRuns(vowStable, STABLE_VOW_CASES, c)),
+      Math.max,
+    ),
+  ),
+  format: clock,
+  pass: (m) => m <= 3600,
+  every: true,
+});
+
 const rows = metrics.map(row);
 const maxValue = Math.max(...campaigns.map((c) => c.maxValue));
 const ceilingOk = maxValue < 1e300;
@@ -758,6 +970,22 @@ for (const biome of BIOME_IDS) {
       } | ${clock(median(played.flatMap((c) => c.runs)))} | ${hours(median(present(played.map((c) => c.time))))} | ${Math.round(median(played.map((c) => c.spores)))} |`,
     );
   });
+}
+
+/** La matriz de votos (fase 10, bloque B): cada combinación y umbral, en la primera siembra y en el estable. */
+const vowTable = [
+  '| Bioma | Votos | Umbral | Factor de R | Primera siembra: ciclo | Partidas (mediana) | Frente a sin votos | Estable: ciclo | Partidas (mediana) | Frente a sin votos | Esporas por ciclo |',
+  '| ----- | ----- | ------ | ----------- | ---------------------- | ------------------ | ------------------ | -------------- | ------------------ | ------------------ | ----------------- |',
+];
+for (const c of STABLE_VOW_CASES) {
+  const first = SINGLE_VOW_CASES.includes(c) ? vowCyclesOf(vowFirst, SINGLE_VOW_CASES, c) : null;
+  const stable = vowCyclesOf(vowStable, STABLE_VOW_CASES, c);
+  const ratio = (v: number | null): string => (v === null ? '—' : `${v.toFixed(2)} ×`);
+  const cycleOf = (cycles: VowCycle[] | null): string =>
+    cycles ? hours(median(present(cycles.map((cycle) => cycle.time)))) : '—';
+  vowTable.push(
+    `| ${capital(CYCLE_NAMES[c.biome])} | ${vowNames(c.vows)} | ${c.vows.includes('autoOnly') ? percent(c.threshold) : '—'} | ${vowGoalFactor(c.biome, c.vows).toFixed(3)} | ${cycleOf(first)} | ${clock(first ? vowRuns(vowFirst, SINGLE_VOW_CASES, c) : null)} | ${c.vows.length > 0 && first ? ratio(vowRatio(vowFirst, SINGLE_VOW_CASES, c)) : '—'} | ${cycleOf(stable)} | ${clock(vowRuns(vowStable, STABLE_VOW_CASES, c))} | ${c.vows.length > 0 ? ratio(vowRatio(vowStable, STABLE_VOW_CASES, c)) : '—'} | ${stable ? Math.round(median(stable.map((cycle) => cycle.spores))) : '—'} |`,
+  );
 }
 
 const partnerTimes = winds.flat().map((w) => w.partnerAt);
@@ -879,6 +1107,10 @@ const block = [
   )}); cada fila es la mediana de las cuatro apariciones del bioma por las ${SEEDS.length} semillas. El régimen estable vuelve a jugar la misma vuelta sobre una copia, con las adaptaciones de bioma al máximo. Una partida de espera para pagar la siembra, si la hay, cuenta en el ciclo siguiente.`,
   '',
   ...cycleTable,
+  '',
+  `Votos (fase 10, bloque B): sobre el orden ${orderName(ORDERS[0] ?? [])}, el bot siembra cada combinación desde El regreso recién cumplido (la primera siembra, sin encadenar biomas) y, aparte, desde el final de su primera vuelta con las adaptaciones de bioma al máximo (el régimen estable), y la compara con el ciclo sin votos del mismo bioma desde el mismo estado, semilla a semilla. La R del ciclo es la del bioma por el factor de cada voto. Con «sin mutaciones» despierta las dormidas en el orden de la tabla en cuanto alcanzan las esporas del ciclo; con «solo autocompra» no compra él y la autocompra usa el umbral de la fila (la Poda no rige con el voto); con «sin lluvia» no cae ninguna gota. Mediana de ${SEEDS.length} semillas:`,
+  '',
+  ...vowTable,
   '',
   rateLine,
   '',

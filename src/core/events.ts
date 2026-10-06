@@ -40,6 +40,10 @@ export type GameEvent =
    * `record` dice si es el mejor de su bioma y sus votos (nuevo o mejorado).
    */
   | { type: 'cycleDone'; biome: BiomeId; vows: VowId[]; time: number; record: boolean }
+  /** Se rompió un voto del ciclo (fase 10): la meta sube y, si era «sin mutaciones», todas despiertan. */
+  | { type: 'vowRenounced'; vow: VowId }
+  /** Se despertó una mutación dormida por «sin mutaciones» (fase 10). */
+  | { type: 'mutationWoken'; id: MutationId }
   | { type: 'buyBiomeAdaptation'; id: BiomeAdaptationId; rank: number }
   | { type: 'reveal'; key: string }
   /** Llegó un socio (systems/partners.ts). */

@@ -22,9 +22,13 @@ import {
   disperse,
   disperseBlock,
   disperseFunds,
+  isMutationWakeable,
   nextAdaptationCost,
+  setAutobuyThreshold,
   sporeGain,
   sporulate,
+  wakeBudget,
+  wakeMutation,
 } from '../src/core/actions.ts';
 import { bestPurchase } from '../src/core/economy.ts';
 import { drain } from '../src/core/events.ts';
@@ -36,10 +40,12 @@ import {
   isCycleDone,
   isForestColonized,
   nextBiomeAdaptationCost,
+  sameVows,
   sporulateRequirement,
+  vowActive,
   windTargets,
 } from '../src/core/forest.ts';
-import { createState, ownsMutation, type GameState } from '../src/core/state.ts';
+import { createState, ownsMutation, type AutobuyThreshold, type GameState } from '../src/core/state.ts';
 import { tick } from '../src/core/tick.ts';
 import { GENERATORS, type GeneratorId } from '../src/data/generators.ts';
 import {
@@ -52,7 +58,8 @@ import {
   type BiomeId,
   type DestinationId,
 } from '../src/data/biomes.ts';
-import { MUTATIONS } from '../src/data/mutations.ts';
+import type { VowId } from '../src/data/cycle.ts';
+import { MUTATIONS, getMutation } from '../src/data/mutations.ts';
 import { applyOffline } from '../src/systems/offline.ts';
 import { catchDrop } from '../src/systems/rain.ts';
 import { parseSave, serializeSave } from '../src/systems/save.ts';
@@ -143,6 +150,21 @@ function buyMutationsInOrder(state: GameState): void {
   }
 }
 
+/**
+ * Con el voto «sin mutaciones» (fase 10), despierta las dormidas en el orden de la tabla, como las
+ * compra, en cuanto alcanzan las esporas del ciclo (`wakeBudget`) y las disponibles. Va antes que
+ * las adaptaciones y sin guardar la reserva de la siembra siguiente: es lo que más rinde, y el
+ * simulador mide cada ciclo con votos por separado. Sin el voto no hay nada que despertar.
+ */
+function wakeMutationsInOrder(state: GameState): void {
+  for (const m of MUTATIONS) {
+    if (!isMutationWakeable(state, m.id)) continue;
+    const cost = getMutation(m.id).cost;
+    if (state.spores.available < cost || wakeBudget(state) < cost) return;
+    wakeMutation(state, { id: m.id });
+  }
+}
+
 // ---------------------------------------------------------------------------------------
 // Partidas
 
@@ -221,7 +243,9 @@ function playRun(state: GameState, options: RunOptions): RunRecord {
   for (let t = 0; t < options.maxSeconds; t += 1) {
     const cps = options.profile.clicksPerSecond(t);
     for (let c = 0; c < cps; c += 1) click(state, {});
-    shop(state, cps);
+    // Con «solo autocompra» (fase 10) el jugador no compra: lo hace la autocompra en el tick, con el
+    // umbral elegido. Llamar a `shop` no compraría nada y gastaría el cálculo de cada candidato.
+    if (!vowActive(state, 'autoOnly')) shop(state, cps);
 
     tick(state, { dt: 1 });
     if (options.profile.catchesDrops && state.rain.drop) catchDrop(state, {});
@@ -449,9 +473,10 @@ function journeyReserve(state: GameState): number {
   return isForestColonized(state) && windTargets(state).length > 0 ? DISPERSE_COST : 0;
 }
 
-/** Compras entre partidas del viaje: mutaciones, adaptaciones de bioma y de la red. */
+/** Compras entre partidas del viaje: mutaciones (y, con su voto, despertarlas), adaptaciones de bioma y de la red. */
 function shopBetweenRuns(state: GameState): void {
   buyMutationsInOrder(state);
+  wakeMutationsInOrder(state);
   const reserve = journeyReserve(state);
   buyBiomeAdaptations(state, reserve);
   buyAdaptations(state, reserve);
@@ -796,6 +821,79 @@ export function playLap(journey: Journey, biomes: readonly BiomeId[], stable: bo
   }
 }
 
+/**
+ * Un ciclo con votos (fase 10, bloque B), jugado aparte sobre una copia del viaje: la matriz de
+ * votos de scripts/simulate.ts compara cada combinación con el ciclo sin votos del mismo bioma
+ * desde el mismo estado.
+ */
+export interface VowCycle {
+  biome: BiomeId;
+  vows: VowId[];
+  /** Umbral de la autocompra con que se jugó (solo cuenta con «solo autocompra»). */
+  threshold: AutobuyThreshold;
+  /** Duración de cada partida desde la siembra hasta la que cumple el ciclo, incluida. */
+  runs: number[];
+  /** Tiempo de juego desde sembrar hasta cumplir (null si no se cumplió dentro del tope). */
+  time: number | null;
+  /** Esporas ganadas en el ciclo (sin las de la esporulación de sembrar, que son del anterior). */
+  spores: number;
+}
+
+/**
+ * Siembra `biome` con `vows` y juega hasta cumplir el ciclo, con la regla de la meta. Si no alcanza
+ * para sembrar, antes juega las partidas de espera, como la vuelta, pero no las mide: salen del
+ * mismo estado para todas las combinaciones. Con `stable`, antes, las adaptaciones de bioma al
+ * máximo (el régimen estable). El bot es el de siempre, con lo que cambia cada voto: con «solo
+ * autocompra» no compra él y la autocompra usa `threshold` (D11 la mide con 0,1, 0,5 y 1); con «sin
+ * mutaciones» despierta las dormidas entre partidas; con «sin lluvia» no hay gotas que atrapar.
+ */
+export function playVowCycle(
+  journey: Journey,
+  biome: BiomeId,
+  vows: readonly VowId[],
+  threshold: AutobuyThreshold,
+  stable: boolean,
+): VowCycle {
+  const state = journey.state;
+  const result: VowCycle = { biome, vows: [...vows], threshold, runs: [], time: null, spores: 0 };
+  if (!journey.going || !windTargets(state).some((target) => target.kind === 'cycle')) return result;
+  if (stable) maxBiomeAdaptations(state);
+  for (let waits = 0; disperseBlock(state) === 'spores' && waits < 10; waits += 1) {
+    const run = playRun(state, {
+      profile: PROFILES.active,
+      stopWhen: 'campaign',
+      policy: journey.policy,
+      maxSeconds: 12 * 3600,
+      elapsedBefore: journey.elapsed,
+      departWhen: (s) => disperseFunds(s) >= departureCost(s),
+    });
+    journey.elapsed += run.duration;
+    if (run.sporesGained > 0) shopBetweenRuns(state);
+  }
+  setAutobuyThreshold(state, { threshold });
+  const stays = state.cycle.stays;
+  disperse(state, { to: biome, now: START_TIME + journey.elapsed * 1000, vows });
+  drain();
+  if (state.cycle.stays !== stays + 1 || !sameVows(state.cycle.vows, vows)) return result;
+  buyBiomeAdaptations(state, journeyReserve(state));
+  const start = journey.elapsed;
+  const a = playBiome(
+    state,
+    PROFILES.active,
+    journey.policy,
+    start,
+    (run) => {
+      result.spores += run.sporesGained;
+    },
+    undefined,
+    isCycleDone,
+  );
+  journey.elapsed = a.elapsed;
+  result.runs = a.runs;
+  result.time = a.colonized ? a.elapsed - start : null;
+  return result;
+}
+
 /** Cada adaptación de bioma hasta su máximo, inyectando las esporas de cada rango y comprándolo. */
 function maxBiomeAdaptations(state: GameState): void {
   for (const { id } of BIOME_ADAPTATIONS) {
@@ -880,7 +978,16 @@ export type SimTask =
   /** Desde un viaje, el perfil ausente hasta colonizar `to` (fase 10). */
   | { kind: 'absent'; journey: Journey; to: DestinationId; sessionMinutes: number; awayHours: number }
   /** Tras El regreso, una vuelta del ciclo libre por `biomes`; con `stable`, el régimen estable. */
-  | { kind: 'lap'; journey: Journey; biomes: readonly BiomeId[]; stable: boolean };
+  | { kind: 'lap'; journey: Journey; biomes: readonly BiomeId[]; stable: boolean }
+  /** Desde un viaje en el ciclo libre, un ciclo sembrado con votos (la matriz de votos, fase 10). */
+  | {
+      kind: 'vowCycle';
+      journey: Journey;
+      biome: BiomeId;
+      vows: readonly VowId[];
+      threshold: AutobuyThreshold;
+      stable: boolean;
+    };
 
 export interface SimTaskResults {
   firstRun: RunRecord;
@@ -889,6 +996,7 @@ export interface SimTaskResults {
   journey: Journey;
   absent: AbsentResult;
   lap: Journey;
+  vowCycle: VowCycle;
 }
 
 export type SimTaskResult<T extends SimTask> = SimTaskResults[T['kind']];
@@ -912,5 +1020,7 @@ export function runTask(task: SimTask): SimTaskResults[SimTask['kind']] {
     case 'lap':
       playLap(task.journey, task.biomes, task.stable);
       return task.journey;
+    case 'vowCycle':
+      return playVowCycle(task.journey, task.biome, task.vows, task.threshold, task.stable);
   }
 }

@@ -5,6 +5,7 @@
  * tienen la suya (`ach.<id>.desc`).
  */
 import { DESTINATION_IDS, type DestinationId } from './biomes.ts';
+import { VOW_IDS, type VowId } from './cycle.ts';
 import { GENERATORS, type GeneratorId } from './generators.ts';
 
 export type AchievementCondition =
@@ -28,7 +29,9 @@ export type AchievementCondition =
   /** El regreso cumplido (fase 10): la Crónica tiene la entrada del tramo 5. */
   | { kind: 'returned' }
   /** Ciclos cumplidos en el ciclo libre (fase 10). */
-  | { kind: 'cycles'; count: number };
+  | { kind: 'cycles'; count: number }
+  /** Algún récord del ciclo libre que mantuvo todos estos votos (fase 10, bloque B). */
+  | { kind: 'vowRecord'; vows: readonly VowId[] };
 
 export interface AchievementDef {
   id: string;
@@ -102,6 +105,10 @@ function build(): AchievementDef[] {
   });
   list.push({ id: 'return.1', condition: { kind: 'returned' }, reveal: 'actOne' });
   list.push({ id: 'cycle.1', condition: { kind: 'cycles', count: 1 }, reveal: 'actOne' });
+  for (const vow of VOW_IDS) {
+    list.push({ id: `vow.${vow}`, condition: { kind: 'vowRecord', vows: [vow] }, reveal: 'actOne' });
+  }
+  list.push({ id: 'vow.all', condition: { kind: 'vowRecord', vows: VOW_IDS }, reveal: 'actOne' });
   return list;
 }
 

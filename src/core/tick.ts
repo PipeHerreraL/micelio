@@ -9,6 +9,7 @@ import { checkPartnerUnlocks } from '../systems/partners.ts';
 import { updateRain } from '../systems/rain.ts';
 import { gain } from './economy.ts';
 import { emit } from './events.ts';
+import { vowActive } from './forest.ts';
 import * as num from './num.ts';
 import { derived, invalidate } from './selectors.ts';
 import type { GameState } from './state.ts';
@@ -42,7 +43,8 @@ export function tick(state: GameState, payload: { dt: number }): void {
   if (num.gt(before.production, state.stats.maxNps)) state.stats.maxNps = before.production;
 
   updateEffects(state, dt);
-  updateRain(state, dt);
+  // «Sin lluvia» (fase 10): mientras dure el voto no cae ninguna gota ni se consume azar.
+  if (!vowActive(state, 'noRain')) updateRain(state, dt);
 
   const previousSecond = Math.floor(state.stats.totalTime);
   state.stats.runTime += dt;

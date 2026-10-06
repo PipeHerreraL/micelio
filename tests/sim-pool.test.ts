@@ -108,6 +108,39 @@ describe('reparto del simulador entre hilos', () => {
     expect(inline).toEqual(one);
   }, 120_000);
 
+  it('un ciclo con votos de la matriz (fase 10) da lo mismo en 1 hilo, 4 hilos y el hilo principal', async () => {
+    // Con «solo autocompra» el bot no compra y con «sin mutaciones» despierta las dormidas: las dos
+    // reglas del bot que solo juegan los votos.
+    const journey = startJourney(
+      {
+        state: returnClosed(),
+        elapsed: 0,
+        actOneAt: null,
+        waitRuns: 0,
+        maxValue: 0,
+        earnedSpores: 0,
+        invalidSaves: 0,
+        partnerAt: null,
+      },
+      'doubling',
+      false,
+    );
+    const task: SimTask = {
+      kind: 'vowCycle',
+      journey,
+      biome: 'tundra',
+      vows: ['autoOnly', 'noMutations'],
+      threshold: 1,
+      stable: true,
+    };
+    const [one, four, inline] = await Promise.all([pool(1).run(task), pool(4).run(task), pool(0).run(task)]);
+    expect(one).toMatchObject({ biome: 'tundra', vows: ['autoOnly', 'noMutations'], threshold: 1 });
+    expect(one.time).not.toBeNull();
+    expect(one.runs.length).toBeGreaterThan(0);
+    expect(four).toEqual(one);
+    expect(inline).toEqual(one);
+  }, 120_000);
+
   it('SIM_WORKERS fija los hilos (0 = el hilo principal) y rechaza lo que no es un entero ≥ 0', () => {
     expect(poolSize({ SIM_WORKERS: '4' })).toBe(4);
     expect(poolSize({ SIM_WORKERS: '0' })).toBe(0);

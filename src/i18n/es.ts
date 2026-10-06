@@ -746,6 +746,14 @@ export const es = {
   'ach.return.1.desc': 'Cumple El regreso: tu red vuelve a crecer en el bosque natal.',
   'ach.cycle.1.name': 'Volver a empezar',
   'ach.cycle.1.desc': 'Cumple un ciclo en un bioma que sembraste tras El regreso.',
+  'ach.vow.noRain.name': 'Año seco',
+  'ach.vow.noRain.desc': 'Cumple un ciclo sin romper el voto «sin lluvia».',
+  'ach.vow.autoOnly.name': 'La red decide',
+  'ach.vow.autoOnly.desc': 'Cumple un ciclo sin romper el voto «solo autocompra».',
+  'ach.vow.noMutations.name': 'Despertar',
+  'ach.vow.noMutations.desc': 'Cumple un ciclo sin romper el voto «sin mutaciones».',
+  'ach.vow.all.name': 'Ayuno de hongo',
+  'ach.vow.all.desc': 'Cumple un ciclo con los tres votos, sin romper ninguno.',
 
   // Lluvia
   'rain.drop.label': 'Atrapar la gota de lluvia',

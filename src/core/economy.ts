@@ -5,6 +5,7 @@
  */
 import { GENERATORS, getGenerator, type GeneratorDef, type GeneratorId } from '../data/generators.ts';
 import { UPGRADES, getUpgrade, type UpgradeDef } from '../data/upgrades.ts';
+import { vowActive } from './forest.ts';
 import { bulkCost, maxAffordable, nextMilestone } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
@@ -179,10 +180,16 @@ export function bestPurchase(
   return best;
 }
 
+/**
+ * La autocompra de generadores rige: con Instinto despierto o, con el voto «solo autocompra» (fase
+ * 10), siempre: la red compra sola aunque Instinto duerma con «sin mutaciones». Sin eso, los dos
+ * votos juntos dejaban la partida sin nadie que comprara.
+ */
 export function hasAutobuyGenerators(state: GameState): boolean {
-  return hasMutation(state, 'instinct');
+  return vowActive(state, 'autoOnly') || hasMutation(state, 'instinct');
 }
 
+/** La de mejoras: con Instinto superior despierto o con «solo autocompra». */
 export function hasAutobuyUpgrades(state: GameState): boolean {
-  return hasMutation(state, 'higherInstinct');
+  return vowActive(state, 'autoOnly') || hasMutation(state, 'higherInstinct');
 }

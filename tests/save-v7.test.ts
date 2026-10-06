@@ -70,9 +70,9 @@ describe('validación de las claves de la v7 antes de sus reglas', () => {
     });
   });
 
-  it('en una partida nueva no cargan un ciclo empezado ni un récord; un voto o una mutación despierta, todavía no', () => {
-    // El ciclo libre ya tiene sus reglas (tests/cycle.test.ts): solo hay ciclos y récords tras El
-    // regreso. Los votos llegan con su bloque.
+  it('en una partida nueva no cargan un ciclo empezado, un récord, un voto ni una mutación despierta', () => {
+    // El ciclo libre y los votos ya tienen sus reglas (tests/cycle.test.ts y tests/vows.test.ts):
+    // solo hay ciclos y récords tras El regreso, y votos en un ciclo empezado.
     expect(loads((s) => Object.assign(s.cycle as object, { stays: 1 }))).toBe(false);
     expect(loads((s) => Object.assign(s.cycle as object, { done: 1 }))).toBe(false);
     expect(loads((s) => Object.assign(s.cycle as object, { vows: ['noRain'] }))).toBe(false);

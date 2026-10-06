@@ -21,6 +21,7 @@ import {
   type PurchaseCandidate,
   type PurchaseFilter,
 } from '../core/economy.ts';
+import { vowActive } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import type { GameState } from '../core/state.ts';
 import { partnerPerks } from './partners.ts';
@@ -30,28 +31,38 @@ export function runAutobuy(state: GameState): void {
     runPaybackAutobuy(state);
     return;
   }
+  // «Solo autocompra» (fase 10): la red lo compra todo con el umbral del jugador, tenga o no los
+  // interruptores encendidos. Las compras del jugador se niegan (core/actions.ts).
+  const vow = vowActive(state, 'autoOnly');
   if (hasAutobuyGenerators(state)) {
     // Del más caro al más barato: el umbral se calcula sobre los nutrientes de cada momento,
     // así que empezar por arriba evita que las Hifas se coman el presupuesto del resto.
     for (let i = GENERATORS.length - 1; i >= 0; i -= 1) {
       const def = GENERATORS[i];
-      if (!def || !state.autobuy.generators[def.id] || !isGeneratorUnlocked(state, def)) continue;
+      if (!def || !(vow || state.autobuy.generators[def.id]) || !isGeneratorUnlocked(state, def)) continue;
       const quote = quoteGenerator(state, def.id, 1);
       if (num.lt(quote.cost, num.mul(state.nutrients, state.autobuy.threshold))) {
         purchaseGenerator(state, { id: def.id, amount: 1 });
       }
     }
   }
-  if (hasAutobuyUpgrades(state) && state.autobuy.upgrades) {
+  if (hasAutobuyUpgrades(state) && (vow || state.autobuy.upgrades)) {
     const limit = num.mul(state.nutrients, state.autobuy.threshold);
     const cheapest = availableUpgrades(state)[0];
     if (cheapest && num.lt(cheapest.cost, limit)) purchaseUpgrade(state, { id: cheapest.id });
   }
 }
 
-/** Si la autocompra elige por amortización: el modo guardado y la ventaja de la Poda a la vez. */
+/**
+ * Si la autocompra elige por amortización: el modo guardado y la ventaja de la Poda a la vez, y sin
+ * el voto «solo autocompra» (fase 10). Con el voto la Poda no rige: compraba casi como el bot y el
+ * voto acortaba el ciclo a 0,63–0,85 veces el ciclo sin votos (prototipo), así que se volvía la forma
+ * más rápida de sacar récords. Con el umbral, el voto cuesta.
+ */
 export function isPaybackActive(state: GameState): boolean {
-  return state.autobuy.mode === 'payback' && partnerPerks(state).autobuyByPayback;
+  return (
+    state.autobuy.mode === 'payback' && partnerPerks(state).autobuyByPayback && !vowActive(state, 'autoOnly')
+  );
 }
 
 /**
