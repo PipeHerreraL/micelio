@@ -55,10 +55,12 @@ main.ts ──► bucle: acumulador de 50 ms ──► core/tick ──► estad
   (solo `save.ts`), pero nada de DOM.
 - `ui/`: componentes que crean su DOM una vez y luego solo cambian los nodos cuyo valor
   cambió. **No** calculan balance: preguntan a los selectores.
-- `render/`: canvas de la red y partículas. Lee el estado; nunca lo escribe.
+- `render/`: canvas de la red y partículas; desde la fase 10, también la banda de la Red planetaria
+  y las cosméticas. Lee el estado; nunca lo escribe.
 - `audio/`: síntesis con Web Audio. Reacciona a eventos.
 - `i18n/`: catálogos y formato con `Intl`. Ningún texto visible vive fuera de aquí. Los
-  catálogos de cada socio llegan aparte (`i18n/partners/`).
+  catálogos de cada socio llegan aparte (`i18n/partners/`), y también las noticias (`news/`, y
+  `news/biomes/` solo tras dispersar) y el inglés de la interfaz (`en.ts`, fase 10).
 - `partners/` (fase 9): los socios. Su núcleo va en el paquete inicial; su modelo y su vista
   llegan aparte con `import()` y nunca los ejecuta el simulador de la red (§4.29).
 
@@ -181,7 +183,12 @@ Actions no se facturan.
 `applyElapsed(state, seconds, efficiency)` reparte el intervalo en tramos: mientras dure
 un Aguacero activo, `E = 5`; el resto, `E = 1`. Así una pestaña oculta durante un Aguacero
 recibe exactamente lo que habría producido en vivo. Se usa igual para offline (eficiencia
-0.5 o 1 y límite 8 h o 24 h) y para volver de segundo plano (eficiencia 1, mismo límite).
+0.5 o 1 y límite ~~8 h o 24 h~~ `offlineCapSeconds`) y para volver de segundo plano (eficiencia 1,
+mismo límite). **Corrección (fase 10):** el límite ya no era solo 8 h o 24 h (Sueño invernal) desde
+la fase 7: suma 6 h por rango del Letargo profundo y, desde la fase 10, las horas del bioma (la
+tundra, +24 h) y 12 h por rango del Liquen. Y en la tundra, de una ausencia ya recortada al límite,
+lo que pasa de 8 h rinde sin el ×0,5 del bioma: `applyOffline` y `applyBackground` le pasan a
+`applyElapsed` esos segundos de deshielo (`thawSeconds`), fuera de los derivados (§4.32).
 
 - El tiempo en segundo plano cuenta como tiempo jugado (el juego seguía abierto); el
   offline no.
@@ -305,10 +312,14 @@ se vuelve a la científica. Sin ceros de relleno: «1 millón», no «1,00 millo
 ### 4.25 Pruebas de navegador con Playwright
 
 **Elegido:** `@playwright/test` con cinco perfiles: Chromium, Firefox y WebKit (el motor de
-Safari) en escritorio, y Pixel 7 e iPhone 14 emulados. Corren contra el build de producción
-(`vite preview`), siembran partidas en `localStorage` antes de cargar y usan el reloj falso de
-Playwright para el tiempo en segundo plano. En local, Chromium es el Edge de Windows (sin
-descarga); en CI, el Chromium de Playwright.
+Safari) en escritorio, y Pixel 7 e iPhone 14 emulados. ~~Corren contra el build de producción
+(`vite preview`),~~ Corren contra el build de producción (`vite preview`), salvo unas pocas que abren
+el servidor de desarrollo, siembran partidas en `localStorage` antes de cargar y usan el reloj falso
+de Playwright para el tiempo en segundo plano. **Corrección (fase 10):** `playwright.config.ts`
+levanta también el servidor de desarrollo (`vite`; `DEV_URL` en `tests/e2e/helpers.ts`): el
+pseudoidioma (`?pseudo`, textos un 40 % más largos) no llega al build, y la transición del suelo al
+sembrar y las cosméticas en el lienzo importan módulos del juego en la página. En local, Chromium es
+el Edge de Windows (sin descarga); en CI, el Chromium de Playwright.
 
 **Por qué:** siete bugs del diario solo se reproducían con un navegador real (foco, capas,
 visibilidad, `storage` entre pestañas). La primera corrida encontró uno nuevo (#13).
@@ -1031,10 +1042,13 @@ Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
   producción con el evento.
 - §4.9 (2026-10-01): el repositorio es público y no privado: con la cuenta gratuita, GitHub Pages
   no publicaba desde uno privado.
+- §4.10 (fase 10): el límite sin conexión suma el Letargo profundo, el bioma y el Liquen, y en la
+  tundra el tiempo aplicado cobra el deshielo.
 - §4.21 (fase 8): las esporas salen de los nutrientes del bosque actual, no de los de vida.
 - §4.23 (tras la 1.4.1): cada noticia se queda 20 s y no 12, y el bosque natal tiene 74 frases.
 - §4.24 (2026-10-01): la notación por defecto escribe el nombre del orden de magnitud («1,5
   millones») y no sufijos cortos, que siguen en Ajustes; la científica empieza en 1e66, no en 1e36.
+- §4.25 (fase 10): unas pocas pruebas de navegador corren contra el servidor de desarrollo.
 - §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
   escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
 - §4.32 y §4.33 (revisión final de la 1.6.0): el salto del Chocó a 1:08:01 era de la medida del
