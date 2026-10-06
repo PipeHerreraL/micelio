@@ -688,6 +688,16 @@ export function isFromNewerGame(text: string, game = GAME_VERSION): boolean {
   return typeof raw.game === 'string' && compareGameVersions(raw.game, game) > 0;
 }
 
+/**
+ * Esta versión no entiende entero un guardado de un juego más nuevo: no parsea, o un socio no valida.
+ * Lo segundo pasa cuando esa versión sube un tope (de una mejora del plasmodio, por ejemplo) y el
+ * jugador lo pasa; reiniciar el socio y guardar encima lo perdería (BUG-JOURNAL #32). Uno que sí
+ * entiende entero se carga aunque sea más nuevo: un `game` mal escrito no debe bloquear la partida.
+ */
+function isNewerThanUnderstood(parsed: ParseResult, text: string): boolean {
+  return (!parsed.ok || parsed.partnersReset.length > 0) && isFromNewerGame(text);
+}
+
 // ---------------------------------------------------------------------------------------
 // Almacenamiento
 
@@ -730,9 +740,9 @@ function restorePartner(state: GameState, id: PartnerId): void {
 }
 
 /**
- * Lee el guardado. Si lo escribió un juego más nuevo, no lo toca y devuelve `newer`. Si está
- * dañado, lo copia a `micelio:save:backup` para no perderlo y devuelve `corrupt`: quien llama
- * empieza una partida nueva y avisa. Si solo falla un socio, la
+ * Lee el guardado. Si lo escribió un juego más nuevo y esta versión no lo entiende entero, no lo
+ * toca y devuelve `newer`. Si está dañado, lo copia a `micelio:save:backup` para no perderlo y
+ * devuelve `corrupt`: quien llama empieza una partida nueva y avisa. Si solo falla un socio, la
  * partida carga con ese socio desde cero, el texto original va a la copia de respaldo y quien llama
  * avisa (`partnersReset`).
  */
@@ -746,6 +756,7 @@ export function loadGame(storage: StorageLike | null): LoadResult {
   }
   if (text === null) return { kind: 'empty' };
   const parsed = parseSave(text, MIGRATIONS, SAVE_VERSION, 'lenient');
+  if (isNewerThanUnderstood(parsed, text)) return { kind: 'newer' };
   if (parsed.ok) {
     if (parsed.partnersReset.length > 0) {
       try {
@@ -757,7 +768,6 @@ export function loadGame(storage: StorageLike | null): LoadResult {
     rememberPartners(parsed.save.state);
     return { kind: 'loaded', save: parsed.save, partnersReset: parsed.partnersReset };
   }
-  if (isFromNewerGame(text)) return { kind: 'newer' };
   let backedUp = false;
   try {
     storage.setItem(BACKUP_KEY, text);
@@ -915,8 +925,10 @@ export function importSave(text: string): ImportResult {
     return { ok: false, error: 'encoding' };
   }
   const parsed = parseSave(json, MIGRATIONS, SAVE_VERSION, 'lenient');
-  if (parsed.ok) return { ok: true, save: parsed.save, partnersReset: parsed.partnersReset };
   // Una partida exportada de una versión más nueva (por ejemplo, de la web en una app sin actualizar)
-  // no está dañada: el aviso dice que hay que actualizar el juego.
-  return { ok: false, error: isFromNewerGame(json) ? 'newer' : parsed.error };
+  // no está dañada, aunque solo falle un socio: el aviso dice que hay que actualizar el juego.
+  if (isNewerThanUnderstood(parsed, json)) return { ok: false, error: 'newer' };
+  return parsed.ok
+    ? { ok: true, save: parsed.save, partnersReset: parsed.partnersReset }
+    : { ok: false, error: parsed.error };
 }

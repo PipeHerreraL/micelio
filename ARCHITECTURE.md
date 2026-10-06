@@ -443,6 +443,9 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   un impuesto a esporular. Un socio que no valida no hace perder la red: al cargar vuelve a
   empezar (copia de respaldo y aviso), al importar se avisa en la confirmación, y al guardar
   vuelve a su último bloque válido y la red se guarda igual (`saveGame` devuelve `restored`).
+  **Corrección (1.6.1):** salvo si el guardado viene de un juego más nuevo: lo más probable es que
+  esa versión subiera un tope del socio, y reiniciarlo y guardar encima lo perdería. Ese guardado
+  no se carga ni se importa (`newer`, §5; BUG-JOURNAL #32).
   `tests/fixtures/save-v6.json` es un guardado real de la 1.4: si la forma cambia sin migración,
   su prueba falla.
 - **El modelo es el de Tero y colegas (2010)** con fuente por turno e integrador exponencial
@@ -901,7 +904,9 @@ personales: nada sale del navegador.
 - Cada cambio de formato sube `version` y añade `migrations[n]` (de n a n + 1).
 - `game` es la versión del juego que guardó (desde la 1.5.0). Si un guardado no se entiende y viene
   de un formato o de una versión del juego posteriores, no se toca: el juego no guarda nada y pide
-  recargar con conexión (§4.31, BUG-JOURNAL #24).
+  recargar con conexión (§4.31, BUG-JOURNAL #24). Desde la 1.6.1 basta con que no se entienda un
+  socio (BUG-JOURNAL #32); uno que se entiende entero carga aunque sea más nuevo, para que un `game`
+  mal escrito no bloquee la partida.
 - Si el guardado está dañado, se copia a `micelio:save:backup` y se empieza de cero.
 - **Versión 7 (fase 10), entera de una vez.** `cycle`, `records`, las seis adaptaciones de la
   pradera y la tundra y las tres cosméticas de los votos entraron con su forma completa en el primer
@@ -1051,6 +1056,8 @@ Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
 - §4.25 (fase 10): unas pocas pruebas de navegador corren contra el servidor de desarrollo.
 - §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
   escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
+- §4.29 (1.6.1): un socio que no valida en un guardado de un juego más nuevo no vuelve a empezar:
+  el guardado no se carga ni se importa (BUG-JOURNAL #32).
 - §4.32 y §4.33 (revisión final de la 1.6.0): el salto del Chocó a 1:08:01 era de la medida del
   simulador (BUG-JOURNAL #28); el Chocó del ciclo pasa a 5e14 y 5,5 R, y suben tres factores de voto.
 - §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba; el

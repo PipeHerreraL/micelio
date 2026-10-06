@@ -197,7 +197,7 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del
   repo de que se lanza al cambiar de viaje, también al sembrar el mismo bioma
   (`tests/e2e/cycle.spec.ts`); lo demás sigue sin ella.
-- El JS inicial pesa 88,5 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
+- El JS inicial pesa 88,6 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
   dispersar) y, desde la fase 10, el inglés de la interfaz llegan aparte (el juego espera al inglés
   antes de montarse si es el idioma elegido). El catálogo del inglés está en 17,2 kB de 18. Si hace
   falta más sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al

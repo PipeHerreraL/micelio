@@ -49,6 +49,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [29](#29) | `src/systems/save.ts`, `src/systems/cycle.ts`                             | Un guardado con tantos ciclos cumplidos como empezados dejaba de guardarse al cumplir      |
 | [30](#30) | `src/ui/wind.ts`, `src/ui/tab-sporulate.ts`                               | En WebKit, tras romper un voto o sembrar, el foco quedaba debajo de la franja fija         |
 | [31](#31) | `src/main.ts`, `src/ui/pinning.ts`, `styles.css`                          | En el móvil, las láminas que llevan a otra pestaña dejaban el título bajo la barra         |
+| [32](#32) | `src/systems/save.ts`                                                     | Una versión anterior podía pisar la partida de una más nueva si solo no entendía un socio  |
 
 ---
 
@@ -805,6 +806,45 @@ de esporas arriba, a la vista y sin la barra de pestañas encima» y «… «Ver
 llegada a la tundra deja su título a la vista», en los cinco perfiles, con `focusCover` (#30).
 Fallan sin el arreglo (comprobado en WebKit y en el iPhone 14, a 375 y 412 px: el título, entre 641
 y 915 px, bajo la etiqueta de una pestaña de la barra).
+
+---
+
+<a id="32"></a>
+
+## 32. Una versión anterior podía pisar la partida de una más nueva si solo no entendía un socio
+
+**Zona:** `src/systems/save.ts` (`loadGame`, `importSave`) (familia de #24)
+
+**Síntoma.** Lo encontró la revisión de la especificación de la 1.6.1, leyendo el código, antes de
+que ocurriera: si una versión sube el tope de una mejora del plasmodio (hoy Avena llega a 3) y el
+jugador lo pasa, la anterior (la que el service worker sirve sin conexión, como en #24; en la app,
+desde la 1.6.1, la que quede tras volver atrás una actualización) cargaba la partida con el
+plasmodio desde cero y el aviso «El estado del plasmodio no se pudo recuperar», y el autoguardado
+la escribía encima. De vuelta en la versión nueva, el plasmodio había vuelto a empezar. Importar
+esa partida decía que el plasmodio empezaría de nuevo, no que había que actualizar el juego.
+Contradecía AGENTS.md: una versión anterior no pisa nunca un guardado más nuevo.
+
+**Causa.** La carga y la importación son indulgentes con los socios (ARCHITECTURE.md §4.29): un
+socio que no valida vuelve a null y la partida carga. `isFromNewerGame` solo se consultaba si el
+guardado entero no parseaba, así que un guardado más nuevo del que esta versión solo no entendía un
+socio pasaba por un socio dañado. `validateUpgrades` (`src/partners/plasmodium/state.ts`) rechaza
+cualquier nivel por encima del tope.
+
+**Arreglo.** `loadGame` e `importSave` deciden con la misma regla (`isNewerThanUnderstood`): si el
+guardado no parsea o un socio no valida, y viene de un formato o de una versión del juego
+posteriores, es `newer`: ni copia, ni partida encima, ni importación. Un guardado más nuevo que esta
+versión entiende entero sigue cargando, como antes. Descartado: tratar como `newer` todo guardado
+con un `game` mayor, que dejaría bloqueado para siempre a quien tuviera un `game` mal escrito. El JS
+inicial sube 82 bytes (32 comprimido: de 88 535 a 88 567 bytes).
+
+**Qué lo sostiene.** `tests/save.test.ts` → «un guardado de una versión posterior con un socio que
+esta no entiende tampoco se toca», «el mismo socio en un guardado de esta versión o de una anterior
+empieza de nuevo, con copia y aviso» e «importarlo dice que la partida es más nueva, no que el
+plasmodio se perdió», con `tests/fixtures/save-v7.json` y Avena en 4;
+`tests/e2e/regressions.spec.ts` → «una versión anterior tampoco pisa la partida de una más nueva
+cuyo plasmodio no entiende» (en Chromium, Firefox y WebKit). Fallan sin el arreglo (comprobado:
+la carga escribía la copia de respaldo y devolvía `loaded`; la importación, `ok`; en el navegador
+salía el aviso del plasmodio en vez del de la versión más nueva).
 
 ---
 
