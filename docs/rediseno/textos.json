@@ -1,0 +1,2452 @@
+[
+  {
+    "key": "achDesc.lifetime",
+    "type": "nueva",
+    "current": "—",
+    "es": "Gana {nutrients} en toda tu vida",
+    "en": "Earn {nutrients} over your lifetime",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Prosa: palabra."
+  },
+  {
+    "key": "achDesc.production",
+    "type": "nueva",
+    "current": "—",
+    "es": "Produce {nutrients} por segundo",
+    "en": "Produce {nutrients} per second",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Prosa: palabra."
+  },
+  {
+    "key": "actOne.announce",
+    "type": "aviso (toast)",
+    "current": "Fin del Acto I. El viento de esporas ya puede llevarte a otros biomas.",
+    "es": "Fin del Acto I: ya puedes dispersarte a otros biomas.",
+    "en": "End of Act I: you can now disperse to other biomes.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.apicalBody.desc",
+    "type": "descripción (adaptación)",
+    "current": "En la punta de cada hifa, un orgánulo diminuto decide hacia dónde crecer. Sube el umbral de madurez un 10 % por rango.",
+    "es": "Umbral de madurez +10 % por rango.",
+    "en": "Maturity threshold +10% per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.apicalBody.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En la punta de cada hifa, un orgánulo diminuto decide hacia dónde crecer.",
+    "en": "At the tip of every hypha, a tiny organelle decides where to grow.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "adapt.buy",
+    "type": "botón",
+    "current": "Adaptar: {name}",
+    "es": "visible «Adaptar»; aria-label: Adaptar {name}",
+    "en": "visible “Adapt”; aria-label: Adapt {name}",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.buy.short",
+    "type": "nueva",
+    "current": "—",
+    "es": "Adaptar",
+    "en": "Adapt",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Texto visible del botón; adapt.buy queda como nombre accesible (WCAG 2.5.3)."
+  },
+  {
+    "key": "adapt.deepTorpor.desc",
+    "type": "descripción (adaptación)",
+    "current": "La red aguanta más tiempo sin ti. El progreso offline cuenta 6 h más por rango.",
+    "es": "Offline cuenta 6 h más por rango.",
+    "en": "Offline counts 6 more hours per rank.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.foxfire.desc",
+    "type": "descripción (adaptación)",
+    "current": "Algunos hongos brillan en la madera podrida. Solo cambia cómo se ve: los pulsos de la red brillan más.",
+    "es": "Solo estético: los pulsos de la red brillan más.",
+    "en": "Cosmetic only: network pulses glow brighter.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.foxfire.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Algunos hongos brillan en la madera podrida.",
+    "en": "Some fungi glow in rotting wood.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "adapt.hydraulicLift.desc",
+    "type": "descripción (adaptación)",
+    "current": "Las hifas llevan agua del suelo húmedo al seco. La gota de lluvia tarda 2 s más en evaporarse por rango.",
+    "es": "La gota de lluvia dura 2 s más por rango.",
+    "en": "The raindrop lasts 2 s longer per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.hydraulicLift.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Las hifas llevan agua del suelo húmedo al seco.",
+    "en": "Hyphae carry water from wet soil to dry soil.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "adapt.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "Con el árbol completo, las esporas sobrantes se invierten en adaptaciones. Se pueden subir varias veces.",
+    "es": "Sube de rango con las esporas que te sobran.",
+    "en": "Rank up with your spare spores.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.sclerotium.desc",
+    "type": "descripción (adaptación)",
+    "current": "Una masa de micelio endurecido que guarda reservas durante años. Cada partida empieza con más nutrientes.",
+    "es": "Cada partida empieza con más nutrientes.",
+    "en": "Every run starts with more nutrients.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "adapt.sclerotium.effect",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cada partida empieza con {nutrients}.",
+    "en": "Every run starts with {nutrients}.",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "nutrientsText(): «100 nutrientes», «2,5 millones de nutrientes»."
+  },
+  {
+    "key": "adapt.sclerotium.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Una masa de micelio endurecido que guarda reservas durante años.",
+    "en": "A hardened mass of mycelium that keeps reserves for years.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "autobuy.payback.desc",
+    "type": "descripción",
+    "current": "Poda, un regalo del plasmodio: cada segundo compra, entre los generadores activados (y las mejoras, si están activadas), lo que antes recupera su coste con lo que produce. Si lo mejor aún no alcanza, espera a poder pagarlo.",
+    "es": "Compra primero lo que antes se amortiza; si no alcanza, ahorra.",
+    "en": "Buys what pays back soonest; if it can’t afford it, saves up.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "autobuy.payback.more",
+    "type": "nueva",
+    "current": "—",
+    "es": "Un regalo del plasmodio. Cada segundo elige entre los generadores activados, y entre las mejoras si las activaste.",
+    "en": "A gift from the plasmodium. Every second it picks among the enabled generators, and upgrades if you enabled them.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Lo que salió de autobuy.payback.desc, plegado."
+  },
+  {
+    "key": "badapt.dwarfBirch.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "El abedul enano, Betula nana, vive con hongos ectomicorrícicos. En la tundra de Alaska se estimó que los hongos micorrícicos dan a las plantas entre el 61 y el 86 % de su nitrógeno (Hobbie y Hobbie, 2006). La Red micorrícica y el Bosque milenario rinden ×{factor} por rango.",
+    "es": "Red micorrícica y Bosque milenario ×{factor} por rango.",
+    "en": "Mycorrhizal networks and ancient forests ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.dwarfBirch.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "El abedul enano, Betula nana, vive con hongos ectomicorrícicos. En la tundra de Alaska se estimó que los hongos dan a las plantas entre el 61 y el 86 % de su nitrógeno (Hobbie y Hobbie, 2006).",
+    "en": "The dwarf birch, Betula nana, lives with ectomycorrhizal fungi. In the Alaskan tundra, fungi were estimated to supply plants with 61 to 86% of their nitrogen (Hobbie and Hobbie, 2006).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.glomalin.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "Wright y Upadhyaya (1996) llamaron glomalina a una proteína del suelo ligada a los hongos micorrícicos arbusculares, que ayudaría a pegar los grumos de la tierra de pradera; qué es exactamente se sigue discutiendo. La Red micorrícica rinde ×{factor} por rango.",
+    "es": "Red micorrícica ×{factor} por rango.",
+    "en": "Mycorrhizal networks ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.glomalin.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Wright y Upadhyaya (1996) llamaron glomalina a una proteína del suelo ligada a los hongos micorrícicos arbusculares, que ayudaría a formar los grumos de la tierra. Qué es exactamente se discute.",
+    "en": "Wright and Upadhyaya (1996) named glomalin a soil protein tied to arbuscular mycorrhizal fungi, thought to help bind soil into crumbs. What exactly it is remains debated.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada; se conserva la duda."
+  },
+  {
+    "key": "badapt.gongylidia.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "El hongo que cultivan las hormigas cortadoras, Leucoagaricus gongylophorus, hincha las puntas de sus hifas con nutrientes para alimentarlas: son los gongilidios. Tus anillos aprenden a engordar igual: el Anillo de hadas rinde ×{factor} por rango.",
+    "es": "Anillo de hadas ×{factor} por rango.",
+    "en": "Fairy rings ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.gongylidia.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Leucoagaricus gongylophorus, el hongo que cultivan las hormigas cortadoras, hincha las puntas de sus hifas con nutrientes para alimentarlas: son los gongilidios.",
+    "en": "Leucoagaricus gongylophorus, the fungus leafcutter ants farm, swells its hyphal tips with nutrients to feed them: the gongylidia.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.leafcutters.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "Las hormigas cortadoras llevan trozos de hoja a su hongo y lo cuidan día y noche. Cada rango suma un clic automático por segundo; la Tormenta eléctrica no lo multiplica.",
+    "es": "+1 clic automático por segundo y rango (la Tormenta no lo multiplica).",
+    "en": "+1 automatic click per second per rank (Thunderstorms don’t multiply it).",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.leafcutters.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Las hormigas cortadoras llevan trozos de hoja a su hongo y lo cuidan día y noche.",
+    "en": "Leafcutter ants carry leaf fragments to their fungus and tend it day and night.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.lichen.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "Un liquen es un hongo que vive con un alga. Xanthoria elegans siguió viva tras 18 meses fuera de la Estación Espacial Internacional (Brandt y colegas, 2015). El tope sin conexión sube {time} por rango, en todos los biomas.",
+    "es": "Tope offline +{time} por rango, en todos los biomas.",
+    "en": "Offline cap +{time} per rank, in every biome.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.lichen.effect",
+    "type": "descripción (adaptación de bioma)",
+    "current": "El tope sin conexión sube {time}.",
+    "es": "Tope offline: +{time}.",
+    "en": "Offline cap: +{time}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.lichen.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Un liquen es un hongo que vive con un alga. Xanthoria elegans siguió viva tras 18 meses fuera de la Estación Espacial Internacional (Brandt y colegas, 2015).",
+    "en": "A lichen is a fungus living with an alga. Xanthoria elegans was still alive after 18 months outside the International Space Station (Brandt and colleagues, 2015).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.needLevel.choco",
+    "type": "dato",
+    "current": "El siguiente rango se abre en el nivel {level} de la selva del Chocó, o al colonizarla.",
+    "es": "Siguiente rango en el nivel {level}, o al colonizar.",
+    "en": "Next rank at level {level}, or once colonized.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.needLevel.prairie",
+    "type": "dato",
+    "current": "El siguiente rango se abre en el nivel {level} de la pradera, o al colonizarla.",
+    "es": "Siguiente rango en el nivel {level}, o al colonizar.",
+    "en": "Next rank at level {level}, or once colonized.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.needLevel.taiga",
+    "type": "dato",
+    "current": "El siguiente rango se abre en el nivel {level} de la taiga, o al colonizarla.",
+    "es": "Siguiente rango en el nivel {level}, o al colonizar.",
+    "en": "Next rank at level {level}, or once colonized.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.needLevel.tundra",
+    "type": "dato",
+    "current": "El siguiente rango se abre en el nivel {level} de la tundra, o al colonizarla.",
+    "es": "Siguiente rango en el nivel {level}, o al colonizar.",
+    "en": "Next rank at level {level}, or once colonized.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.pilobolus.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "En las boñigas de los herbívoros, Pilobolus kleinii apunta a la luz y dispara su saco de esporas hasta unos 2,5 m, uno de los lanzamientos más rápidos de la naturaleza (Yafetto y colegas, 2008). Cada rango suma un clic automático por segundo; la Tormenta eléctrica no lo multiplica.",
+    "es": "+1 clic automático por segundo y rango (la Tormenta no lo multiplica).",
+    "en": "+1 automatic click per second per rank (Thunderstorms don’t multiply it).",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.pilobolus.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En las boñigas, Pilobolus kleinii apunta a la luz y lanza su saco de esporas hasta unos 2,5 m, uno de los disparos más rápidos de la naturaleza (Yafetto y colegas, 2008).",
+    "en": "In dung, Pilobolus kleinii aims at the light and fires its spore sac up to about 2.5 m, one of the fastest launches in nature (Yafetto and colleagues, 2008).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.ringFront.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "El anillo avanza cada año un poco hacia fuera y deja en su borde la hierba más verde. Choi y colegas (2010) aislaron de Lepista sordida, un hongo de anillos, la 2-azahipoxantina, una molécula que hace crecer el césped. El Anillo de hadas rinde ×{factor} por rango.",
+    "es": "Anillo de hadas ×{factor} por rango.",
+    "en": "Fairy rings ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.ringFront.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "El anillo avanza cada año y deja en su borde la hierba más verde. De Lepista sordida se aisló la 2-azahipoxantina, que hace crecer el césped (Choi y colegas, 2010).",
+    "en": "Each year the ring creeps outward and leaves the greenest grass at its edge. 2-azahypoxanthine, which makes turf grow, was isolated from Lepista sordida (Choi and colleagues, 2010).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.rockEating.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "En el horizonte gris de los podzoles se han hallado granos de feldespato con túneles de pocas micras; se cree que los abren hifas micorrícicas para sacar minerales para sus árboles (Jongmans y colegas, 1997). La Red micorrícica y el Árbol madre rinden ×{factor} por rango.",
+    "es": "Red micorrícica y Árbol madre ×{factor} por rango.",
+    "en": "Mycorrhizal networks and mother trees ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.rockEating.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En los podzoles se hallaron granos de feldespato con túneles de pocas micras; se cree que los abren hifas micorrícicas para sacar minerales para sus árboles (Jongmans y colegas, 1997).",
+    "en": "Feldspar grains in podzols were found riddled with tunnels a few microns wide, thought to be bored by mycorrhizal hyphae mining minerals for their trees (Jongmans and colleagues, 1997).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada (≤ 40 palabras)."
+  },
+  {
+    "key": "badapt.rootMat.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "En suelos tropicales pobres, una alfombra de raíces finas y hongos atrapa los nutrientes antes de que la lluvia los lave; en un experimento en la Amazonía retuvo más del 99,9 % (Stark y Jordan, 1978). El Rocío rinde ×{factor} por rango.",
+    "es": "Rocío ×{factor} por rango.",
+    "en": "Dew ×{factor} per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.rootMat.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En suelos tropicales pobres, una alfombra de raíces finas y hongos atrapa los nutrientes antes de que la lluvia los lave: en la Amazonía retuvo más del 99,9 % (Stark y Jordan, 1978).",
+    "en": "On poor tropical soils, a mat of fine roots and fungi catches nutrients before the rain washes them away: in the Amazon it held on to more than 99.9% (Stark and Jordan, 1978).",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.seedlingNetwork.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "En un bosque de abetos de Douglas, árboles jóvenes y viejos llevaban en sus raíces el mismo individuo de hongo, lo que sugiere que la red los une (Beiler y colegas, 2010); si esa unión dura y cuánto ayuda se discute. Cada partida empieza con {count} Redes micorrícicas más por rango.",
+    "es": "Cada partida empieza con {count} Redes micorrícicas más por rango.",
+    "en": "Each run starts with {count} more mycorrhizal networks per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.seedlingNetwork.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En un bosque de abeto de Douglas, árboles jóvenes y viejos compartían en sus raíces el mismo individuo de hongo (Beiler y colegas, 2010). Si esa unión dura y cuánto ayuda se discute.",
+    "en": "In a Douglas-fir forest, young and old trees shared the same individual fungus on their roots (Beiler and colleagues, 2010). Whether that link lasts and how much it helps is debated.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada; se conserva la duda."
+  },
+  {
+    "key": "badapt.snowMold.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "Typhula y otros mohos de nieve crecen bajo la nieve, cerca de 0 °C, cuando casi nada más se mueve: tu red llega a cada primavera con trabajo hecho. Cada partida empieza con {count} Árboles madre más por rango.",
+    "es": "Cada partida empieza con {count} Árboles madre más por rango.",
+    "en": "Each run starts with {count} more mother trees per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.snowMold.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Typhula y otros mohos de nieve crecen bajo la nieve, cerca de 0 °C, cuando casi nada más se mueve.",
+    "en": "Typhula and other snow molds grow under the snow, close to 0 °C, when almost nothing else moves.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "badapt.trehalose.desc",
+    "type": "descripción (adaptación de bioma)",
+    "current": "Muchos hongos acumulan trehalosa, un azúcar que protege sus células del frío y de la sequía. Tu red la guarda para que cada aguacero le dure más: el Aguacero dura {time} más por rango.",
+    "es": "El Aguacero dura {time} más por rango.",
+    "en": "Downpours last {time} longer per rank.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "badapt.trehalose.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Muchos hongos acumulan trehalosa, un azúcar que protege sus células del frío y de la sequía.",
+    "en": "Many fungi build up trehalose, a sugar that shields their cells from cold and drought.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "biome.choco.go",
+    "type": "botón",
+    "current": "Dispersar hacia la selva del Chocó",
+    "es": "visible «Dispersar»; aria-label: Dispersar hacia la selva del Chocó",
+    "en": "visible “Disperse”; aria-label: Disperse to the Chocó rainforest",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.choco.rule.fall",
+    "type": "regla de bioma",
+    "current": "Mientras el juego está abierto, las gotas que no atrapas caen solas antes de evaporarse, y su efecto llega igual.",
+    "es": "Las gotas que no atrapas caen solas, con su efecto.",
+    "en": "Drops you don’t catch fall on their own, effect included.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.choco.rule.rain",
+    "type": "regla de bioma",
+    "current": "Llueve el doble: entre gota y gota pasa la mitad de tiempo.",
+    "es": "Lluvia ×2: la mitad de tiempo entre gotas.",
+    "en": "Rain ×2: half as long between drops.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.choco.rule.storm",
+    "type": "regla de bioma",
+    "current": "Cada gota trae Tormenta eléctrica la mitad de veces: por hora, las mismas tormentas que en el bosque natal.",
+    "es": "Tormenta eléctrica: la mitad por gota, las mismas por hora.",
+    "en": "Thunderstorms: half as often per drop, as many per hour.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.choco.sow",
+    "type": "botón",
+    "current": "Sembrar en la selva del Chocó",
+    "es": "visible «Sembrar»; aria-label: Sembrar en la selva del Chocó",
+    "en": "visible “Sow”; aria-label: Sow the Chocó rainforest",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.natal.sow",
+    "type": "botón",
+    "current": "Sembrar en el bosque natal",
+    "es": "visible «Sembrar»; aria-label: Sembrar en el bosque natal",
+    "en": "visible “Sow”; aria-label: Sow the home forest",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.prairie.go",
+    "type": "botón",
+    "current": "Dispersar hacia la pradera",
+    "es": "visible «Dispersar»; aria-label: Dispersar hacia la pradera",
+    "en": "visible “Disperse”; aria-label: Disperse to the prairie",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.prairie.rule.rain",
+    "type": "regla de bioma",
+    "current": "Llueve la mitad: entre gota y gota pasa el doble de tiempo.",
+    "es": "Lluvia ×½: el doble de tiempo entre gotas.",
+    "en": "Rain ×½: twice as long between drops.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.prairie.sow",
+    "type": "botón",
+    "current": "Sembrar en la pradera",
+    "es": "visible «Sembrar»; aria-label: Sembrar en la pradera",
+    "en": "visible “Sow”; aria-label: Sow the prairie",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.prairie.style",
+    "type": "descripción (bioma)",
+    "current": "Para quien planea: aquí el motor es el Anillo de hadas, y cada hito cuenta.",
+    "es": "Para quien planea: el Anillo de hadas manda y cada hito cuenta.",
+    "en": "For planners: the fairy ring leads, and every milestone counts.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.taiga.go",
+    "type": "botón",
+    "current": "Dispersar hacia la taiga",
+    "es": "visible «Dispersar»; aria-label: Dispersar hacia la taiga",
+    "en": "visible “Disperse”; aria-label: Disperse to the taiga",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.taiga.rule.rain",
+    "type": "regla de bioma",
+    "current": "Llueve la mitad: entre gota y gota pasa el doble de tiempo.",
+    "es": "Lluvia ×½: el doble de tiempo entre gotas.",
+    "en": "Rain ×½: twice as long between drops.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.taiga.sow",
+    "type": "botón",
+    "current": "Sembrar en la taiga",
+    "es": "visible «Sembrar»; aria-label: Sembrar en la taiga",
+    "en": "visible “Sow”; aria-label: Sow the taiga",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.go",
+    "type": "botón",
+    "current": "Dispersar hacia la tundra",
+    "es": "visible «Dispersar»; aria-label: Dispersar hacia la tundra",
+    "en": "visible “Disperse”; aria-label: Disperse to the tundra",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.rule.away",
+    "type": "regla de bioma",
+    "current": "Mientras vives aquí, tu red aguanta {hours} h más sin ti.",
+    "es": "Tope offline +{hours} h mientras vivas aquí.",
+    "en": "Offline cap +{hours} h while you live here.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.rule.half",
+    "type": "regla de bioma",
+    "current": "Con el frío todo crece a la mitad: la producción es ×{factor}.",
+    "es": "Producción ×{factor}: con el frío todo crece despacio.",
+    "en": "Production ×{factor}: in the cold everything grows slowly.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.rule.rain",
+    "type": "regla de bioma",
+    "current": "Llueve un tercio: entre gota y gota pasa el triple de tiempo.",
+    "es": "Lluvia ×⅓: el triple de tiempo entre gotas.",
+    "en": "Rain ×⅓: three times as long between drops.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.rule.thaw",
+    "type": "regla de bioma",
+    "current": "Si te vas más de {hours} h, lo que pase de ahí rinde entero: bajo la nieve, la red sigue trabajando.",
+    "es": "Tras {hours} h fuera, el resto rinde al 100 %.",
+    "en": "After {hours} h away, the rest yields 100%.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.sow",
+    "type": "botón",
+    "current": "Sembrar en la tundra",
+    "es": "visible «Sembrar»; aria-label: Sembrar en la tundra",
+    "en": "visible “Sow”; aria-label: Sow the tundra",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "biome.tundra.style",
+    "type": "descripción (bioma)",
+    "current": "Para quien vuelve de vez en cuando: aquí la red aguanta más tiempo sola.",
+    "es": "Para quien vuelve de vez en cuando: la red aguanta más sola.",
+    "en": "For occasional visits: the network holds out longer alone.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.act3.kicker",
+    "type": "etiqueta (lámina·título)",
+    "current": "Acto III · Donde acaban los árboles",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.choco.colonize.title",
+    "type": "etiqueta (lámina·título)",
+    "current": "Lo que la lluvia no se lleva",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.plasmodium.arrive.line1",
+    "type": "lámina",
+    "current": "Sobre un tronco caído avanza algo amarillo, como mucho unos centímetros por hora. Parece un hongo, durante mucho tiempo se clasificó entre ellos y los micólogos lo siguen estudiando.",
+    "es": "Parece un hongo, pero es un moho mucilaginoso: una sola célula con muchos núcleos.",
+    "en": "It looks like a fungus, but it's a slime mold: a single cell with many nuclei.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Lámina de llegada: 96 → 44 palabras."
+  },
+  {
+    "key": "chapter.plasmodium.arrive.line2",
+    "type": "nueva",
+    "current": "—",
+    "es": "Sin cerebro, une la comida con redes que se han comparado con los trenes de Tokio.",
+    "en": "Without a brain, it links food with networks that have been compared to Tokyo's railways.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Tero y colegas (2010) siguen en la lámina de la placa 3."
+  },
+  {
+    "key": "chapter.plasmodium.arrive.line3",
+    "type": "nueva",
+    "current": "—",
+    "es": "Dale avena y mira cómo la une. No le quita nada a tu red.",
+    "en": "Give it oats and watch it link them. It takes nothing from your network.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Lo que harás, al final y con verbo."
+  },
+  {
+    "key": "chapter.plasmodium.arrive.line4",
+    "type": "nueva",
+    "current": "—",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "socios",
+    "note": "Su contenido pasa a line3."
+  },
+  {
+    "key": "chapter.prairie.arrive.line1",
+    "type": "lámina",
+    "current": "El viento te deja donde acaban los árboles: hierba alta hasta donde alcanza la vista. Bajo ella, el suelo es negro y hondo, hecho de siglos de raíces de hierba: un chernozem.",
+    "es": "El viento te deja donde acaban los árboles: hierba hasta el horizonte. Debajo, un suelo negro y hondo, hecho de siglos de raíces: un chernozem.",
+    "en": "The wind sets you down where the trees end: grass to the horizon. Beneath, a deep black soil built from centuries of roots: a chernozem.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.return.close.line2",
+    "type": "lámina",
+    "current": "El hongo más grande que se conoce, una Armillaria de Oregón, ocupa unos 9 km². Ninguna red cubre el planeta, pero los hongos micorrícicos viven con la mayoría de las plantas de la Tierra.",
+    "es": "El mayor hongo conocido, en Oregón, ocupa unos 9 km². Ninguna red cubre el planeta, pero la mayoría de las plantas vive con hongos micorrícicos.",
+    "en": "The largest known fungus, in Oregon, covers about 9 km². No network spans the planet, but most plants live with mycorrhizal fungi.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.ring2.line1",
+    "type": "lámina",
+    "current": "Tu linaje ya vive en la taiga y en la selva del Chocó. Más allá, el viento llega a tierras donde los árboles no alcanzan: donde llueve demasiado poco, o donde el suelo no se deshiela nunca del todo.",
+    "es": "Tras la taiga y el Chocó, el viento llega adonde no crecen árboles: donde llueve poco o el suelo no se deshiela del todo.",
+    "en": "Beyond the taiga and the Chocó, the wind reaches places trees can’t hold: where little rain falls, or the ground never fully thaws.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.taiga.arrive.line1",
+    "type": "lámina",
+    "current": "El viento te deja en el norte, entre píceas, pinos y abedules. Bajo la hojarasca de acículas, el suelo guarda una franja gris como la ceniza: un podzol.",
+    "es": "El viento te deja en el norte, entre píceas, pinos y abedules. Bajo las acículas, el suelo guarda una franja gris ceniza: un podzol.",
+    "en": "The wind sets you down in the north, among spruces, pines and birches. Under the needles, the soil hides an ash-gray band: a podzol.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.taiga.colonize.line1",
+    "type": "lámina",
+    "current": "En la franja gris del podzol, tus hifas abren túneles en la roca para dar de comer a las píceas, como se cree que hacen las de verdad.",
+    "es": "En la franja gris del podzol, tus hifas abren túneles en la roca para alimentar a las píceas, como se cree que hacen las reales.",
+    "en": "In the podzol’s gray band, your hyphae tunnel into rock to feed the spruces, as real ones are thought to do.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.toCycle",
+    "type": "botón",
+    "current": "Ver el ciclo libre",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chapter.toPlate",
+    "type": "nueva",
+    "current": "—",
+    "es": "Darle avena",
+    "en": "Feed it",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "El botón dice lo que harás."
+  },
+  {
+    "key": "chapter.tundra.arrive.line1",
+    "type": "lámina",
+    "current": "El viento te deja en el norte, más allá de los últimos árboles. Bajo una capa fina de turba, el suelo solo se deshiela arriba, en verano; más abajo, el permafrost sigue helado todo el año.",
+    "es": "El viento te deja más allá de los últimos árboles. En verano solo se deshiela la capa de arriba; debajo, el permafrost sigue helado.",
+    "en": "The wind sets you down past the last trees. In summer only the top layer thaws; below it, the permafrost stays frozen.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chronicle.reread.act1",
+    "type": "botón",
+    "current": "Releer: Fin del Acto I",
+    "es": "Releer «Fin del Acto I»",
+    "en": "Reread “End of Act I”",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "chronicle.reread.return.close",
+    "type": "botón",
+    "current": "Releer «La red planetaria»",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "common.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "La ciencia",
+    "en": "The science",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Rótulo del <details> que pliega la ciencia de cada adaptación, mejora y vínculo."
+  },
+  {
+    "key": "common.science.label",
+    "type": "nueva",
+    "current": "—",
+    "es": "La ciencia de {name}",
+    "en": "The science behind {name}",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Nombre accesible de ese <summary>: distinto en cada fila (WCAG 2.4.6)."
+  },
+  {
+    "key": "core.label",
+    "type": "nueva",
+    "current": "—",
+    "es": "Absorber nutrientes (+{value})",
+    "en": "Absorb nutrients (+{value})",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Nombre accesible: la palabra ya va delante."
+  },
+  {
+    "key": "gen.ancientForest.flavor.prairie",
+    "type": "sabor",
+    "current": "Un bosque que la pradera no deja crecer: aquí la red milenaria vive en las raíces de la hierba.",
+    "es": "Aquí no crece el bosque: la red milenaria vive en las raíces de la hierba.",
+    "en": "No forest grows here: the ancient network lives in the grass roots.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "gen.ancientForest.flavor.tundra",
+    "type": "sabor",
+    "current": "Sauces y abedules del alto de un dedo: en la tundra, un bosque milenario cabe bajo una bota.",
+    "es": "Sauces y abedules de un dedo de alto: un bosque milenario cabe bajo una bota.",
+    "en": "Finger-tall willows and birches: an ancient forest fits under a boot.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "gen.cost",
+    "type": "nueva",
+    "current": "—",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "icono",
+    "note": "createAmount() en el botón de compra."
+  },
+  {
+    "key": "gen.motherTree.flavor.choco",
+    "type": "sabor",
+    "current": "Un árbol emergente que asoma sobre el dosel. Si comparte azúcar por la red, en la selva se ha estudiado todavía menos.",
+    "es": "Un gigante sobre el dosel. Cuánto comparte por la red, aquí se sabe aún menos.",
+    "en": "A giant above the canopy. Its sharing through the network is even less studied here.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "gen.motherTree.flavor.prairie",
+    "type": "sabor",
+    "current": "Un roble solo en mitad de la hierba, el único árbol en kilómetros. Sus raíces comparten la red con toda la pradera.",
+    "es": "Un roble solitario, el único árbol en kilómetros, comparte su red con la pradera.",
+    "en": "A lone oak, the only tree for miles, shares its network with the prairie.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "gen.motherTree.flavor.tundra",
+    "type": "sabor",
+    "current": "Un abedul enano que no pasa de la rodilla. Bajo tierra, su red es más grande que él.",
+    "es": "Un abedul enano, a la altura de la rodilla. Bajo tierra, su red es mayor.",
+    "en": "A knee-high dwarf birch. Underground, its network is bigger than it is.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "gen.totalProduction",
+    "type": "nueva",
+    "current": "—",
+    "es": "{rate} en total",
+    "en": "{rate} in total",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich; se oculta en los generadores que no tienes (crítica H4)."
+  },
+  {
+    "key": "gen.unitProduction",
+    "type": "nueva",
+    "current": "—",
+    "es": "{rate} por unidad",
+    "en": "{rate} per unit",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich."
+  },
+  {
+    "key": "hint.partners",
+    "type": "nueva",
+    "current": "—",
+    "es": "Sigue adaptándose aunque no mires.",
+    "en": "It keeps adapting while you're away.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Tras cumplir por primera vez."
+  },
+  {
+    "key": "hint.prairieMilestone",
+    "type": "instrucción (pista de primera vez)",
+    "current": "En la pradera, prueba la cantidad «Hito» con el Anillo de hadas: cada hito duplica su producción.",
+    "es": "En la pradera, compra Anillos de hadas con «Hito»: cada hito duplica su producción.",
+    "en": "On the prairie, buy fairy rings with “Milestone”: each milestone doubles their output.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "hint.wind",
+    "type": "instrucción (pista de primera vez)",
+    "current": "Dispersar no tiene prisa: puedes quedarte aquí lo que quieras. En un bioma nuevo, las partidas vuelven a durar lo que al principio, con reglas nuevas.",
+    "es": "No hay prisa por dispersar: en un bioma nuevo, empiezas otra vez desde abajo.",
+    "en": "No rush to disperse: in a new biome, you start again from the bottom.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "hud.nextSpore",
+    "type": "nueva",
+    "current": "—",
+    "es": "Faltan {nutrients} para la siguiente espora",
+    "en": "{nutrients} more until the next spore",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich: cifra con icono."
+  },
+  {
+    "key": "hud.nutrients",
+    "type": "nueva",
+    "current": "—",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "icono",
+    "note": "La cifra la pinta createAmount() con el icono."
+  },
+  {
+    "key": "hud.perSecond",
+    "type": "nueva",
+    "current": "—",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "icono",
+    "note": "createAmount('rate'): cifra, icono y «/s»."
+  },
+  {
+    "key": "i18n.loadFailed",
+    "type": "aviso·error",
+    "current": "No se pudo cargar el inglés y el juego sigue en español: recarga con conexión para intentarlo de nuevo. · English could not be loaded: reload while online to try again.",
+    "es": "No se pudo cargar el inglés: recarga con conexión. · English could not load: reload while online.",
+    "en": "English could not load: reload while online.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "meta.titleWithValue",
+    "type": "nueva",
+    "current": "—",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "icono",
+    "note": "Sin uso: main.ts pone «Micelio» de título."
+  },
+  {
+    "key": "mut.buy",
+    "type": "botón",
+    "current": "Mutar: {name}",
+    "es": "Mutar {name}",
+    "en": "Mutate {name}",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "mut.buy.short",
+    "type": "nueva",
+    "current": "—",
+    "es": "Mutar",
+    "en": "Mutate",
+    "action": "nueva",
+    "origin": "árbol",
+    "note": "Texto visible del botón de la ficha; mut.buy («Mutar {name}») queda como nombre accesible."
+  },
+  {
+    "key": "mut.deepAbsorption.desc",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cada clic suma un 3 % de tu producción por segundo.",
+    "en": "Each click adds 3% of your production per second.",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Palabra, no «N/s». Va en la ficha."
+  },
+  {
+    "key": "mut.inheritance.desc",
+    "type": "descripción·mutación",
+    "current": "Empiezas cada partida con 10 unidades de los cuatro primeros generadores.",
+    "es": "Empiezas con 10 de cada uno de los 4 primeros generadores.",
+    "en": "Start with 10 of each of the first 4 generators.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "mut.soilMemory.desc",
+    "type": "descripción·mutación",
+    "current": "Empiezas cada partida con 100 N y 10 Hifas.",
+    "es": "Empiezas con 100 nutrientes y 10 Hifas.",
+    "en": "Start with 100 nutrients and 10 Hyphae.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "Une la propuesta de textos (más corta) y la regla del icono (palabra en prosa). Va en la ficha del árbol."
+  },
+  {
+    "key": "mut.winterSleep.desc",
+    "type": "descripción·mutación",
+    "current": "Progreso offline al 100 % (base 50 %) y hasta 24 h (base 8 h).",
+    "es": "Offline: 100 % hasta 24 h (antes 50 %, 8 h).",
+    "en": "Offline: 100% for up to 24 h (was 50%, 8 h).",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "mutations.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "Mutaciones permanentes. Se pagan con esporas disponibles; gastarlas no baja tu nivel.",
+    "es": "Son para siempre. Se pagan con esporas y no bajan tu nivel.",
+    "en": "They are permanent. You pay in spores, and your level stays the same.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "mutations.treeDone",
+    "type": "nueva",
+    "current": "—",
+    "es": "Árbol completo",
+    "en": "Full tree",
+    "action": "nueva",
+    "origin": "árbol",
+    "note": "Resumen del <details> que pliega el árbol completo para dejar arriba las Adaptaciones."
+  },
+  {
+    "key": "offline.body",
+    "type": "nueva",
+    "current": "—",
+    "es": "Tiempo fuera: {time}. Tu red absorbió {nutrients}.",
+    "en": "{time} went by. Your network absorbed {nutrients}.",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Informe offline: palabra."
+  },
+  {
+    "key": "pach.cutProof.desc",
+    "type": "descripción·logro",
+    "current": "Une tres copos o más con la red estable y una tolerancia a cortes del 100 %.",
+    "es": "Une 3+ copos con una red estable y tolerancia a cortes del 100 %.",
+    "en": "Link 3+ flakes with a stable network and 100% cut tolerance.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "pach.noPulse.desc",
+    "type": "descripción·logro",
+    "current": "Cartografía una placa, o mejora su mapa, sin dar ni un pulso desde que la abriste.",
+    "es": "Cartografía o mejora una placa sin dar ningún pulso desde que la abriste.",
+    "en": "Map or improve a plate without a single pulse since opening it.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "partners.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "Otros organismos que viven cerca de tu red. Cada uno juega a su manera y con su propia moneda; lo que hagan no le quita nada a tu red.",
+    "es": "Organismos vecinos. Lo que hagan no le quita nada a tu red.",
+    "en": "Your neighbors. Nothing they do takes from your network.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Solo con dos socios o más (hoy, oculta)."
+  },
+  {
+    "key": "plasmodium:chapter.archipelago.line1",
+    "type": "lámina (placa)",
+    "current": "Tero y colegas (2010) pusieron copos de avena donde estarían las ciudades alrededor de Tokio y marcaron con luz las montañas y la costa, que el plasmodio evita.",
+    "es": "Tero y colegas (2010) pusieron avena donde están las ciudades alrededor de Tokio, y luz sobre montañas y costa, que el plasmodio evita.",
+    "en": "Tero and colleagues (2010) placed oats where the cities around Tokyo lie, and light over mountains and coast, which the plasmodium avoids.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.archipelago.line2",
+    "type": "lámina (placa)",
+    "current": "La red que trazó se parecía a la de trenes de la región en coste, en eficiencia y en tolerancia a fallos. En el mismo artículo la tradujeron a ecuaciones para diseñar redes: son las que mueven estas placas.",
+    "es": "Su red se pareció a la de trenes de Tokio en coste, eficiencia y tolerancia a fallos. Las ecuaciones de ese estudio mueven estas placas.",
+    "en": "Its network resembled Tokyo’s rail system in cost, efficiency and fault tolerance. That study’s equations run these plates.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.bitterBridge.line1",
+    "type": "lámina (placa)",
+    "current": "Boisseau, Vogel y Dussutour (2016) pusieron un puente con quinina o cafeína entre el plasmodio y su comida. Al principio tardaba en cruzarlo; tras varios días cruzando, dejó de hacerle caso.",
+    "es": "Boisseau, Vogel y Dussutour (2016) pusieron quinina o cafeína en el puente hacia su comida. Al principio tardaba en cruzar; días después, cruzaba sin dudar.",
+    "en": "Boisseau, Vogel and Dussutour (2016) laced the bridge to its food with quinine or caffeine. At first it crossed slowly; days later, without hesitating.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.fusion.line1",
+    "type": "lámina (placa)",
+    "current": "Vogel y Dussutour (2016) fundieron plasmodios habituados a la sal con otros que nunca la habían probado. La célula fundida tampoco la evitaba: lo aprendido pasó de uno a otro cuando entre ellos se formó una vena.",
+    "es": "Vogel y Dussutour (2016) fundieron plasmodios habituados a la sal con otros sin experiencia. Al formarse una vena entre ellos, lo aprendido pasó al otro.",
+    "en": "Vogel and Dussutour (2016) fused salt-habituated plasmodia with naive ones. Once a vein formed between them, what one had learned passed to the other.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.kicker",
+    "type": "etiqueta (lámina·título)",
+    "current": "Placa cartografiada · {n} de {total}",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.log.line1",
+    "type": "lámina (placa)",
+    "current": "Cuando se le acaba la comida y le llega la luz, el plasmodio deja de buscar y fructifica: levanta esporangios, cabezuelas sobre tallos finos llenas de esporas.",
+    "es": "Sin comida y con luz, el plasmodio deja de buscar y fructifica: levanta esporangios, cabezuelas de esporas sobre tallos finos.",
+    "en": "Out of food and in the light, the plasmodium stops searching and fruits: it raises sporangia, heads of spores on thin stalks.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:chapter.maze.line1",
+    "type": "lámina (placa)",
+    "current": "En un experimento de Nakagaki y colegas (2000), un plasmodio llenó un laberinto entero. Con avena en la entrada y en la salida, en unas horas retiró sus tubos de los callejones y dejó uno solo por el camino más corto.",
+    "es": "Nakagaki y colegas (2000) llenaron un laberinto con un plasmodio y avena en sus dos extremos. En horas, quedó un solo tubo: el más corto.",
+    "en": "Nakagaki and colleagues (2000) filled a maze with a plasmodium, with oats at both ends. Within hours, a single tube remained: the shortest.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:coach.tap",
+    "type": "nueva",
+    "current": "—",
+    "es": "Toca un círculo para poner avena.",
+    "en": "Tap a circle to place oats.",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Solo placa 1, hasta el primer copo; role=status."
+  },
+  {
+    "key": "plasmodium:flow.desc",
+    "type": "descripción (plasmodio)",
+    "current": "Cuánto citoplasma mueve el plasmodio. Con más caudal sobreviven tubos de reserva: sube la tolerancia a cortes y también el coste. En el modelo de Tero y colegas, este caudal decide si la red sale como un árbol o con anillos. Se cambia en las placas ya cartografiadas; la que estás cartografiando usa el Medio, el que mejor cumple la calidad.",
+    "es": "Más caudal: red más tolerante a cortes y más cara.",
+    "en": "More flow: a more cut-tolerant, costlier network.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:flow.locked",
+    "type": "instrucción (sin uso)",
+    "current": "El caudal se cambia en las placas ya cartografiadas.",
+    "es": "—",
+    "en": "—",
+    "action": "usar como motivo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:flow.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En el modelo de Tero y colegas, el caudal decide si la red sale como un árbol o con anillos. La placa en curso usa el Medio, el que mejor cumple la calidad.",
+    "en": "In the model by Tero and colleagues, flow decides whether the network comes out as a tree or with loops. The plate you are mapping uses Medium, which best meets the quality goal.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Lo que salió de flow.desc, plegado."
+  },
+  {
+    "key": "plasmodium:goal.cost.help",
+    "type": "ayuda ⓘ (ayuda ⓘ · sin uso)",
+    "current": "El coste compara la longitud de todos los tubos vivos con el árbol mínimo, la red más corta que une los copos yendo de uno a otro. Puede bajar de 1 si la red aprovecha cruces intermedios, como sabe hacer el plasmodio.",
+    "es": "Longitud de los tubos vivos frente a la red más corta que une los copos de uno en uno. Baja de 1 si aprovecha cruces.",
+    "en": "Length of the living tubes versus the shortest network linking the flakes one to another. Below 1 if it uses junctions.",
+    "action": "usar en ⓘ",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.habituation.salt",
+    "type": "dato (plasmodio)",
+    "current": "Habituación a la sal del plasmodio de la derecha: {value}",
+    "es": "Habituación a la sal (derecha): {value}",
+    "en": "Salt habituation (right one): {value}",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.placed",
+    "type": "dato (plasmodio)",
+    "current": "Copos en la placa: {placed} (objetivo: {target} o más)",
+    "es": "Copos puestos: {placed} (al menos {target})",
+    "en": "Flakes placed: {placed} (at least {target})",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.quality",
+    "type": "dato (plasmodio)",
+    "current": "Calidad de la red: {value} (objetivo: {target} o más)",
+    "es": "Calidad: {value} (al menos {target})",
+    "en": "Quality: {value} (at least {target})",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.quality.help",
+    "type": "ayuda ⓘ (ayuda ⓘ · sin uso)",
+    "current": "La calidad junta lo que mide la placa: cuanto más corta la red y más cortes aguanta, mejor. Es (1 ÷ coste) × (0,5 + 0,5 × tolerancia).",
+    "es": "Sube si la red es más corta y aguanta más cortes. Fórmula: (1 ÷ coste) × (0,5 + 0,5 × tolerancia).",
+    "en": "Goes up when the network is shorter and survives more cuts. Formula: (1 ÷ cost) × (0.5 + 0.5 × tolerance).",
+    "action": "usar en ⓘ",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.shortest",
+    "type": "dato (plasmodio)",
+    "current": "Longitud: {value} veces el camino más corto (objetivo: {target} o menos)",
+    "es": "Longitud: ×{value} el camino más corto (como mucho ×{target})",
+    "en": "Length: ×{value} the shortest path (at most ×{target})",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.summary",
+    "type": "instrucción (sin uso)",
+    "current": "Objetivo: {met} de {total} cumplen",
+    "es": "—",
+    "en": "—",
+    "action": "usar como resumen",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:goal.tolerance.help",
+    "type": "ayuda ⓘ (ayuda ⓘ · sin uso)",
+    "current": "Si se corta un tubo al azar, ¿siguen unidos todos los copos? La tolerancia es el porcentaje de cortes que la red aguanta. Las redes de trenes buscan lo mismo.",
+    "es": "Porcentaje de cortes al azar que la red aguanta sin dejar copos sueltos. Las redes de trenes buscan lo mismo.",
+    "en": "Share of random cuts the network survives without cutting off a flake. Rail networks aim for the same.",
+    "action": "usar en ⓘ",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:howto.1",
+    "type": "nueva",
+    "current": "—",
+    "es": "Elige Avena y toca un círculo de la placa.",
+    "en": "Pick Oats and tap a circle on the plate.",
+    "action": "nueva",
+    "origin": "director",
+    "note": "El mismo nombre que la herramienta y que el aviso del primer toque."
+  },
+  {
+    "key": "plasmodium:howto.2",
+    "type": "nueva",
+    "current": "—",
+    "es": "El plasmodio crece solo y une los copos. Un pulso lo acelera.",
+    "en": "The plasmodium grows on its own and links the flakes. A pulse speeds it up.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Paso 2: lo que hace el socio (y qué es el pulso)."
+  },
+  {
+    "key": "plasmodium:howto.3",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cumple el objetivo durante {hold} y junta el Rastro: la placa queda cartografiada.",
+    "en": "Meet the goal for {hold} and gather the Trail: the plate is mapped.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Paso 3: cómo se termina (antes, solo en el ⓘ de mapping.help)."
+  },
+  {
+    "key": "plasmodium:howto.title",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cómo se juega",
+    "en": "How to play",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Bloque visible encima de la placa (abierto hasta cartografiar la primera; luego, plegado)."
+  },
+  {
+    "key": "plasmodium:legend.loop",
+    "type": "nueva",
+    "current": "—",
+    "es": "Anillo: aguanta un corte",
+    "en": "Loop: survives a cut",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Une «Red corta con anillo» y «resistente a cortes»."
+  },
+  {
+    "key": "plasmodium:legend.thick",
+    "type": "nueva",
+    "current": "—",
+    "es": "Lleva comida: engorda",
+    "en": "Carries food: thickens",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Leyenda dibujada bajo la placa."
+  },
+  {
+    "key": "plasmodium:legend.thin",
+    "type": "nueva",
+    "current": "—",
+    "es": "Vacío: se seca",
+    "en": "Empty: dries out",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Leyenda."
+  },
+  {
+    "key": "plasmodium:link.intro",
+    "type": "instrucción (plasmodio)",
+    "current": "El plasmodio y tu red se echan una mano. Nada de esto cambia cuánto produce cada uno.",
+    "es": "Ayudas entre el plasmodio y tu red. No cambian cuánto produce cada uno.",
+    "en": "Ways the plasmodium and your network help each other. Neither produces more or less.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:link.pruning.desc",
+    "type": "descripción (vínculo)",
+    "current": "El plasmodio engorda los tubos que más llevan y deja secar el resto. Tu autocompra aprende lo mismo: puede comprar lo que antes se recupera.",
+    "es": "Tu autocompra puede comprar primero lo que antes se amortiza.",
+    "en": "Your autobuy can buy whatever pays back soonest first.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:link.pruning.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "El plasmodio engorda los tubos que más llevan y deja secar el resto.",
+    "en": "The plasmodium thickens the tubes that carry most and lets the rest dry.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:link.rain.desc",
+    "type": "descripción (vínculo)",
+    "current": "Cada gota que atrapas en tu bosque, o que cae sola, humedece el agar: durante {time}, el plasmodio se adapta el doble de rápido.",
+    "es": "Cada gota, atrapada o caída sola, acelera ×2 al plasmodio durante {time}.",
+    "en": "Each raindrop, caught or fallen, makes the plasmodium adapt ×2 for {time}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:link.shortPath.desc",
+    "type": "descripción (vínculo)",
+    "current": "Como en el laberinto, cuenta lo que cuesta llegar. En Esporular verás cuántas esporas ganas por minuto de partida y cuántas con la siguiente.",
+    "es": "Esporular muestra cuántas esporas ganas por minuto.",
+    "en": "Sporulate shows how many spores you earn per minute.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:link.shortPath.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Como en el laberinto, cuenta lo que cuesta llegar.",
+    "en": "As in the maze, it counts what it takes to get there.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:mapping",
+    "type": "dato (plasmodio)",
+    "current": "Cartografía de {name}: {done} de {total} de Rastro",
+    "es": "Cartografía: {done} de {total} de Rastro",
+    "en": "Mapping: {done} of {total} Trail",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:mapping.help",
+    "type": "ayuda ⓘ",
+    "current": "El plasmodio cartografía la placa con el Rastro que deja. Cuando llega a la meta y la red cumple el objetivo durante 1 min, fructifica.",
+    "es": "Con la red cumpliendo, el Rastro cartografía la placa; al completarlo, fructifica.",
+    "en": "While the network meets the goal, the Trail maps the plate; once complete, it fruits.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "Une la definición (textos) y cómo se termina (Socios)."
+  },
+  {
+    "key": "plasmodium:moist",
+    "type": "dato (plasmodio)",
+    "current": "Agar húmedo: se adapta el doble de rápido durante {time}.",
+    "es": "Agar húmedo: adaptación ×2 durante {time}.",
+    "en": "Moist agar: adapts ×2 for {time}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:more",
+    "type": "nueva",
+    "current": "—",
+    "es": "Más",
+    "en": "More",
+    "action": "nueva",
+    "origin": "director",
+    "note": "Menú con Ampliar, Extender de nuevo y Ver como lista."
+  },
+  {
+    "key": "plasmodium:net.exploring",
+    "type": "instrucción (plasmodio)",
+    "current": "El plasmodio cubre la placa y explora. Pon al menos dos copos para que empiece a decidir.",
+    "es": "Pon al menos dos copos: hasta entonces, el plasmodio solo explora.",
+    "en": "Place at least two flakes: until then, the plasmodium only explores.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:net.stalled",
+    "type": "instrucción (plasmodio)",
+    "current": "La red lleva un rato sin cambiar. Si no llega al objetivo, prueba a mover una lámpara o un copo, o a extenderla de nuevo.",
+    "es": "¿La red no mejora? Mueve un copo o extiéndela de nuevo.",
+    "en": "Network stuck? Move a flake or spread it again.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "Une las dos propuestas: corta como la de Socios y con las dos salidas reales. Solo sale si la red se atasca."
+  },
+  {
+    "key": "plasmodium:net.summary",
+    "type": "dato (plasmodio)",
+    "current": "La red une {joined} de {total} copos con {alive} tubos vivos.",
+    "es": "Red: {joined} de {total} copos unidos, {alive} tubos vivos.",
+    "en": "Network: {joined} of {total} flakes linked, {alive} living tubes.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:notice.reset",
+    "type": "aviso (plasmodio)",
+    "current": "La red de la placa se reinició por un error de cálculo. Lo demás sigue igual.",
+    "es": "Error de cálculo: se reinició la red de la placa, nada más.",
+    "en": "Calculation error: the plate’s network was reset, nothing else.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.archipelago.goal",
+    "type": "instrucción (plasmodio)",
+    "current": "Une {foods} islas de avena con una red corta y que aguante cortes, durante {hold}.",
+    "es": "Une {foods} islas con una red corta y resistente a cortes durante {hold}.",
+    "en": "Link {foods} islands with a short, cut-resistant network for {hold}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.archipelago.intro",
+    "type": "instrucción (sin uso)",
+    "current": "Islas de avena alrededor de un mar de luz y una sierra iluminada, que el plasmodio rehúye. Una red barata se rompe con un corte; una red segura cuesta más.",
+    "es": "Islas de avena entre luz, que rehúye. Una red barata se rompe con un corte.",
+    "en": "Oat islands amid light, which it avoids. A cheap network breaks with one cut.",
+    "action": "usar como subtítulo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.bitterBridge.goal",
+    "type": "instrucción (plasmodio)",
+    "current": "Une las dos orillas y {foods} copos más cruzando la quinina, con una red corta y que aguante cortes, durante {hold}.",
+    "es": "Une las dos orillas y {foods} copos más, cruzando la quinina, durante {hold}.",
+    "en": "Link both shores and {foods} more flakes across the quinine for {hold}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.bitterBridge.intro",
+    "type": "instrucción (sin uso)",
+    "current": "Un río de agar con quinina parte la placa en dos orillas. Al plasmodio no le gusta, pero puede acostumbrarse.",
+    "es": "Un río de quinina parte la placa. No le gusta, pero puede acostumbrarse.",
+    "en": "A quinine river splits the plate. It dislikes it, but can get used to it.",
+    "action": "usar como subtítulo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.close",
+    "type": "botón (plasmodio)",
+    "current": "Cerrar la placa ampliada",
+    "es": "(sin cambio)",
+    "en": "(no change)",
+    "action": "mantener",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.fusion.goal",
+    "type": "instrucción (plasmodio)",
+    "current": "Funde los dos plasmodios uniendo sus copos y {foods} más, para que el de la derecha aprenda a cruzar la sal, durante {hold}.",
+    "es": "Funde los dos plasmodios: une sus copos y {foods} más durante {hold}.",
+    "en": "Fuse the two plasmodia: link their flakes and {foods} more for {hold}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.fusion.intro",
+    "type": "instrucción (sin uso)",
+    "current": "Dos plasmodios en la misma placa, sembrada de sal. El de la izquierda ya cruzó puentes de sal; el de la derecha nunca la ha probado y solo aprenderá al fundirse con el otro.",
+    "es": "El de la izquierda ya cruza la sal; el de la derecha aprende al fundirse.",
+    "en": "The left one already crosses salt; the right one learns by fusing.",
+    "action": "usar como subtítulo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.help",
+    "type": "solo lector (aria)",
+    "current": "Elige una herramienta y toca un sitio. Con el teclado: las flechas mueven entre sitios, Enter o Espacio usan la herramienta y 1, 2 y 3 la cambian.",
+    "es": "Elige una herramienta y toca un sitio de la placa.",
+    "en": "Pick a tool and tap a site on the plate.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "Sigue como descripción de la placa para el lector (aria-describedby). Quien ve tiene lo mismo en el aviso del primer toque (coach.tap) y en «Cómo se juega» (howto.1)."
+  },
+  {
+    "key": "plasmodium:plate.help.keys",
+    "type": "nueva",
+    "current": "—",
+    "es": "Teclado: las flechas mueven entre sitios, Enter o Espacio usan la herramienta y 1, 2 y 3 la cambian.",
+    "en": "Keyboard: arrow keys move between sites, Enter or Space use the tool, and 1, 2 and 3 switch tools.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "La parte de teclado de plate.help, que sigue siendo solo para el lector y el teclado."
+  },
+  {
+    "key": "plasmodium:plate.log.goal",
+    "type": "instrucción (plasmodio)",
+    "current": "Pon {foods} copos de avena y deja que el plasmodio los una con una red corta y que aguante cortes, durante {hold}.",
+    "es": "Une {foods} copos con una red corta y resistente a cortes durante {hold}.",
+    "en": "Link {foods} flakes with a short, cut-resistant network for {hold}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.log.intro",
+    "type": "instrucción (sin uso)",
+    "current": "Madera húmeda del bosque, donde vive de verdad. Aquí aprende a unir la comida que le pongas.",
+    "es": "Madera húmeda, su hogar real. Aquí aprende a unir la comida que le pones.",
+    "en": "Damp wood, its real home. Here it learns to link the food you give it.",
+    "action": "usar como subtítulo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.maze.goal",
+    "type": "instrucción (plasmodio)",
+    "current": "Que solo quede el camino más corto entre los dos copos, durante {hold}.",
+    "es": "Deja solo el camino más corto entre los dos copos durante {hold}.",
+    "en": "Leave only the shortest path between the two flakes for {hold}.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.maze.intro",
+    "type": "instrucción (sin uso)",
+    "current": "Un laberinto sobre agar, con avena en la entrada y en la salida. El plasmodio lo llena entero; luego se queda con lo que sirve.",
+    "es": "Llena el laberinto entero y luego conserva solo lo útil.",
+    "en": "It fills the whole maze, then keeps only what is useful.",
+    "action": "usar como subtítulo",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.replay.desc",
+    "type": "instrucción (plasmodio)",
+    "current": "Al cambiar de placa se guardan tus copos y lámparas; al volver, el plasmodio se extiende de nuevo.",
+    "es": "Tus copos y lámparas se guardan; al volver, el plasmodio se extiende de nuevo.",
+    "en": "Your flakes and lamps are kept; when you return, the plasmodium spreads again.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.respread.confirm",
+    "type": "botón (plasmodio)",
+    "current": "Confirmar: extender de nuevo",
+    "es": "Sí, extender de nuevo",
+    "en": "Yes, spread again",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:plate.respread.desc",
+    "type": "solo lector (aria)",
+    "current": "El plasmodio vuelve a cubrir toda la placa y empieza a adaptarse otra vez. Sirve si la red se atasca. Tus copos, tus lámparas, lo que aprendió y el Rastro no cambian.",
+    "es": "Vuelve a cubrir la placa. Conservas copos, lámparas y Rastro.",
+    "en": "Covers the plate again. You keep flakes, lamps and Trail.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "«No pierdes nada» (Socios) no es exacto: la red se rehace."
+  },
+  {
+    "key": "plasmodium:plate.status.locked",
+    "type": "nueva",
+    "current": "—",
+    "es": "cerrada",
+    "en": "locked",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Antes, «cerrada hasta cartografiar la anterior», repetido cuatro veces."
+  },
+  {
+    "key": "plasmodium:plateOf",
+    "type": "nueva",
+    "current": "—",
+    "es": "{name} · placa {n} de {total}",
+    "en": "{name} · plate {n} of {total}",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Cabecera de una línea."
+  },
+  {
+    "key": "plasmodium:pulse.button",
+    "type": "nueva",
+    "current": "—",
+    "es": "Pulso",
+    "en": "Pulse",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Barra de una fila; aparece con dos copos."
+  },
+  {
+    "key": "plasmodium:pulse.desc",
+    "type": "solo lector (aria)",
+    "current": "El citoplasma va y viene por los tubos. Un pulso adelanta {steps} pasos de adaptación y deja {time} de Rastro. Se puede dar uno cada {cooldown}.",
+    "es": "Adelanta {steps} pasos de adaptación y deja {time} de Rastro. Uno cada {cooldown}.",
+    "en": "Runs {steps} adaptation steps and leaves {time} of Trail. One every {cooldown}.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.agar.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "Un medio de cultivo más rico. Cada nivel multiplica el Rastro por 1,5.",
+    "es": "Rastro ×1,5 por nivel.",
+    "en": "Trail ×1.5 per level.",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Efecto delante."
+  },
+  {
+    "key": "plasmodium:pupg.agar.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Un medio de cultivo más rico.",
+    "en": "A richer culture medium.",
+    "action": "nueva",
+    "origin": "director",
+    "note": "Plegado en «La ciencia», como las demás mejoras."
+  },
+  {
+    "key": "plasmodium:pupg.buy",
+    "type": "botón (plasmodio)",
+    "current": "Comprar: {name}",
+    "es": "visible «Comprar»; aria-label: Comprar {name}",
+    "en": "visible “Buy”; aria-label: Buy {name}",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.buy.short",
+    "type": "nueva",
+    "current": "—",
+    "es": "Comprar",
+    "en": "Buy",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Texto visible del botón; pupg.buy queda como nombre accesible."
+  },
+  {
+    "key": "plasmodium:pupg.chemotaxis.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "Crece hacia lo que huele a comida. La placa marca el sitio donde un copo más ayudaría más.",
+    "es": "Marca el sitio donde un copo más ayudaría más.",
+    "en": "Marks the site where one more flake would help most.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.chemotaxis.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Quimiotaxis: crecer hacia lo que huele a comida.",
+    "en": "Chemotaxis: growing toward whatever smells like food.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:pupg.dormancy.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "Al secarse, el plasmodio forma un esclerocio, una costra dura que puede revivir con agua mucho tiempo después. Mientras no estás, rinde más y aguanta más.",
+    "es": "Mientras no estás, rinde más y durante más tiempo.",
+    "en": "While you are away, it yields more and for longer.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.dormancy.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Al secarse forma un esclerocio, una costra dura que puede revivir con agua mucho tiempo después.",
+    "en": "When it dries, it forms a sclerotium, a hard crust that can revive with water long afterward.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:pupg.humidity.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "Sin humedad se frena, y si se seca del todo se endurece. Cada nivel le hace adaptarse un 50 % más deprisa.",
+    "es": "Se adapta un 50 % más deprisa por nivel.",
+    "en": "Adapts 50% faster per level.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.humidity.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Sin humedad se frena, y si se seca del todo se endurece.",
+    "en": "Without moisture it slows down, and if it dries out completely it hardens.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:pupg.lamps.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "El plasmodio rehúye la luz: bajo una lámpara sus tubos se secan antes. Una lámpara más por nivel.",
+    "es": "+1 lámpara por nivel. Bajo la luz, sus tubos se secan antes.",
+    "en": "+1 lamp per level. Under light, its tubes dry sooner.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.memory.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "El plasmodio deja un rastro de mucílago y suele evitar volver adonde ya buscó: una memoria fuera del cuerpo (Reid y colegas, 2012). En la placa, los tubos que no llevan nada se secan el doble de rápido, salvo los que tocan quinina o sal: la red poda antes y sale más barata, y también menos tolerante.",
+    "es": "Tubos vacíos: se secan ×2. Red más barata y menos tolerante.",
+    "en": "Empty tubes dry out ×2. Cheaper, less cut-tolerant network.",
+    "action": "reescribir",
+    "origin": "director",
+    "note": "La versión de Socios perdía el precio de la mejora (menos tolerancia), que decide la compra. La excepción de la quinina y la sal y Reid y colegas (2012) van en pupg.memory.science."
+  },
+  {
+    "key": "plasmodium:pupg.memory.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "Su rastro de mucílago le hace evitar los sitios donde ya buscó: una memoria fuera del cuerpo (Reid y colegas, 2012). En la placa, los tubos vacíos se secan el doble de rápido, salvo los que tocan quinina o sal.",
+    "en": "Its slime trail keeps it away from places it already searched: a memory outside its body (Reid and colleagues, 2012). On the plate, empty tubes dry twice as fast, except those touching quinine or salt.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia y excepción de juego, plegadas."
+  },
+  {
+    "key": "plasmodium:pupg.oats.desc",
+    "type": "descripción (mejora del plasmodio)",
+    "current": "En el laboratorio se le dan copos de avena: los encuentra, los envuelve y los une. Un copo más por nivel en cada placa, salvo en el Laberinto.",
+    "es": "+1 copo por nivel en cada placa (salvo el Laberinto).",
+    "en": "+1 flake per level on every plate (except the Maze).",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:pupg.oats.science",
+    "type": "nueva",
+    "current": "—",
+    "es": "En el laboratorio se le dan copos de avena: los encuentra, los envuelve y los une.",
+    "en": "In the lab it is fed oat flakes: it finds them, engulfs them and links them.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Ciencia plegada."
+  },
+  {
+    "key": "plasmodium:site.action.placeFood",
+    "type": "solo lector (aria)",
+    "current": "poner un copo de avena",
+    "es": "poner un copo",
+    "en": "place a flake",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:site.tubes.one",
+    "type": "dato (plasmodio)",
+    "current": "{count} tubo vivo llega aquí",
+    "es": "{count} tubo",
+    "en": "{count} tube",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:site.tubes.other",
+    "type": "dato (plasmodio)",
+    "current": "{count} tubos vivos llegan aquí",
+    "es": "{count} tubos",
+    "en": "{count} tubes",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:step.done",
+    "type": "nueva",
+    "current": "—",
+    "es": "hecho",
+    "en": "done",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Estado en texto, no solo color (WCAG 1.4.1)."
+  },
+  {
+    "key": "plasmodium:step.hold",
+    "type": "nueva",
+    "current": "—",
+    "es": "Aguanta {time}",
+    "en": "Hold for {time}",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Paso 3."
+  },
+  {
+    "key": "plasmodium:step.now",
+    "type": "nueva",
+    "current": "—",
+    "es": "ahora",
+    "en": "now",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Estado en texto."
+  },
+  {
+    "key": "plasmodium:step.place",
+    "type": "nueva",
+    "current": "—",
+    "es": "Pon {count} copos",
+    "en": "Place {count} flakes",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Paso 1 (no aparece si la placa no pide copos)."
+  },
+  {
+    "key": "plasmodium:step.shape",
+    "type": "nueva",
+    "current": "—",
+    "es": "Red corta con anillo",
+    "en": "Short network with a loop",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Paso 2 en las placas de calidad: la tolerancia pide redundancia y un árbol no llega a la meta."
+  },
+  {
+    "key": "plasmodium:step.shape.maze",
+    "type": "nueva",
+    "current": "—",
+    "es": "Un solo camino corto",
+    "en": "One short path",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Paso 2 en el Laberinto (objetivo de longitud)."
+  },
+  {
+    "key": "plasmodium:step.todo",
+    "type": "nueva",
+    "current": "—",
+    "es": "falta",
+    "en": "to do",
+    "action": "nueva",
+    "origin": "socios",
+    "note": "Estado en texto."
+  },
+  {
+    "key": "plasmodium:tool.food",
+    "type": "nueva",
+    "current": "—",
+    "es": "Avena",
+    "en": "Oats",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "Barra de una fila."
+  },
+  {
+    "key": "plasmodium:tool.food.label",
+    "type": "nueva",
+    "current": "—",
+    "es": "Avena: te quedan {left} de {total}",
+    "en": "Oats: {left} of {total} left",
+    "action": "reescribir",
+    "origin": "socios",
+    "note": "El nombre accesible empieza por la etiqueta visible (WCAG 2.5.3)."
+  },
+  {
+    "key": "plasmodium:trail.help",
+    "type": "ayuda ⓘ",
+    "current": "El Rastro es la huella de mucílago que el plasmodio deja al moverse. Sale de los copos unidos y de la calidad de la red, y con él se compran sus mejoras.",
+    "es": "El mucílago que deja el plasmodio. Sale de los copos unidos y de la calidad de la red, y paga sus mejoras.",
+    "en": "The slime the plasmodium leaves. It comes from linked flakes and network quality, and pays for its upgrades.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "plasmodium:trail.label",
+    "type": "instrucción (sin uso)",
+    "current": "Rastro",
+    "es": "(borrar)",
+    "en": "(delete)",
+    "action": "borrar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "rain.caught.dew",
+    "type": "nueva",
+    "current": "—",
+    "es": "Atrapaste la gota: Rocío, +{nutrients}.",
+    "en": "Caught the raindrop: Dew, +{nutrients}.",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Aviso (texto plano): palabra."
+  },
+  {
+    "key": "rain.fell.dew",
+    "type": "nueva",
+    "current": "—",
+    "es": "La gota cayó sola: Rocío, +{nutrients}.",
+    "en": "The raindrop fell on its own: Dew, +{nutrients}.",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Aviso (texto plano): palabra."
+  },
+  {
+    "key": "save.corruptNoBackup",
+    "type": "aviso·error",
+    "current": "El guardado estaba dañado y no había espacio para una copia de respaldo. No guardaremos nada hasta que decidas empezar de nuevo.",
+    "es": "El guardado está dañado y no cabe una copia de respaldo. No se guardará nada hasta que empieces de nuevo.",
+    "en": "Your save is damaged and there’s no room for a backup. Nothing will be saved until you start over.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "save.newer",
+    "type": "aviso·error",
+    "current": "Esta partida la guardó una versión más nueva de Micelio. Para no estropearla, esta no guardará nada: conéctate a internet y recarga.",
+    "es": "Una versión más nueva guardó esta partida. Para protegerla, aquí no se guarda nada: conéctate y recarga.",
+    "en": "A newer version saved this game. To protect it, nothing is saved here: go online and reload.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "save.partnerReset",
+    "type": "aviso·error",
+    "current": "El estado del plasmodio no se pudo recuperar y empieza de nuevo. Tu red no ha perdido nada, y el guardado anterior quedó en la copia de respaldo.",
+    "es": "El plasmodio no se pudo recuperar y empieza de nuevo. Tu red está intacta y hay copia de respaldo.",
+    "en": "The plasmodium couldn’t be recovered and starts over. Your network is intact, and a backup was kept.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.install.apk",
+    "type": "botón",
+    "current": "Descargar el instalador para Android (.apk)",
+    "es": "Descargar .apk (Android)",
+    "en": "Download .apk (Android)",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.install.apk.hint",
+    "type": "instrucción",
+    "current": "La app de Android guarda su propia partida: exporta la de aquí abajo e impórtala en la app.",
+    "es": "La app instalada guarda su propia partida: exporta esta abajo e impórtala allí.",
+    "en": "The installed app keeps its own save: export this one below and import it there.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.install.browser",
+    "type": "instrucción",
+    "current": "Si tu navegador lo permite, instálala desde su menú («Instalar app» o «Añadir a pantalla de inicio»).",
+    "es": "Instálala desde el menú del navegador: «Instalar app» o «Añadir a pantalla de inicio».",
+    "en": "Install it from your browser menu: “Install app” or “Add to Home screen”.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.install.ios",
+    "type": "instrucción",
+    "current": "En el iPhone o el iPad, en Safari: botón Compartir y «Añadir a pantalla de inicio». La app no ve la partida de Safari: expórtala abajo e impórtala en la app.",
+    "es": "En iPhone o iPad, abre Safari, toca Compartir y luego «Añadir a pantalla de inicio».",
+    "en": "On iPhone or iPad, open Safari, tap Share, then “Add to Home Screen”.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.install.justInstalled",
+    "type": "aviso (toast)",
+    "current": "Instalada: ábrela desde la pantalla de inicio o desde tus aplicaciones.",
+    "es": "Instalada: ábrela desde tu pantalla de inicio.",
+    "en": "Installed: open it from your home screen.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.notation.engineering",
+    "type": "etiqueta",
+    "current": "Ingeniería (1,5e6, exponentes de 3 en 3)",
+    "es": "Ingeniería (15e6)",
+    "en": "Engineering (15e6)",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.notation.names",
+    "type": "etiqueta",
+    "current": "Nombres (1,5 millones)",
+    "es": "Nombres (15 millones)",
+    "en": "Names (15 million)",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.notation.scientific",
+    "type": "etiqueta",
+    "current": "Científica (1,5e6)",
+    "es": "Científica (1,5e7)",
+    "en": "Scientific (1.5e7)",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "settings.notation.suffix",
+    "type": "etiqueta",
+    "current": "Sufijos (1,5 M)",
+    "es": "Sufijos (15 M)",
+    "en": "Suffixes (15 M)",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.confirm.keep",
+    "type": "confirmación",
+    "current": "Se conservan: nivel y esporas, mutaciones, adaptaciones, logros, estadísticas de vida y ajustes.",
+    "es": "Conservas: esporas, nivel, mutaciones, adaptaciones, logros y ajustes.",
+    "en": "You keep: spores, level, mutations, adaptations, achievements and settings.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.confirm.lose",
+    "type": "confirmación",
+    "current": "Se pierden: nutrientes, generadores, mejoras, hitos y efectos activos.",
+    "es": "Pierdes: nutrientes, generadores, mejoras, hitos y efectos activos.",
+    "en": "You lose: nutrients, generators, upgrades, milestones and active effects.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "Al madurar, la red libera esporas y vuelve a empezar. Cada nivel de esporas da +1 % de producción mientras tu linaje viva en este bosque.",
+    "es": "Esporula para volver a empezar: cada nivel de esporas da +1 % de producción.",
+    "en": "Sporulate to start over: each spore level gives +1% production.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.maturity",
+    "type": "instrucción",
+    "current": "Madurez de la red: hasta el nivel {threshold} cada nivel da +1 %; por encima, cada nivel aporta menos.",
+    "es": "Madurez: desde el nivel {threshold}, cada nivel aporta menos de +1 %.",
+    "en": "Maturity: past level {threshold}, each level adds less than +1%.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.next",
+    "type": "nueva",
+    "current": "—",
+    "es": "Faltan {nutrients} en este bosque para la siguiente espora",
+    "en": "{nutrients} more in this forest until the next spore",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich."
+  },
+  {
+    "key": "sporulate.rate.next",
+    "type": "dato",
+    "current": "Con la siguiente espora, dentro de {time}, serían {value} por minuto.",
+    "es": "Con la próxima espora (en {time}): {value} por minuto.",
+    "en": "With the next spore (in {time}): {value} per minute.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "sporulate.requirement",
+    "type": "nueva",
+    "current": "—",
+    "es": "Necesitas {nutrients} ganados en esta partida",
+    "en": "You need {nutrients} earned in this run",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich."
+  },
+  {
+    "key": "stats.maxNps",
+    "type": "nueva",
+    "current": "—",
+    "es": "Producción máxima",
+    "en": "Peak production",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Sin «N/s»."
+  },
+  {
+    "key": "unit.nutrients",
+    "type": "nueva",
+    "current": "—",
+    "es": "nutrientes",
+    "en": "nutrients",
+    "action": "nueva",
+    "origin": "icono",
+    "note": "Para nutrientsText() y el texto oculto de createAmount()."
+  },
+  {
+    "key": "unit.nutrients.afterName",
+    "type": "nueva",
+    "current": "—",
+    "es": "de nutrientes",
+    "en": "nutrients",
+    "action": "nueva",
+    "origin": "icono",
+    "note": "Tras un nombre de magnitud: «2,5 millones de nutrientes»."
+  },
+  {
+    "key": "unit.nutrients.one",
+    "type": "nueva",
+    "current": "—",
+    "es": "nutriente",
+    "en": "nutrient",
+    "action": "nueva",
+    "origin": "icono",
+    "note": "«1 nutriente»."
+  },
+  {
+    "key": "unit.perSecond",
+    "type": "nueva",
+    "current": "—",
+    "es": "por segundo",
+    "en": "per second",
+    "action": "nueva",
+    "origin": "icono",
+    "note": "Solo para el lector."
+  },
+  {
+    "key": "unit.perSecond.short",
+    "type": "nueva",
+    "current": "—",
+    "es": "/s",
+    "en": "/s",
+    "action": "nueva",
+    "origin": "icono",
+    "note": "Visible, oculto al lector."
+  },
+  {
+    "key": "upg.gainClick",
+    "type": "nueva",
+    "current": "—",
+    "es": "+{nutrients} por clic",
+    "en": "+{nutrients} per click",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich."
+  },
+  {
+    "key": "upg.gainProduction",
+    "type": "nueva",
+    "current": "—",
+    "es": "+{rate}",
+    "en": "+{rate}",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "createRich."
+  },
+  {
+    "key": "upgEffect.clickPercent",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cada clic suma {percent} de tu producción por segundo",
+    "en": "Each click adds {percent} of your production per second",
+    "action": "reescribir",
+    "origin": "icono",
+    "note": "Palabra, no «N/s»."
+  },
+  {
+    "key": "wind.confirm.bonus",
+    "type": "confirmación",
+    "current": "Bono del nivel de esporas que dejas: +{current}; al llegar, +0 %.",
+    "es": "Bono de esporas: +{current} ahora, +0 % al llegar.",
+    "en": "Spore bonus: +{current} now, +0% on arrival.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.confirm.keep",
+    "type": "confirmación",
+    "current": "Viajan contigo: esporas disponibles, mutaciones, adaptaciones, linaje, logros, autocompra, estadísticas de vida y ajustes.",
+    "es": "Viajan contigo: esporas, mutaciones, adaptaciones, linaje y logros.",
+    "en": "Coming with you: spores, mutations, adaptations, lineage and achievements.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.confirm.lose",
+    "type": "confirmación",
+    "current": "Se pierden: el nivel de esporas de este bioma y todo lo de la partida (nutrientes, generadores, mejoras, hitos y efectos activos).",
+    "es": "Pierdes: el nivel de esporas de aquí y la partida en curso.",
+    "en": "You lose: this biome’s spore level and the current run.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.confirm.oneWay",
+    "type": "confirmación",
+    "current": "En esta versión no se puede volver a un bioma que dejaste. Quedará escrito en la Crónica.",
+    "es": "No podrás volver aquí durante el viaje: quedará en la Crónica.",
+    "en": "No coming back here during the journey: it stays in the Chronicle.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.cycle.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "El viaje está cerrado: ahora el viento lleva tu linaje a cualquier bioma, también al que habitas. Cada siembra es un ciclo con el nivel de esporas en 0 y la meta en el nivel {goal}; cumplirlo deja tu mejor tiempo como récord.",
+    "es": "Siembra cualquier bioma, también este. Llega al nivel {goal} para fijar un récord.",
+    "en": "Sow any biome, this one included. Reach level {goal} to set a record.",
+    "action": "acortar y plegar",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.cycle.more",
+    "type": "nueva",
+    "current": "—",
+    "es": "Cada siembra empieza un ciclo con el nivel de esporas en 0. El récord es tu menor tiempo en cumplirlo.",
+    "en": "Each sowing starts a cycle with your spore level at 0. Your record is your fastest time to complete it.",
+    "action": "nueva",
+    "origin": "textos",
+    "note": "Lo que salió de wind.cycle.intro, plegado («Cómo funciona»)."
+  },
+  {
+    "key": "wind.intro",
+    "type": "instrucción (intro de sección)",
+    "current": "Dispersar lleva tu linaje a otro bioma, con otras reglas. Allí el nivel de esporas empieza en 0; las esporas disponibles, las mutaciones y las adaptaciones viajan contigo.",
+    "es": "Lleva tu linaje a un bioma nuevo. Allí, tu nivel de esporas vuelve a 0.",
+    "en": "Take your lineage to a new biome. There, your spore level goes back to 0.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.last",
+    "type": "instrucción",
+    "current": "Este es el último bioma del viaje: colonízalo y el viento soplará de vuelta a casa.",
+    "es": "Último bioma del viaje: colonízalo para volver a casa.",
+    "en": "Last biome of the journey: colonize it to head home.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.lineage.one",
+    "type": "dato",
+    "current": "Linaje: tu producción es ×{factor} en todos los biomas, por {count} bioma colonizado.",
+    "es": "Linaje: producción ×{factor} en todos los biomas ({count} colonizado).",
+    "en": "Lineage: ×{factor} production in every biome ({count} colonized).",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.lineage.other",
+    "type": "dato",
+    "current": "Linaje: tu producción es ×{factor} en todos los biomas, por {count} biomas colonizados.",
+    "es": "Linaje: producción ×{factor} en todos los biomas ({count} colonizados).",
+    "en": "Lineage: ×{factor} production in every biome ({count} colonized).",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.return.go",
+    "type": "botón",
+    "current": "Volver al bosque natal",
+    "es": "visible «Volver»; aria-label: Volver al bosque natal",
+    "en": "visible “Return”; aria-label: Return to the home forest",
+    "action": "nombre accesible",
+    "origin": "textos",
+    "note": ""
+  },
+  {
+    "key": "wind.ring2",
+    "type": "instrucción",
+    "current": "Donde acaban los árboles: dos biomas más se abren cuando tu linaje colonice la taiga y la selva del Chocó.",
+    "es": "Coloniza la taiga y la selva del Chocó para abrir dos biomas más.",
+    "en": "Colonize the taiga and the Chocó rainforest to open two more biomes.",
+    "action": "reescribir",
+    "origin": "textos",
+    "note": ""
+  }
+]
