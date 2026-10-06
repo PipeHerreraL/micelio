@@ -170,10 +170,11 @@ export const BIOMES: readonly BiomeDef[] = [
   },
   {
     // Chernozem. El motor es un generador barato, el quinto: Anillo de hadas ×6, medido también
-    // con el pasivo (2,23–2,42 veces el activo). Con ×10 la partida más corta bajaba a 9:22, y con
-    // ×25 se colonizaba en 1,19 h con partidas de 8 min. La lluvia es la palanca del pasivo: con la
-    // espera ×1 tardaba 3,3–3,8 veces el activo (la pradera existe donde llueve demasiado poco
-    // para un bosque). Escala: con 9e10 (C7) la pradera tercera tenía la partida más larga en
+    // con el pasivo, que tarda 2,17–2,34 veces el activo (simulador, mediana de cada orden; en el
+    // prototipo C7, 2,23–2,42). En C7, con ×10 la partida más corta bajaba a 9:22, y con ×25 se
+    // colonizaba en 1,19 h con partidas de 8 min. La lluvia es la palanca del pasivo: con la espera
+    // ×1 tardaba 3,3–3,8 veces el activo (C7; la pradera existe donde llueve demasiado poco para un
+    // bosque). Escala: con 9e10 (C7) la pradera tercera tenía la partida más larga en
     // 1:00:17–1:03:02, por encima de la hora; con 8,1e10 queda en 58:13–58:49 y coloniza en
     // 3,11–3,13 h, y la cuarta en 2,91–2,96 h (simulador).
     id: 'prairie',
@@ -202,9 +203,9 @@ export const BIOMES: readonly BiomeDef[] = [
   {
     // Criosol. «Producción a la mitad, offline de 48 h» (ROADMAP): quien llega aquí tiene Sueño
     // invernal (24 h) y el bioma suma 24; sumar y no fijar en 48 deja algo también a quien tiene
-    // Letargo profundo. Llueve un tercio (desierto polar): el pasivo queda en 1,90–2,01 veces el
-    // activo. Escala: la tundra tercera coloniza en 2,81–2,95 h y la cuarta, en 2,18–2,41 h
-    // (simulador; en C7, la cuarta en 2,18–2,46 h).
+    // Letargo profundo. Llueve un tercio (desierto polar): el pasivo tarda 1,94–2,01 veces el activo
+    // (simulador, mediana de cada orden; en C7, 1,90–2,01). Escala: la tundra tercera coloniza en
+    // 2,81–2,95 h y la cuarta, en 2,18–2,41 h (simulador; en C7, la cuarta en 2,18–2,46 h).
     //
     // Deshielo tras 8 h: sin él, la tundra fuera del juego rinde 0,5 · min(H, tope), nunca más que
     // otro bioma, y quien vuelve cada día tardaba 3 días en colonizarla frente a 2 de la pradera;

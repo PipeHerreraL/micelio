@@ -124,10 +124,7 @@ function buyAdaptations(state: GameState, reserve = 0): void {
   }
 }
 
-/**
- * Compra la adaptación de bioma más barata que esté abierta mientras alcance sin tocar la reserva.
- * Recorre las definidas: un id del guardado sin definición todavía no se puede comprar.
- */
+/** Compra la adaptación de bioma más barata que esté abierta mientras alcance sin tocar la reserva. */
 function buyBiomeAdaptations(state: GameState, reserve: number): void {
   for (let guard = 0; guard < 50; guard += 1) {
     let best: { id: BiomeAdaptationId; cost: number } | null = null;
