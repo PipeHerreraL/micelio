@@ -54,6 +54,7 @@ const IMPORT_ERRORS: Record<ImportError, MessageKey> = {
   json: 'settings.import.error.json',
   shape: 'settings.import.error.shape',
   version: 'settings.import.error.version',
+  newer: 'settings.import.error.newer',
   migration: 'settings.import.error.migration',
   invalid: 'settings.import.error.invalid',
 };
@@ -95,7 +96,7 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
   const installSection = section(t('settings.install'), [installText, installButton, apkLink, apkHint]);
   const INSTALL_TEXT: Readonly<Record<InstallSituation, MessageKey | null>> = {
     native: null,
-    installed: 'settings.install.done',
+    installed: null,
     justInstalled: 'settings.install.justInstalled',
     prompt: null,
     ios: 'settings.install.ios',
@@ -103,8 +104,9 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
   };
   function updateInstall(): void {
     const situation = installSituation();
-    // En la app de Android no hay nada que instalar.
-    setHidden(installSection, situation === 'native');
+    // Dentro de la app (la de Android o la instalada desde el navegador) no hay nada que instalar: la
+    // sección solo ocuparía sitio (petición del usuario).
+    setHidden(installSection, situation === 'native' || situation === 'installed');
     const key = INSTALL_TEXT[situation];
     setHidden(installText, key === null);
     if (key) setText(installText, t(key));

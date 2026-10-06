@@ -908,9 +908,17 @@ describe('exportar e importar', () => {
     expect(importSave(b64(negative))).toStrictEqual({ ok: false, error: 'invalid' });
   });
 
-  it('un Base64 válido de un guardado de una versión futura da el error version', () => {
+  it('una partida de una versión más nueva del juego da el error newer, no «no se reconoce»', () => {
+    // Una partida exportada de la web nueva e importada en una app sin actualizar: no está dañada,
+    // hay que actualizar el juego. Con un formato posterior y con una versión posterior del juego.
     const future = JSON.stringify({ version: 99, savedAt: SAVED_AT, state: richState() });
-    expect(importSave(b64(future))).toStrictEqual({ ok: false, error: 'version' });
+    expect(importSave(b64(future))).toStrictEqual({ ok: false, error: 'newer' });
+    const state = { ...richState(), forest: { ...richState().forest, biome: 'volcano' } };
+    const newerGame = JSON.stringify({ version: SAVE_VERSION, savedAt: SAVED_AT, game: '99.0.0', state });
+    expect(importSave(b64(newerGame))).toStrictEqual({ ok: false, error: 'newer' });
+    // Un formato imposible sin versión más nueva sigue siendo «no se reconoce».
+    const zero = JSON.stringify({ version: 0, savedAt: SAVED_AT, state: richState() });
+    expect(importSave(b64(zero))).toStrictEqual({ ok: false, error: 'version' });
   });
 
   it('ningún texto inválido hace lanzar a importSave', () => {

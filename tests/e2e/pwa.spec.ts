@@ -90,6 +90,30 @@ test('en Ajustes, el móvil dice cómo instalarla: el .apk en Android y Safari e
   }
 });
 
+test('en la app instalada, Ajustes no enseña la sección de instalar', async ({ page }, info) => {
+  test.skip(info.project.name !== 'mobile-chromium', 'Basta con un perfil.');
+  // La app instalada desde el navegador se abre en modo «standalone».
+  await page.addInitScript(() => {
+    const original = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) =>
+      query.includes('display-mode: standalone')
+        ? Object.defineProperty(original(query), 'matches', { value: true })
+        : original(query);
+  });
+  await seedSave(
+    page,
+    stateWith((s) => {
+      s.owned.hypha = 3;
+    }),
+  );
+  await page.goto('./');
+  await page.getByRole('tab', { name: /Ajustes/ }).tap();
+  await expect(page.locator('#panel-settings')).toContainText('Idioma');
+  await expect(
+    page.locator('#panel-settings .settings__section', { hasText: 'Instalar la app' }),
+  ).toBeHidden();
+});
+
 test('de borde a borde (app de Android), nada queda bajo las barras del sistema en tableta ni en escritorio', async ({
   page,
 }, info) => {

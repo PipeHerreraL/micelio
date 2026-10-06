@@ -892,7 +892,8 @@ export function exportSave(state: GameState, now: number): string {
   return bytesToBase64(new TextEncoder().encode(serializeSave(state, now)));
 }
 
-export type ImportError = 'empty' | 'tooLarge' | 'base64' | 'encoding' | ParseError;
+/** `newer`: la partida es de una versión más nueva del juego; hay que actualizar para importarla. */
+export type ImportError = 'empty' | 'tooLarge' | 'base64' | 'encoding' | 'newer' | ParseError;
 export type ImportResult =
   { ok: true; save: SaveFile; partnersReset: PartnerId[] } | { ok: false; error: ImportError };
 
@@ -914,7 +915,8 @@ export function importSave(text: string): ImportResult {
     return { ok: false, error: 'encoding' };
   }
   const parsed = parseSave(json, MIGRATIONS, SAVE_VERSION, 'lenient');
-  return parsed.ok
-    ? { ok: true, save: parsed.save, partnersReset: parsed.partnersReset }
-    : { ok: false, error: parsed.error };
+  if (parsed.ok) return { ok: true, save: parsed.save, partnersReset: parsed.partnersReset };
+  // Una partida exportada de una versión más nueva (por ejemplo, de la web en una app sin actualizar)
+  // no está dañada: el aviso dice que hay que actualizar el juego.
+  return { ok: false, error: isFromNewerGame(json) ? 'newer' : parsed.error };
 }
