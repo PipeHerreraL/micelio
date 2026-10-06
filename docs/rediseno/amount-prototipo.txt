@@ -1,0 +1,119 @@
+Prototipo de `src/ui/amount.ts` que cita plan.md (§ del icono de nutrientes: «prototipo en
+icono/prototipo/amount.ts»). Copiado tal cual de la carpeta de trabajo del rediseño el 2026-10-06,
+para que no se pierda: va como texto porque no se compila ni se prueba. Su icono es el «Núcleo», que
+la caja de decisiones de plan.md sustituyó por la variante D, «Canto acuñado»
+(icono-nutrientes-pequeno.svg e icono-nutrientes-rico.svg); lo que sirve es la estructura.
+
+/**
+ * PROTOTIPO para medir el peso (no está en el repositorio). Una cantidad de nutrientes en la
+ * interfaz: la cifra como texto, el icono del remolino oculto al lector y, solo para el lector,
+ * «de nutrientes» / «nutrientes por segundo». En el juego, los textos saldrían de t() y los nodos de
+ * h()/svg() de dom.ts; aquí van como parámetros para que el paquete se mida solo.
+ */
+const NS = 'http://www.w3.org/2000/svg';
+
+/** Cinco filamentos del núcleo curvados hacia el mismo lado (cuadrícula 16 × 16). Cinco, nunca cuatro. */
+const STRANDS =
+  'M8 4.5Q11.4 3.2 13.5 3.6M11.3 6.9Q13.6 9.8 13.8 11.9M10.1 10.8Q8 13.8 6.1 14.7M5.9 10.8Q2.5 9.9 1 8.3M4.7 6.9Q4.5 3.3 5.6 1.4';
+
+function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>): SVGElementTagNameMap[K] {
+  const node = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  return node;
+}
+
+export function nutrientIcon(): SVGSVGElement {
+  const root = el('svg', {
+    class: 'unit',
+    viewBox: '0 0 16 16',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '1.5',
+    'stroke-linecap': 'round',
+    'aria-hidden': 'true',
+    focusable: 'false',
+  });
+  root.append(el('path', { d: STRANDS }), el('circle', { cx: '8', cy: '8', r: '2.6', fill: 'currentColor', stroke: 'none' }));
+  return root;
+}
+
+const lastText = new WeakMap<Node, string>();
+function setText(node: Node, value: string): void {
+  if (lastText.get(node) === value) return;
+  lastText.set(node, value);
+  node.textContent = value;
+}
+
+export type AmountKind = 'total' | 'rate';
+
+export interface AmountWords {
+  /** «nutrientes» / «nutrients» */
+  plain: string;
+  /** «de nutrientes» tras un nombre de magnitud («2 millones de nutrientes»); en inglés, igual que plain. */
+  afterName: string;
+  /** «por segundo» / «per second» */
+  perSecond: string;
+  /** «/s», visible y oculto al lector. */
+  perSecondShort: string;
+}
+
+export interface Amount {
+  root: HTMLSpanElement;
+  set(text: string): void;
+}
+
+/** Cifra + icono + palabra para el lector. Se crea una vez; set() solo cambia lo que cambió. */
+export function createAmount(kind: AmountKind, words: AmountWords): Amount {
+  const root = document.createElement('span');
+  root.className = 'amount';
+  const num = document.createElement('span');
+  const sr = document.createElement('span');
+  sr.className = 'visually-hidden';
+  root.append(num, nutrientIcon());
+  if (kind === 'rate') {
+    const per = document.createElement('span');
+    per.setAttribute('aria-hidden', 'true');
+    per.textContent = words.perSecondShort;
+    root.append(per);
+  }
+  root.append(sr);
+  return {
+    root,
+    set(text) {
+      setText(num, text);
+      const unit = /\p{L}$/u.test(text) ? words.afterName : words.plain;
+      setText(sr, ` ${unit}${kind === 'rate' ? ` ${words.perSecond}` : ''}`);
+    },
+  };
+}
+
+const SLOT = /\{(nutrients|rate)\}/g;
+
+/**
+ * Rellena `host` con una plantilla del catálogo que lleva {nutrients} o {rate}: texto suelto y
+ * cantidades. Solo se rehace si cambia la plantilla (al cambiar de idioma); si no, se actualizan las cifras.
+ */
+export function createRich(host: HTMLElement, words: AmountWords) {
+  let template = '';
+  const amounts: Amount[] = [];
+  const texts: Text[] = [];
+  return (next: string, values: readonly string[]): void => {
+    if (next !== template) {
+      template = next;
+      host.replaceChildren();
+      amounts.length = 0;
+      texts.length = 0;
+      let last = 0;
+      for (const match of next.matchAll(SLOT)) {
+        const t = document.createTextNode(next.slice(last, match.index));
+        texts.push(t);
+        const a = createAmount(match[1] === 'rate' ? 'rate' : 'total', words);
+        amounts.push(a);
+        host.append(t, a.root);
+        last = (match.index ?? 0) + match[0].length;
+      }
+      host.append(document.createTextNode(next.slice(last)));
+    }
+    amounts.forEach((a, i) => a.set(values[i] ?? ''));
+  };
+}

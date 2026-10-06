@@ -957,7 +957,7 @@ src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su mode
 scripts/       simuladores de balance (red, repartida entre hilos, y plasmodio), presupuesto de JS,
                procedencia de placas, guardados reales de la 1.5
 tests/         pruebas de Vitest; tests/e2e/, de Playwright; tests/fixtures/, guardados reales
-docs/          STATUS, BUG-JOURNAL, BALANCE
+docs/          STATUS, BUG-JOURNAL, BALANCE, ROADMAP y rediseno/ (el plan aprobado de la 1.6.2)
 ```
 
 ## 11. Plan visual

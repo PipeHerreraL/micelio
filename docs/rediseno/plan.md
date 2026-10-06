@@ -8,15 +8,26 @@
 > 3. Icono de nutrientes: **variante D «Canto acuñado»** (elegida el 2026-10-06): cara de moneda con su
 >    canto en media luna y la N recortada con el nudo del corazón del núcleo en la diagonal. SVG
 >    pequeño (un trazado del color del texto) y versión rica dorada para 24 px o más, en
->    `ux/icono-moneda/comparacion/` (archivos `d-*`). Sustituye al «Núcleo» de la sección del icono.
+>    `icono-nutrientes-pequeno.svg` e `icono-nutrientes-rico.svg` (en la carpeta de trabajo,
+>    `ux/icono-moneda/comparacion/`, archivos `d-*`). Sustituye al «Núcleo» de la sección del icono.
+>
+> **Nota al guardarlo en el repositorio (2026-10-06).** El plan se escribió en una carpeta de trabajo
+> (`ux/`) que no está en el repositorio. Lo que hace falta para aplicarlo está en esta carpeta:
+> `textos.json` (la tabla de `director/textos-final.*`), `textos-correcciones.json`
+> (`final/correcciones.json`), los dos SVG del icono, `socios-boceto.html` (`socios/boceto.html`) y
+> `amount-prototipo.txt` (`icono/prototipo/amount.ts`). Lo demás que se cita (las capturas,
+> `informe.html`, `textos/propuesta.md`, `critica/` y los scripts de medida y de fusión) no se guardó:
+> lo que decide está resumido aquí. Fusionar las dos tablas no necesita script: si una clave está en
+> las dos, manda `textos-correcciones.json`.
 
 # Plan definitivo de rediseño de Micelio: menos texto, Socios claro, la «N» como icono y el árbol sin desborde
 
 _Director de diseño · 2026-10-05 · versión final tras la crítica de 32 hallazgos. Rama `fase-10` solo
 leída (otros agentes trabajan en ella; HEAD `fd0c72b`, con la interfaz de los votos del bloque B ya en
-commit). Todo lo citado está en esta carpeta (`ux/`): `textos/`, `socios/`, `arbol/`, `icono/`,
-`critica/`, `critica-experiencia/`, `director/` y `final/` (lo nuevo de esta versión: los textos
-corregidos, medidos, en `final/correcciones.json`, y el script que los mide). La página para
+commit). Todo lo citado estaba en la carpeta de trabajo (`ux/`; lo que se guardó, en la nota de
+arriba): `textos/`, `socios/`, `arbol/`, `icono/`, `critica/`, `critica-experiencia/`, `director/` y
+`final/` (lo nuevo de esta versión: los textos
+corregidos, medidos, en `textos-correcciones.json`, y el script que los mide). La página para
 enseñarlo es `informe.html`. El plan anterior queda en `plan.md`; la sección 11 dice qué hallazgo
 cambió qué, con su comprobación._
 
@@ -153,13 +164,13 @@ técnico. P1 se hace primero; P3 queda para después del bloque.
 ## 4. Textos: cómo se aplica la propuesta
 
 **Fuente única:** `director/textos-final.md` (y `.json`), más las correcciones de esta versión en
-`final/correcciones.json` (38 claves, medidas con `final/correcciones.mjs`: todas cumplen el §2 en los
-dos idiomas con su peor valor). Si una clave está en los dos, manda `final/correcciones.json`. Antes de
+`textos-correcciones.json` (38 claves, medidas con `final/correcciones.mjs`: todas cumplen el §2 en los
+dos idiomas con su peor valor). Si una clave está en los dos, manda `textos-correcciones.json`. Antes de
 C0, `director/fusionar-textos.mjs` genera un único archivo con clave y valor exactos en los dos idiomas.
 Las 12 filas cuya columna «es» es una instrucción («visible «Dispersar»; aria-label: …») pasan a dos
 claves con valor (por ejemplo, `biome.go.short` y `biome.sow.short`) (hallazgo 31).
 
-Suma: 245 claves de la tabla, más 21 nuevas y 17 corregidas de `final/correcciones.json`.
+Suma: 245 claves de la tabla, más 21 nuevas y 17 corregidas de `textos-correcciones.json`.
 
 **Cómo se aplica:**
 
@@ -213,7 +224,7 @@ la cita y el porqué):
 **Pasa a verse:**
 
 - Las 5 presentaciones de placa, como subtítulo de una frase de 45 caracteres o menos («Madera húmeda:
-  aquí aprende a unir la comida.»; las cinco, en `final/correcciones.json`).
+  aquí aprende a unir la comida.»; las cinco, en `textos-correcciones.json`).
 - `flow.locked`, como motivo del Caudal cerrado.
 - `trail.label` («Rastro»), en la cabecera y en los precios. El plan anterior la borraba por no tener uso.
 - `coach.tap` y `coach.pulse`, avisos de primera vez en la placa.
@@ -254,7 +265,7 @@ títulos de lámina y una cita por lámina se quedan.
 
 ## 5. Socios: el rediseño elegido
 
-El del boceto `socios/boceto.html` (capturas en `socios/despues/`), con los textos finales y estos
+El del boceto `socios-boceto.html` (capturas en `socios/despues/`), con los textos finales y estos
 cambios sobre el boceto: cuatro pasos, la barra de iconos con rótulo, la unidad del Rastro, alturas
 fijas y ningún menú nuevo.
 
@@ -502,7 +513,7 @@ con la primera Hifa (`hud.ts:140`) y el tooltip del contador es `null` por debaj
 **Plan técnico:**
 
 - `src/ui/icons.ts`: `nutrientIcon()`. `draw()` acepta el viewBox de 16 y el trazo de 1,5.
-- `src/ui/amount.ts` (nuevo, prototipo en `icono/prototipo/amount.ts`): `createAmount(kind)` y
+- `src/ui/amount.ts` (nuevo, prototipo en `amount-prototipo.txt`): `createAmount(kind)` y
   `createRich(host)`, que solo cambian lo que cambió.
 - `src/i18n/index.ts`: `nutrientsText(value)`, con la misma regla del «de» que `formatCountOf`.
 - Claves: `unit.nutrients`, `unit.nutrients.one`, `unit.nutrients.afterName`, `unit.perSecond`,
@@ -646,7 +657,7 @@ los bocetos. Veredictos: 28 aceptados (cuatro con un ajuste propio), 4 aceptados
 | 10  | El paso 2 no dice quién actúa; «Cómo se juega» plegado               | Acepta                     | `textos-final.json` (`howto.title`) dice «abierto hasta cartografiar la primera» y el §5 decía «plegado siempre»; `pulse.desc` es solo para el lector                                                                                                                                                                                               | «El plasmodio une los copos»; «Cómo se juega» abierto hasta la primera placa; `coach.pulse`                                                 |
 | 11  | El icono se queda sin quien lo enseñe                                | Acepta en parte            | `hud.ts:140` oculta `core.hint` con la primera Hifa; `numberTooltip` es `null` bajo un millón; la pulsación larga es la única vía táctil. Se acepta la pista de primera vez, el tooltip siempre con «Nutrientes» y la prueba a 12 px. El rótulo fijo se deja como respaldo: suma una línea a una franja que ya ocupa el 53 % (familia de #20 y #25) | §7                                                                                                                                          |
 | 12  | El Rastro se queda sin unidad                                        | Acepta                     | `trail.label` («Rastro») existe; el plan la borraba por no tener uso                                                                                                                                                                                                                                                                                | §5: «Rastro 64 · +0,6/s» y «50 de Rastro»; `trail.label` se usa                                                                             |
-| 13  | Cinco nombres para tres cosas                                        | Acepta en parte            | «Copo» y «bucle», sí. Entre «círculo» y «sitio», «sitio»: ya está en 30 claves del lector y en `ui-plasmodium.test.ts:349`. «Lazo» no: en grafos es una arista a sí mismo; «ciclo» tampoco: es el ciclo libre                                                                                                                                       | §4 y `final/correcciones.json`                                                                                                              |
+| 13  | Cinco nombres para tres cosas                                        | Acepta en parte            | «Copo» y «bucle», sí. Entre «círculo» y «sitio», «sitio»: ya está en 30 claves del lector y en `ui-plasmodium.test.ts:349`. «Lazo» no: en grafos es una arista a sí mismo; «ciclo» tampoco: es el ciclo libre                                                                                                                                       | §4 y `textos-correcciones.json`                                                                                                             |
 | 14  | Reglas de juego escondidas en «La ciencia»                           | Acepta                     | `flow.science` y `pupg.memory.science` de la tabla llevaban reglas                                                                                                                                                                                                                                                                                  | §4: `pupg.memory.desc`, `pupg.memory.effect` y `flow.locked`                                                                                |
 | 15  | Los atajos solo los conoce el lector                                 | Acepta                     | `.core__keyhint` se oculta por debajo de 768 px; `plate.help.keys` es solo para el lector; `role="group"` no anuncia flechas                                                                                                                                                                                                                        | `plate.keys` y `mut.keys` visibles en escritorio; `role="listbox"`                                                                          |
 | 16  | C6 exige la placa tocable en las cinco a 375 × 667                   | Acepta                     | `computeLayout` en vertical: 370, 378, 456, 532 y 490 px de alto para 381–386 libres. Ampliada a 375 × 667 tampoco: 293 × 407 px dan celdas de 73 × 58 px, bajo su `cellMin` (70–76)                                                                                                                                                                | §5 y C1/C6: dos placas a 375 × 667, cinco a 412 × 915; unitaria de `computeLayout`                                                          |
@@ -664,5 +675,5 @@ los bocetos. Veredictos: 28 aceptados (cuatro con un ajuste propio), 4 aceptados
 | 28  | `badapt.needLevel` en una clave rompe `i18n.test.ts`                 | Acepta                     | `i18n.test.ts:82` y `biome-adaptations.ts:131`                                                                                                                                                                                                                                                                                                      | §4: se quedan las cuatro                                                                                                                    |
 | 29  | `scrollIntoView` mueve la página en la tableta                       | Acepta                     | `.tabs__list` es `sticky` entre 768 y 1023 px                                                                                                                                                                                                                                                                                                       | C12: solo `scrollLeft`; `scrollY` igual                                                                                                     |
 | 30  | «⅓» no está en las fuentes                                           | Acepta                     | Rangos de `@fontsource` (subconjunto latino): ⅓ no está en ninguna de las dos; ½ y × sí. Revisada la tabla entera: ⅓ es el único carácter sin cubrir                                                                                                                                                                                                | «Lluvia ×1/3»; regla en el §2                                                                                                               |
-| 31  | La tabla final no se puede aplicar tal cual                          | Acepta                     | 12 filas con instrucciones en vez de texto; `flow.locked` quedaba muerta; intros de 56–77 caracteres y dos frases                                                                                                                                                                                                                                   | §4: claves exactas; `flow.locked` como motivo; intros de una frase ≤ 45 (`final/correcciones.json`)                                         |
+| 31  | La tabla final no se puede aplicar tal cual                          | Acepta                     | 12 filas con instrucciones en vez de texto; `flow.locked` quedaba muerta; intros de 56–77 caracteres y dos frases                                                                                                                                                                                                                                   | §4: claves exactas; `flow.locked` como motivo; intros de una frase ≤ 45 (`textos-correcciones.json`)                                        |
 | 32  | Dejar los documentos para C14 va contra AGENTS.md                    | Acepta                     | `AGENTS.md:132–136`                                                                                                                                                                                                                                                                                                                                 | §8: documentos en cada commit; C14 solo STATUS y ROADMAP                                                                                    |

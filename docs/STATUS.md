@@ -151,7 +151,8 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
    comprobar en un teléfono que la partida se conserva: el origen sigue siendo `https://localhost`.
 3. **1.6.2, petición del usuario:** rediseño de la interfaz y los textos (textos más cortos con la
    ciencia plegada, Socios con el objetivo en cuatro pasos, el árbol de mutaciones a cuatro columnas
-   con ficha, un icono para los nutrientes).
+   con ficha, un icono para los nutrientes). El plan está aprobado: `docs/rediseno/plan.md` (manda
+   su caja de decisiones), con la tabla de textos, el icono y el boceto de Socios al lado.
 4. **Fase 11 — Game+ (v1.7.0), petición del usuario:** volver a los biomas en escalones más
    difíciles (game+1, +2…), con premios que el ciclo libre no da.
 5. **Fase 12 — Tiempo profundo (v1.8.0):** las eras geológicas.

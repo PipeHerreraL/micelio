@@ -1,0 +1,1029 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Socios rediseñado</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Source+Sans+3:wght@400;600;700&display=swap"
+    />
+    <style>
+      /* Boceto estático del rediseño de la pestaña Socios (plasmodio). Colores del juego (src/ui/styles.css). */
+      :root {
+        --humus: #261c15;
+        --humus-hondo: #1b140f;
+        --panel: #30241b;
+        --tierra: #4a3424;
+        --arcilla: #8c5a35;
+        --micelio: #efe6d2;
+        --micelio-tenue: #c9bca8;
+        --rebozuelo: #e8a93a;
+        --plasmodio: #f2d36b;
+        --filete: rgb(140 90 53 / 55%);
+        --ok: #b8efc4;
+        --font-title: 'IM Fell English', Georgia, serif;
+        --font-ui: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #120d0a;
+        color: var(--micelio);
+        font: 16px/1.4 var(--font-ui);
+      }
+      .page {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+      .page > h1 {
+        font: 400 28px var(--font-title);
+        margin: 0 0 4px;
+      }
+      .page > p.lead {
+        color: var(--micelio-tenue);
+        margin: 0 0 20px;
+        max-width: 70ch;
+      }
+      .phones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        align-items: flex-start;
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        font-size: 14px;
+        color: var(--micelio-tenue);
+        margin: 0 0 8px;
+        max-width: 375px;
+      }
+      figcaption b {
+        color: var(--micelio);
+      }
+
+      /* Teléfono a 375 px con el pliegue de 667 px marcado */
+      .phone {
+        position: relative;
+        width: 375px;
+        background: var(--humus);
+        border: 1px solid var(--tierra);
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .hud {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 12px 16px;
+        background: var(--humus-hondo);
+        border-bottom: 1px solid var(--filete);
+      }
+      .hud b {
+        font-size: 26px;
+      }
+      .hud span {
+        color: var(--micelio-tenue);
+      }
+      .fold {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 667px;
+        border-top: 2px dashed #e86a3a;
+        z-index: 4;
+        pointer-events: none;
+      }
+      .fold::after {
+        content: 'pliegue a 375 × 667';
+        position: absolute;
+        right: 8px;
+        top: 2px;
+        font-size: 11px;
+        color: #e86a3a;
+        background: #120d0a;
+        padding: 0 4px;
+      }
+      .tabbar {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0 10px;
+        border-top: 1px solid var(--filete);
+        background: var(--humus-hondo);
+        font-size: 13px;
+        color: var(--micelio-tenue);
+      }
+      .tabbar .on {
+        color: var(--micelio);
+        box-shadow: inset 0 3px 0 var(--rebozuelo);
+        padding-top: 4px;
+      }
+      .screen {
+        padding: 12px 16px 20px;
+      }
+
+      /* Cabecera del socio: una línea */
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 4px 8px;
+        flex-wrap: wrap;
+      }
+      .head .where.below {
+        order: 5;
+        flex-basis: 100%;
+        margin-top: -6px;
+      }
+      .head h3 {
+        font: 400 24px var(--font-title);
+        margin: 0;
+      }
+      .head .where {
+        color: var(--micelio-tenue);
+        font-size: 14px;
+        flex: 1;
+      }
+      .info {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid var(--filete);
+        background: none;
+        color: var(--micelio-tenue);
+        font: italic 18px var(--font-title);
+      }
+      .trail {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 700;
+        color: var(--rebozuelo);
+        font-size: 15px;
+      }
+      .trail small {
+        color: var(--micelio-tenue);
+        font-weight: 400;
+      }
+
+      /* Pasos: el objetivo dicho como tres pasos con estado en texto (no solo color) */
+      .steps {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+      }
+      .steps li {
+        border: 1px solid var(--filete);
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 14px;
+        line-height: 1.2;
+        min-height: 52px;
+      }
+      .steps li .n {
+        display: block;
+        font-size: 12px;
+        color: var(--micelio-tenue);
+      }
+      .steps li[aria-current] {
+        border-color: var(--rebozuelo);
+        box-shadow: inset 0 -3px 0 var(--rebozuelo);
+      }
+      .steps li.done {
+        opacity: 0.75;
+      }
+      .steps li.done .n::after {
+        content: ' · hecho';
+        color: var(--ok);
+      }
+      .steps li.todo .n::after {
+        content: ' · falta';
+      }
+      .steps li[aria-current] .n::after {
+        content: ' · ahora';
+        color: var(--rebozuelo);
+      }
+
+      /* Barra de herramientas: una fila (cabe la placa tocable a 375 × 667) */
+      .tools {
+        display: flex;
+        gap: 6px;
+        padding: 8px 0;
+        margin-top: 4px;
+        background: var(--humus);
+      }
+      .btn {
+        min-height: 44px;
+        padding: 0 14px;
+        border-radius: 6px;
+        border: 1px solid var(--arcilla);
+        background: var(--panel);
+        color: var(--micelio);
+        font: 600 16px var(--font-ui);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn[aria-pressed='true'] {
+        border-color: var(--rebozuelo);
+        box-shadow: inset 0 -3px 0 var(--rebozuelo);
+      }
+      .btn .count {
+        min-width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: var(--tierra);
+        font-size: 13px;
+        display: inline-grid;
+        place-items: center;
+      }
+      .btn.primary {
+        background: var(--rebozuelo);
+        color: #2a1d10;
+        border-color: var(--rebozuelo);
+        margin-left: auto;
+      }
+      .btn.quiet {
+        border-color: var(--filete);
+      }
+      .oat {
+        width: 16px;
+        height: 11px;
+        border-radius: 50%;
+        background: #efe2c4;
+        display: inline-block;
+      }
+
+      /* Placa */
+      .plate {
+        position: relative;
+        display: grid;
+        place-items: center;
+        background: #2a1f18;
+        border-radius: 8px;
+        padding: 6px 0;
+      }
+      .plate svg {
+        display: block;
+      }
+      .coach {
+        position: absolute;
+        z-index: 2;
+        background: var(--micelio);
+        color: #2a1d10;
+        font-weight: 600;
+        font-size: 15px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgb(0 0 0 / 45%);
+      }
+      .coach::after {
+        content: '';
+        position: absolute;
+        left: var(--arrow, 50%);
+        top: -8px;
+        margin-left: -8px;
+        border: 8px solid transparent;
+        border-top: 0;
+        border-bottom-color: var(--micelio);
+      }
+      .tag {
+        position: absolute;
+        z-index: 2;
+        font-size: 13px;
+        background: rgb(27 20 15 / 88%);
+        border: 1px solid var(--plasmodio);
+        color: var(--micelio);
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+      .legend {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin: 8px 0 0;
+        font-size: 14px;
+        color: var(--micelio-tenue);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .meter {
+        margin-top: 8px;
+      }
+      .meter p {
+        margin: 0 0 4px;
+        font-size: 15px;
+      }
+      .meter .bar {
+        position: relative;
+        height: 10px;
+        border-radius: 5px;
+        background: var(--tierra);
+      }
+      .meter .fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 5px;
+        background: var(--plasmodio);
+      }
+      .meter .goal {
+        position: absolute;
+        top: -4px;
+        bottom: -4px;
+        width: 2px;
+        background: var(--micelio);
+      }
+      .hint {
+        margin: 10px 0 0;
+        font-size: 15px;
+        color: var(--micelio-tenue);
+      }
+
+      section.s {
+        margin-top: 16px;
+        border-top: 1px solid var(--filete);
+        padding-top: 10px;
+      }
+      section.s h4 {
+        font: 400 20px var(--font-title);
+        margin: 0 0 4px;
+      }
+      .upg {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+      }
+      .upg div {
+        flex: 1;
+      }
+      .upg b {
+        display: block;
+      }
+      .upg small {
+        color: var(--micelio-tenue);
+        font-size: 14px;
+      }
+      details {
+        border-top: 1px solid var(--filete);
+        padding: 0;
+      }
+      summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      summary small {
+        color: var(--micelio-tenue);
+        margin-left: auto;
+      }
+
+      /* Hoja de llegada */
+      .scrim {
+        padding: 72px 16px 140px;
+        background: linear-gradient(rgb(18 13 10 / 70%), rgb(18 13 10 / 70%)), #3a2a1e;
+      }
+      .sheet {
+        background: #4a3626;
+        border: 1px solid var(--arcilla);
+        border-radius: 10px;
+        padding: 20px;
+      }
+      .sheet .kicker {
+        font: italic 16px var(--font-title);
+        color: var(--micelio-tenue);
+        margin: 0;
+      }
+      .sheet h2 {
+        font: 400 30px var(--font-title);
+        margin: 2px 0 10px;
+      }
+      .sheet p {
+        margin: 0 0 10px;
+        font-size: 17px;
+      }
+      .sheet p.em {
+        font: italic 19px/1.35 var(--font-title);
+      }
+      .sheet .row {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 14px;
+      }
+
+      /* Tabla de textos */
+      .texts {
+        margin-top: 36px;
+      }
+      .texts h2 {
+        font: 400 24px var(--font-title);
+        margin: 0 0 8px;
+      }
+      .texts .wrap {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        min-width: 760px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 6px 8px;
+        border-bottom: 1px solid var(--filete);
+      }
+      th {
+        color: var(--micelio-tenue);
+        font-weight: 600;
+      }
+      td code {
+        color: var(--rebozuelo);
+        font-size: 13px;
+      }
+      td.num {
+        white-space: nowrap;
+        color: var(--micelio-tenue);
+      }
+      @media (max-width: 420px) {
+        .phone {
+          width: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .pulse-ring {
+          animation: ring 1.6s ease-out infinite;
+          transform-origin: center;
+          transform-box: fill-box;
+        }
+        @keyframes ring {
+          from {
+            opacity: 1;
+            transform: scale(0.7);
+          }
+          to {
+            opacity: 0;
+            transform: scale(1.5);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Socios: el plasmodio, rediseñado</h1>
+      <p class="lead">
+        Boceto a 375 px. Una línea de objetivo, tres pasos con su estado en texto, una barra de herramientas
+        de una fila (así la placa del tutorial se puede tocar a 375 × 667) y la regla del plasmodio dibujada
+        en la placa. Lo avanzado aparece cuando hace falta.
+      </p>
+
+      <div class="phones">
+        <!-- A. Llegada -->
+        <figure>
+          <figcaption>
+            <b>A · Llegada.</b> 44 palabras de cuerpo (antes 96). Lo que harás va en el botón.
+          </figcaption>
+          <div class="phone" id="phone-a">
+            <div class="hud"><b>23 N</b><span>16,4 N/s</span></div>
+            <div class="scrim">
+              <div class="sheet" role="dialog" aria-labelledby="a-title">
+                <p class="kicker">Un socio</p>
+                <h2 id="a-title">Un vecino amarillo</h2>
+                <p>Parece un hongo, pero es un moho mucilaginoso: una sola célula con muchos núcleos.</p>
+                <p class="em">
+                  Sin cerebro, une la comida con redes que se han comparado con los trenes de Tokio.
+                </p>
+                <p>Dale avena y mira cómo la une. No le quita nada a tu red.</p>
+                <div class="row">
+                  <button class="btn quiet">Ahora no</button
+                  ><button class="btn primary" style="margin-left: 0">Darle avena</button>
+                </div>
+              </div>
+            </div>
+            <div class="fold"></div>
+            <nav class="tabbar">
+              <span>Generadores</span><span>Mejoras</span><span>Esporular</span><span>Mutaciones</span>
+            </nav>
+          </div>
+        </figure>
+
+        <!-- B. Primer toque -->
+        <figure>
+          <figcaption>
+            <b>B · Primer toque.</b> 31 palabras hasta el primer toque, con herramientas y aviso (antes 93, y
+            a 375 × 667 la placa no se podía tocar).
+          </figcaption>
+          <div class="phone" id="phone-b">
+            <div class="hud"><b>58,3 N</b><span>16,4 N/s</span></div>
+            <div class="screen">
+              <div class="head">
+                <h3>Plasmodio</h3>
+                <span class="where">Tronco caído · placa 1 de 5</span>
+                <button class="info" aria-label="Ficha del plasmodio">i</button>
+              </div>
+              <ol
+                class="steps"
+                aria-label="Objetivo: une 4 copos de avena con una red corta y con algún anillo, durante 1 min"
+              >
+                <li aria-current="step"><span class="n">1</span>Pon 4 copos <b>0/4</b></li>
+                <li class="todo"><span class="n">2</span>Red corta con anillo</li>
+                <li class="todo"><span class="n">3</span>Aguanta 1 min</li>
+              </ol>
+              <div class="tools" role="group" aria-label="Herramienta">
+                <button class="btn" aria-pressed="true" aria-label="Avena: te quedan 4 de 4">
+                  <span class="oat"></span>Avena <span class="count">4</span>
+                </button>
+                <button class="btn quiet" aria-pressed="false" aria-disabled="true">Quitar</button>
+              </div>
+              <div class="plate" id="plate-b"></div>
+              <details>
+                <summary>Placas <small>1 de 5</small></summary>
+              </details>
+              <details>
+                <summary>Logros del plasmodio <small>0 de 8</small></summary>
+              </details>
+            </div>
+            <div class="fold"></div>
+            <nav class="tabbar">
+              <span>Mutaciones</span><span>Crónica</span><span class="on">Socios</span><span>Logros</span>
+            </nav>
+          </div>
+        </figure>
+
+        <!-- C. La regla en la placa -->
+        <figure>
+          <figcaption>
+            <b>C · Con 4 copos.</b> La regla se ve en la placa; el Rastro y las Mejoras aparecen cuando ya hay
+            Rastro.
+          </figcaption>
+          <div class="phone" id="phone-c">
+            <div class="hud"><b>1,2 mil N</b><span>16,4 N/s</span></div>
+            <div class="screen">
+              <div class="head">
+                <h3>Plasmodio</h3>
+                <span class="where below">Tronco caído · placa 1 de 5</span><span style="flex: 1"></span>
+                <span class="trail" aria-label="Rastro: 64, más 0,6 por segundo">
+                  <svg width="18" height="14" viewBox="0 0 18 14" aria-hidden="true">
+                    <path
+                      d="M1 10c3-6 5 2 8-3s5-1 8-5"
+                      fill="none"
+                      stroke="#e8a93a"
+                      stroke-width="2.4"
+                      stroke-linecap="round"
+                    />
+                  </svg>
+                  64 <small>+0,6/s</small></span
+                >
+                <button class="info" aria-label="Ficha del plasmodio">i</button>
+              </div>
+              <ol
+                class="steps"
+                aria-label="Objetivo: une 4 copos de avena con una red corta y con algún anillo, durante 1 min"
+              >
+                <li class="done"><span class="n">1</span>Pon 4 copos <b>4/4</b></li>
+                <li aria-current="step"><span class="n">2</span>Red corta con anillo</li>
+                <li class="todo"><span class="n">3</span>Aguanta 1 min</li>
+              </ol>
+              <div class="meter" aria-label="Paso 2">
+                <p>Calidad <b>0,61</b> · meta 0,66</p>
+                <div class="bar" aria-hidden="true">
+                  <span class="fill" style="width: 61%"></span><span class="goal" style="left: 66%"></span>
+                </div>
+              </div>
+              <div class="tools" role="group" aria-label="Herramienta">
+                <button class="btn" aria-pressed="true" aria-label="Avena: te quedan 0 de 4">
+                  <span class="oat"></span>Avena <span class="count">0</span>
+                </button>
+                <button class="btn quiet" aria-pressed="false">Quitar</button>
+                <button class="btn primary" aria-describedby="pulse-d">Pulso</button>
+              </div>
+              <p id="pulse-d" hidden>Adelanta 3 pasos y da 3 s de Rastro. Uno cada 3 s.</p>
+              <div class="plate" id="plate-c"></div>
+              <div class="legend" aria-hidden="true">
+                <span
+                  ><svg width="30" height="10">
+                    <line
+                      x1="2"
+                      y1="5"
+                      x2="28"
+                      y2="5"
+                      stroke="#f2d36b"
+                      stroke-width="7"
+                      stroke-linecap="round"
+                    /></svg
+                  >Lleva comida: engorda</span
+                >
+                <span
+                  ><svg width="30" height="10">
+                    <line
+                      x1="2"
+                      y1="5"
+                      x2="28"
+                      y2="5"
+                      stroke="#f2d36b"
+                      stroke-opacity=".35"
+                      stroke-width="2"
+                      stroke-dasharray="3 3"
+                    /></svg
+                  >Vacío: se seca</span
+                >
+              </div>
+              <p class="hint">¿No mejora? Mueve un copo.</p>
+              <section class="s" aria-labelledby="c-upg">
+                <h4 id="c-upg">Mejoras</h4>
+                <div class="upg">
+                  <div><b>Agar nutritivo</b><small>Rastro ×1,5 por nivel</small></div>
+                  <button class="btn primary">Comprar · 50</button>
+                </div>
+                <div class="upg">
+                  <div><b>Avena</b><small>+1 copo por placa</small></div>
+                  <button class="btn quiet" aria-disabled="true">2000</button>
+                </div>
+              </section>
+              <details>
+                <summary>Con tu red <small>1 de 3 activa</small></summary>
+              </details>
+              <details>
+                <summary>Placas <small>1 de 5</small></summary>
+              </details>
+              <details>
+                <summary>Logros del plasmodio <small>1 de 8</small></summary>
+              </details>
+            </div>
+            <div class="fold"></div>
+            <nav class="tabbar">
+              <span>Mutaciones</span><span>Crónica</span><span class="on">Socios</span><span>Logros</span>
+            </nav>
+          </div>
+        </figure>
+      </div>
+
+      <div class="texts">
+        <h2>Textos nuevos (las mismas claves en es y en)</h2>
+        <div class="wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Clave</th>
+                <th>Palabras</th>
+                <th>Español</th>
+                <th>English</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>chapter.plasmodium.arrive.line1</code></td>
+                <td class="num">29 → 14</td>
+                <td>Parece un hongo, pero es un moho mucilaginoso: una sola célula con muchos núcleos.</td>
+                <td>It looks like a fungus, but it's a slime mold: a single cell with many nuclei.</td>
+              </tr>
+              <tr>
+                <td><code>…arrive.line2</code></td>
+                <td class="num">20 → 16</td>
+                <td>Sin cerebro, une la comida con redes que se han comparado con los trenes de Tokio.</td>
+                <td>
+                  Without a brain, it links food with networks that have been compared to Tokyo's railways.
+                </td>
+              </tr>
+              <tr>
+                <td><code>…arrive.line3</code> (y se borra <code>line4</code>)</td>
+                <td class="num">35 → 14</td>
+                <td>Dale avena y mira cómo la une. No le quita nada a tu red.</td>
+                <td>Give it oats and watch it link them. It takes nothing from your network.</td>
+              </tr>
+              <tr>
+                <td><code>chapter.toPlate</code></td>
+                <td class="num">3 → 2</td>
+                <td>Darle avena</td>
+                <td>Feed it</td>
+              </tr>
+              <tr>
+                <td><code>partners.intro</code> (solo con dos socios o más)</td>
+                <td class="num">29 → 10</td>
+                <td>Organismos vecinos. Lo que hagan no le quita nada a tu red.</td>
+                <td>Your neighbors. Nothing they do takes from your network.</td>
+              </tr>
+              <tr>
+                <td><code>hint.partners</code> (tras cumplir por primera vez)</td>
+                <td class="num">13 → 5</td>
+                <td>Sigue adaptándose aunque no mires.</td>
+                <td>It keeps adapting while you're away.</td>
+              </tr>
+              <tr>
+                <td><code>plateOf</code></td>
+                <td class="num">—</td>
+                <td>{name} · placa {n} de {total}</td>
+                <td>{name} · plate {n} of {total}</td>
+              </tr>
+              <tr>
+                <td><code>step.place</code> · <code>step.shape</code> · <code>step.hold</code> (nuevas)</td>
+                <td class="num">→ 3 · 4 · 2</td>
+                <td>Pon {count} copos · Red corta con anillo · Aguanta {time}</td>
+                <td>Place {count} flakes · Short net with a loop · Hold {time}</td>
+              </tr>
+              <tr>
+                <td><code>step.shape.maze</code> (nueva)</td>
+                <td class="num">→ 4</td>
+                <td>Un solo camino corto</td>
+                <td>One short path</td>
+              </tr>
+              <tr>
+                <td><code>step.done</code> · <code>step.now</code> · <code>step.todo</code> (nuevas)</td>
+                <td class="num">→ 1</td>
+                <td>hecho · ahora · falta</td>
+                <td>done · now · to do</td>
+              </tr>
+              <tr>
+                <td><code>coach.tap</code> (nueva; solo placa 1, hasta el primer copo)</td>
+                <td class="num">→ 6</td>
+                <td>Toca un círculo para poner avena.</td>
+                <td>Tap a circle to place oats.</td>
+              </tr>
+              <tr>
+                <td>
+                  <code>legend.thick</code> · <code>legend.thin</code> · <code>legend.loop</code> (nuevas)
+                </td>
+                <td class="num">→ 3 · 3 · 4</td>
+                <td>Lleva comida: engorda · Vacío: se seca · Anillo: aguanta un corte</td>
+                <td>Carries food: thickens · Empty: dries out · Loop: survives a cut</td>
+              </tr>
+              <tr>
+                <td><code>tool.food</code> · <code>pulse.button</code></td>
+                <td class="num">3 → 1 · 3 → 1</td>
+                <td>Avena · Pulso</td>
+                <td>Oats · Pulse</td>
+              </tr>
+              <tr>
+                <td><code>pulse.desc</code></td>
+                <td class="num">31 → 12</td>
+                <td>Adelanta {steps} pasos y da {time} de Rastro. Uno cada {cooldown}.</td>
+                <td>Runs {steps} steps and gives {time} of Trail. One every {cooldown}.</td>
+              </tr>
+              <tr>
+                <td><code>net.stalled</code></td>
+                <td class="num">25 → 5</td>
+                <td>¿No mejora? Mueve un copo.</td>
+                <td>Stuck? Move a flake.</td>
+              </tr>
+              <tr>
+                <td><code>goal.quality</code></td>
+                <td class="num">6 → 4</td>
+                <td>Calidad {value} · meta {target}</td>
+                <td>Quality {value} · target {target}</td>
+              </tr>
+              <tr>
+                <td><code>mapping</code> (paso 4, cuando 1–3 se cumplen)</td>
+                <td class="num">8 → 6</td>
+                <td>Rastro para cartografiar: {done} de {total}</td>
+                <td>Trail to map it: {done} of {total}</td>
+              </tr>
+              <tr>
+                <td><code>mapping.help</code></td>
+                <td class="num">27 → 11</td>
+                <td>Con la red cumpliendo, junta este Rastro y la placa fructifica.</td>
+                <td>Keep the network on target and gather this Trail: the plate fruits.</td>
+              </tr>
+              <tr>
+                <td><code>plate.respread.desc</code></td>
+                <td class="num">31 → 8</td>
+                <td>Vuelve a cubrir la placa. No pierdes nada.</td>
+                <td>Covers the plate again. You lose nothing.</td>
+              </tr>
+              <tr>
+                <td><code>pupg.agar.desc</code> (la ciencia, en ⓘ)</td>
+                <td class="num">13 → 4</td>
+                <td>Rastro ×1,5 por nivel</td>
+                <td>Trail ×1.5 per level</td>
+              </tr>
+              <tr>
+                <td><code>pupg.memory.desc</code> (la ciencia, en ⓘ)</td>
+                <td class="num">56 → 9</td>
+                <td>Los tubos vacíos se secan el doble de rápido.</td>
+                <td>Empty tubes dry out twice as fast.</td>
+              </tr>
+              <tr>
+                <td><code>plate.status.locked</code></td>
+                <td class="num">5 → 1</td>
+                <td>cerrada</td>
+                <td>locked</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // La placa del tutorial (src/data/plasmodium-plates.ts, «log»), girada como en el móvil:
+      // x' = filas − y, y' = x (plate-layout.ts). Celda de 74 px, la mínima de esa placa.
+      const X = [
+        0.705, 1.36, 2.492, 3.55, 4.496, 0.586, 1.499, 2.454, 3.492, 4.351, 0.548, 1.366, 2.32, 3.572, 4.596,
+        0.566, 1.306, 2.613, 3.366, 4.634,
+      ];
+      const Y = [
+        0.35, 0.479, 0.487, 0.577, 0.659, 1.533, 1.707, 1.391, 1.361, 1.411, 2.557, 2.294, 2.431, 2.631,
+        2.424, 3.563, 3.601, 3.375, 3.695, 3.338,
+      ];
+      const E = [
+        [6, 11],
+        [0, 1],
+        [15, 16],
+        [4, 9],
+        [3, 8],
+        [17, 18],
+        [10, 11],
+        [8, 9],
+        [2, 7],
+        [14, 19],
+        [5, 6],
+        [3, 4],
+        [11, 12],
+        [12, 17],
+        [6, 7],
+        [10, 15],
+        [5, 10],
+        [7, 8],
+        [9, 14],
+        [13, 14],
+        [7, 12],
+        [2, 3],
+        [13, 18],
+        [5, 11],
+        [6, 12],
+        [1, 2],
+        [3, 9],
+        [0, 5],
+        [13, 17],
+        [1, 6],
+        [12, 13],
+        [13, 19],
+        [10, 16],
+        [1, 5],
+        [11, 16],
+        [18, 19],
+        [16, 17],
+        [2, 8],
+        [8, 14],
+        [4, 14],
+        [0, 2],
+      ];
+      const CELL = 74,
+        ROWS = 4,
+        COLS = 5;
+      const px = (i) => [(ROWS - Y[i]) * CELL, X[i] * CELL];
+      const NS = 'http://www.w3.org/2000/svg';
+      function el(name, attrs) {
+        const n = document.createElementNS(NS, name);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        return n;
+      }
+
+      function drawPlate(host, { foods = [], strong = [], pulse = null }) {
+        const svg = el('svg', {
+          width: ROWS * CELL,
+          height: COLS * CELL,
+          viewBox: `0 0 ${ROWS * CELL} ${COLS * CELL}`,
+          'aria-hidden': 'true',
+        });
+        // Vetas de la madera
+        for (let i = 0; i < 7; i++)
+          svg.append(
+            el('path', {
+              d: `M${18 + i * 42} 0 q 10 90 -4 185 t 6 185`,
+              stroke: '#3a2c22',
+              'stroke-width': 2,
+              fill: 'none',
+            }),
+          );
+        const strongSet = new Set(strong.map(([a, b]) => `${Math.min(a, b)}-${Math.max(a, b)}`));
+        for (const [a, b] of E) {
+          const [x1, y1] = px(a),
+            [x2, y2] = px(b);
+          const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
+          const thick = strongSet.has(key);
+          const decided = strong.length > 0;
+          svg.append(
+            el('line', {
+              x1,
+              y1,
+              x2,
+              y2,
+              stroke: '#f2d36b',
+              'stroke-linecap': 'round',
+              'stroke-width': thick ? 8 : decided ? 2 : 5,
+              'stroke-opacity': thick ? 1 : decided ? 0.35 : 0.85,
+              'stroke-dasharray': !thick && decided ? '3 4' : 'none',
+            }),
+          );
+        }
+        for (let i = 0; i < X.length; i++) {
+          const [cx, cy] = px(i);
+          if (foods.includes(i)) {
+            svg.append(
+              el('ellipse', {
+                cx,
+                cy,
+                rx: 15,
+                ry: 10,
+                fill: '#efe2c4',
+                stroke: '#8c5a35',
+                'stroke-width': 1.5,
+              }),
+            );
+          } else {
+            svg.append(
+              el('circle', {
+                cx,
+                cy,
+                r: 13,
+                fill: 'rgb(38 28 21 / 70%)',
+                stroke: '#c9bca8',
+                'stroke-width': 1.5,
+                'stroke-dasharray': '4 3',
+              }),
+            );
+          }
+        }
+        if (pulse !== null) {
+          const [cx, cy] = px(pulse);
+          svg.append(el('circle', { cx, cy, r: 16, fill: 'none', stroke: '#e8a93a', 'stroke-width': 3 }));
+          svg.append(
+            el('circle', {
+              cx,
+              cy,
+              r: 16,
+              fill: 'none',
+              stroke: '#e8a93a',
+              'stroke-width': 3,
+              class: 'pulse-ring',
+            }),
+          );
+        }
+        host.append(svg);
+        return svg;
+      }
+
+      // B: la placa recién cubierta y el primer sitio señalado
+      const hostB = document.getElementById('plate-b');
+      drawPlate(hostB, { pulse: 12 });
+      const [bx, by] = px(12);
+      const coach = document.createElement('div');
+      coach.className = 'coach';
+      coach.setAttribute('role', 'status');
+      coach.textContent = 'Toca un círculo para poner avena.';
+      hostB.append(coach);
+      const offB = (hostB.clientWidth - ROWS * CELL) / 2;
+      const left = Math.max(8, offB + bx - 60);
+      coach.style.left = `${left}px`;
+      coach.style.top = `${by + 6 + 24}px`;
+      coach.style.setProperty('--arrow', `${offB + bx - left}px`);
+
+      // C: cuatro copos; los tubos que llevan comida engordan y los demás se secan; un anillo
+      const ring = [
+        [6, 7],
+        [7, 8],
+        [8, 14],
+        [13, 14],
+        [13, 18],
+        [17, 18],
+        [16, 17],
+        [11, 16],
+        [6, 11],
+        [7, 12],
+        [12, 13],
+      ];
+      const hostC = document.getElementById('plate-c');
+      drawPlate(hostC, { foods: [6, 8, 16, 18], strong: ring });
+      const offC = (hostC.clientWidth - ROWS * CELL) / 2;
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = 'Anillo: aguanta un corte';
+      const [tx, ty] = px(12);
+      tag.style.left = `${offC + tx - 70}px`;
+      tag.style.top = `${ty - 14}px`;
+      hostC.append(tag);
+    </script>
+  </body>
+</html>

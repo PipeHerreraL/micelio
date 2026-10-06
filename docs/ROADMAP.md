@@ -188,7 +188,9 @@ instalar otra vez el .apk.
 
 ### 1.6.2 — Rediseño de la interfaz y los textos (petición del usuario)
 
-Decidida el 2026-10-06, para después de la 1.6.1. Diseño por hacer; lo que pidió:
+Decidida el 2026-10-06, para después de la 1.6.1. El plan, aprobado por el usuario el mismo día,
+está en [`docs/rediseno/plan.md`](rediseno/plan.md) (manda su caja de decisiones; los textos, el icono
+y el boceto de Socios, en la misma carpeta). Lo que pidió:
 
 - Textos más cortos, con la ciencia plegada.
 - Socios con el objetivo en cuatro pasos.
