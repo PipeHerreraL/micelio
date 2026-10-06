@@ -8,7 +8,7 @@ Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 26 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 31 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -56,14 +56,25 @@ está en curso) y `state.records` guarda el mejor tiempo por bioma y votos.
   negros e Higróforos (ARCHITECTURE.md §4.33). Guardado versión 7, entero de una vez:
   `tests/fixtures/save-v7.json`, escrito por el build de la 1.6.0, debe cargar en todas las que
   vengan. El inglés de la interfaz y las noticias de los biomas llegan aparte: el JS inicial pesa
-  88,3 kB de 95.
+  88,5 kB de 95.
 - `npm run sim` cumple 126 de 126 objetivos (los 39 de antes, idénticos; 3 redefinidos; 40 de los
   tramos 3–4, 4 de El regreso, 2 del perfil ausente, 20 de la primera vuelta del ciclo, 9 del
   régimen estable, 2 de esporas y 7 de los votos) y 17 de 17 del plasmodio, repartido entre hilos
-  (unos 4 min en total). 932 pruebas unitarias y 329 de navegador en los cinco perfiles, también a
+  (unos 4 min en total). 940 pruebas unitarias y 369 de navegador en los cinco perfiles, también a
   375 × 667 y 412 × 915 y con el pseudoidioma; ~165 fps en la tundra, en El regreso y con las tres
-  cosméticas al máximo (en WebKit, 49–59, como el natal en ese motor). La revisión de capturas
-  encontró un fallo de la cartela en el móvil que venía de la 1.4.2 (BUG-JOURNAL #26).
+  cosméticas al máximo (en WebKit, 49–59, como el natal en ese motor). Las revisiones de los bloques
+  encontraron que la franja fija del móvil saltaba al cambiar el nombre de la cifra (BUG-JOURNAL
+  #25), un fallo de la cartela que venía de la 1.4.2 (#26) y que Viento mezclaba récords de votos
+  distintos (#27).
+- **Revisión final de la 1.6.0:** cuatro fallos más, arreglados. El simulador escondía una partida
+  de 1:04:24 en el Chocó del ciclo: ponía la partida de espera delante y mezclaba partidas distintas
+  en cada mediana (#28); con la medida buena, el Chocó se recalibró (5e14 y 5,5 R) y tres factores
+  de voto subieron. Un guardado editado con tantos ciclos cumplidos como empezados dejaba de
+  guardarse al cumplir (#29). En WebKit, el foco quedaba bajo lo fijo tras romper un voto o sembrar
+  (#30) y al llegar desde una lámina a otra pestaña (#31). La confirmación del viaje ya no dice que
+  no se puede volver a un bioma, y los documentos dicen lo que hace el código (la excepción de
+  despertar mutaciones a «todo sumidero crece ×2», las pruebas contra el servidor de desarrollo, el
+  plan aprobado de la 1.6.2).
 
 - **v1.5.0, instaladores para el móvil (petición del usuario):** el juego se instala como app
   desde el navegador (Android e iPhone), funciona sin conexión, y en Android hay además un .apk
@@ -186,9 +197,9 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del
   repo de que se lanza al cambiar de viaje, también al sembrar el mismo bioma
   (`tests/e2e/cycle.spec.ts`); lo demás sigue sin ella.
-- El JS inicial pesa 88,3 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
+- El JS inicial pesa 88,5 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
   dispersar) y, desde la fase 10, el inglés de la interfaz llegan aparte (el juego espera al inglés
-  antes de montarse si es el idioma elegido). El catálogo del inglés está en 17,1 kB de 18. Si hace
+  antes de montarse si es el idioma elegido). El catálogo del inglés está en 17,2 kB de 18. Si hace
   falta más sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al
   cerrar el Acto I (unos 1,5 kB). Las coordenadas de las placas del plasmodio ahorrarían otros
   1,5 kB, pero su paquete (19,2 kB de 20) pasaría de su tope.
