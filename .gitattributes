@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Los zips de tests/fixtures/ota/ se comparan byte a byte.
+*.zip binary

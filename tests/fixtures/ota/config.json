@@ -1,0 +1,10 @@
+{
+  "manifestUrl": "https://github.com/PipeHerreraL/micelio/releases/latest/download/micelio-web.json",
+  "urlPrefix": "https://github.com/PipeHerreraL/micelio/releases/download/",
+  "channel": "stable",
+  "checkIntervalSeconds": 3600,
+  "keys": {
+    "fb107a2a": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElENw8Gh19cynOtXr13oEMPNKxkfhcUWcdeAib7R1lsygAZkftYSHDZv8icItjuLCXtePb+gW190jXO3hjjAr/g==",
+    "a1169a83": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7+m4cWm56CMZVVt3lEfDGROVCVWQWHXKyyvl4FXIQhxRe50u76rlI6fU5eDX6xPyZp4HLL/Fh4JLe5AVHKiBZw=="
+  }
+}

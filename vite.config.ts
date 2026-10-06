@@ -22,8 +22,9 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       outDir: native ? 'dist-native' : 'dist',
       assetsInlineLimit: 0,
-      // scripts/budget.ts atribuye cada trozo a su paquete con el manifiesto (fase 9).
-      manifest: true,
+      // scripts/budget.ts atribuye cada trozo a su paquete con el manifiesto (fase 9), y solo mira
+      // la web. En la app sobraría: `cap sync` lo copiaba a assets/public/.vite/ (v1.6.1).
+      manifest: !native,
     },
     test: {
       include: ['tests/**/*.test.ts'],
