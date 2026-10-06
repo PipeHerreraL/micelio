@@ -119,6 +119,15 @@ jobs:
             echo "::error::El .apk no es $PACKAGE $NAME."
             exit 1
           fi
+          # El paquete web del .apk dice su versión y el nivel nativo de este árbol: la app los lee al
+          # arrancar para elegir entre él y uno descargado (ARCHITECTURE.md §4.34).
+          BUNDLE=$(unzip -p "$APK" assets/public/micelio-bundle.json)
+          WANT=$(node -p "JSON.stringify({ version: '$VERSION', minNative: require('./android/native.json').level })")
+          if [ "$BUNDLE" != "$WANT" ]; then
+            echo "::error::El micelio-bundle.json del .apk dice «$BUNDLE» y no «$WANT»."
+            exit 1
+          fi
+          echo "micelio-bundle.json: $BUNDLE"
           if [ -n "$TAG" ]; then
             if [ "v$VERSION" != "$TAG" ]; then
               echo "::error::La release $TAG no coincide con la versión $VERSION de package.json."

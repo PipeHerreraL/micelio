@@ -1,5 +1,8 @@
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+import { nativeBundlePlugin } from './scripts/native-bundle.ts';
+import { readNativeInfo } from './scripts/native-fingerprint.ts';
 import { serviceWorkerPlugin } from './scripts/service-worker.ts';
 
 // Dos builds (ARCHITECTURE.md §4.31):
@@ -7,9 +10,11 @@ import { serviceWorkerPlugin } from './scripts/service-worker.ts';
 //   (https://<usuario>.github.io/micelio/; con dominio propio sería '/'), con el service worker
 //   que deja jugar sin conexión;
 // - `--mode native`, para la app de Android (Capacitor): rutas relativas, porque la app sirve los
-//   archivos desde su propia raíz, y sin service worker, porque ya están en el teléfono.
+//   archivos desde su propia raíz, y sin service worker, porque ya están en el teléfono. Lleva
+//   micelio-bundle.json, con la versión y el nivel nativo que pide a la app (§4.34).
 export default defineConfig(({ mode }) => {
   const native = mode === 'native';
+  const root = fileURLToPath(new URL('.', import.meta.url));
   const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
     version: string;
   };
@@ -17,7 +22,9 @@ export default defineConfig(({ mode }) => {
     base: native ? './' : '/micelio/',
     // La versión del juego viaja en cada guardado (src/version.ts, systems/save.ts).
     define: { __GAME_VERSION__: JSON.stringify(pkg.version) },
-    plugins: native ? [] : [serviceWorkerPlugin('public')],
+    plugins: native
+      ? [nativeBundlePlugin(pkg.version, readNativeInfo(root).level)]
+      : [serviceWorkerPlugin('public')],
     build: {
       target: 'es2022',
       outDir: native ? 'dist-native' : 'dist',

@@ -15,6 +15,15 @@ if (micelioParts[1] > 99 || micelioParts[2] > 99) {
 }
 def micelioVersionCode = micelioParts[0] * 10000 + micelioParts[1] * 100 + micelioParts[2]
 
+// El nivel de la parte nativa (ARCHITECTURE.md §4.34), el mismo que el build de la app escribe como
+// minNative en micelio-bundle.json: la app no usa un paquete descargado que pida un nivel mayor que
+// el suyo. Si cambia la parte nativa, tests/native-surface.test.ts obliga a decidir si se sube.
+def micelioNativeJson = file('../native.json')
+def micelioNativeLevel = new groovy.json.JsonSlurper().parse(micelioNativeJson).level
+if (!(micelioNativeLevel instanceof Integer) || micelioNativeLevel < 1) {
+    throw new GradleException("El level de android/native.json (${micelioNativeLevel}) no es un entero desde 1.")
+}
+
 // Firma de las versiones publicadas: el almacén de claves y su contraseña llegan por variables
 // de entorno (.github/workflows/android.yml, desde los secretos del repositorio). Siempre la misma
 // clave: con otra, Android trataría la actualización como otra app y no la dejaría instalar encima
@@ -30,12 +39,17 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode micelioVersionCode
         versionName micelioVersion
+        buildConfigField 'int', 'NATIVE_LEVEL', String.valueOf(micelioNativeLevel)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+    }
+    // BuildConfig, para NATIVE_LEVEL: desde el Android Gradle Plugin 8 no se genera si no se pide.
+    buildFeatures {
+        buildConfig = true
     }
     signingConfigs {
         if (micelioKeystore) {
@@ -69,6 +83,8 @@ android {
         unitTests.all { test ->
             test.systemProperty 'micelio.otaFixtures', otaFixtures.absolutePath
             test.inputs.dir(otaFixtures)
+            test.systemProperty 'micelio.nativeJson', micelioNativeJson.absolutePath
+            test.inputs.file(micelioNativeJson)
         }
     }
     // Una API más nueva que minSdkVersion (24) deja la app sin abrir en Android 7: java.util.Base64 y

@@ -1004,10 +1004,12 @@ rama cumple una parte.
   mientras `package.json` diga 1.6.0, que sale idéntico byte a byte al del commit del arreglo de #32
   (`scripts/dist-compare.ts`).
 - **El nivel nativo** (`android/native.json`: `level` y una huella de los archivos nativos que sigue
-  git, leídos con los finales de línea en LF): Gradle lo pone en `BuildConfig.NATIVE_LEVEL` y Vite,
-  en el `minNative` de `micelio-bundle.json`. Si la huella cambia, `tests/native-surface.test.ts`
-  falla y obliga a decidir si la web nueva necesita el cambio (sube `level`) o no; no decide sola.
-  La 1.6.1 tiene el nivel 1.
+  git, o seguiría en el siguiente commit, leídos del árbol de trabajo con los finales de línea en
+  LF, y de las versiones de `@capacitor/*` del lock): Gradle lo pone en `BuildConfig.NATIVE_LEVEL`
+  y Vite, en el `minNative` de `micelio-bundle.json`. Si la huella cambia,
+  `tests/native-surface.test.ts` falla y obliga a decidir si la web nueva necesita el cambio (sube
+  `level`) o no; no decide sola: `node scripts/native-fingerprint.ts` solo reescribe la huella. La
+  1.6.1 tiene el nivel 1.
 - **Se firma en el PC del dueño.** `android.yml` adjunta a la release el .apk, el zip y el borrador
   del payload. `scripts/ota-sign.ps1` comprueba con `git ls-remote` que la etiqueta remota es la
   local, enseña los cambios desde la última versión firmada, compila desde la etiqueta **local**
@@ -1181,8 +1183,8 @@ src/i18n/      catálogos (es.ts base; en.ts, news/, news/biomes/ y partners/ ll
 src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su modelo y su vista
 src/native/    solo en la app de Android (1.6.1): el lado JS de las actualizaciones
 scripts/       simuladores de balance (red, repartida entre hilos, y plasmodio), presupuesto de JS,
-               procedencia de placas, guardados reales de la 1.5 y, desde la 1.6.1, el paquete
-               y la firma de las actualizaciones de la app
+               procedencia de placas, guardados reales de la 1.5 y, desde la 1.6.1, el paquete,
+               la firma y el nivel nativo de las actualizaciones de la app
 tests/         pruebas de Vitest; tests/e2e/, de Playwright; tests/fixtures/, guardados reales
 docs/          STATUS, BUG-JOURNAL, BALANCE, ROADMAP y rediseno/ (el plan aprobado de la 1.6.2)
 ```
