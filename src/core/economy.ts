@@ -10,7 +10,7 @@ import { bulkCost, maxAffordable, nextMilestone } from './formulas.ts';
 import * as num from './num.ts';
 import type { Num } from './num.ts';
 import { computeDerived, derived } from './selectors.ts';
-import { hasMutation, hasUpgrade, type BuyAmount, type GameState } from './state.ts';
+import { hasMutation, hasUpgrade, ownsMutation, type BuyAmount, type GameState } from './state.ts';
 
 /** Suma nutrientes a los cuatro totales: actuales, de la partida, del bosque y de la vida. */
 export function gain(state: GameState, amount: Num): void {
@@ -29,6 +29,16 @@ export function spend(state: GameState, amount: Num): boolean {
   if (num.lt(state.nutrients, amount)) return false;
   state.nutrients = num.max(num.ZERO, num.sub(state.nutrients, amount));
   return true;
+}
+
+/**
+ * Lo desbloquea una mutación comprada que duerme (el voto «sin mutaciones», fase 10). No es lo mismo
+ * que bloqueado: la fila sigue a la vista con su motivo, y no desaparece la Red planetaria que ya se
+ * conocía.
+ */
+export function isGeneratorAsleep(state: GameState, def: GeneratorDef): boolean {
+  const unlock = def.unlock;
+  return unlock.kind === 'mutation' && ownsMutation(state, unlock.id) && !hasMutation(state, unlock.id);
 }
 
 export function isGeneratorUnlocked(state: GameState, def: GeneratorDef): boolean {

@@ -58,6 +58,7 @@ import { toSeed } from './core/rng.ts';
 import { createNetworkView, type NetworkView } from './render/network.ts';
 import { createStore, type Store } from './ui/store.ts';
 import { biomeAdaptationName, biomeName } from './ui/biome-text.ts';
+import { vowInline } from './ui/wind.ts';
 import { openChapter, pendingChapter, type ChapterNav } from './ui/chapter.ts';
 import { isModalOpen, onModalClosed } from './ui/modal.ts';
 import type { DestinationId } from './data/biomes.ts';
@@ -712,6 +713,8 @@ const EVENT_SOUND: Partial<Record<GameEvent['type'], SoundCue>> = {
   // ciclo también: sin síntesis nueva.
   returned: 'chord',
   cycleDone: 'chord',
+  // Despertar suena como comprar una mutación; romper un voto no suena: no es un logro.
+  mutationWoken: 'chime',
   disperse: 'wind',
   rainSpawn: 'drip',
   sporulate: 'spore',
@@ -835,6 +838,18 @@ function handleEvent(event: GameEvent): void {
       const params = { name: biomeName(event.biome), time: formatDuration(event.time / 1000, locale) };
       const message = event.record ? t('cycle.record', params) : t('cycle.done', params);
       toast(message, { kind: 'spore' });
+      announce(message);
+      break;
+    }
+    case 'vowRenounced': {
+      const message = t('cycle.broken', { name: vowInline(event.vow) });
+      toast(message, { kind: 'spore' });
+      announce(message);
+      break;
+    }
+    case 'mutationWoken': {
+      const message = t('cycle.woken', { name: t(`mut.${event.id}.name` as MessageKey) });
+      toast(message, { kind: 'spore', duration: 3000 });
       announce(message);
       break;
     }

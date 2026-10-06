@@ -1,15 +1,17 @@
 /**
  * Pestaña Mejoras: solo las disponibles, ordenadas por coste, con el efecto exacto y cuánto
- * subirá la producción («+12,4 N/s») a la vista y en el tooltip (PROMPT.md §8).
+ * subirá la producción («+12,4 N/s») a la vista y en el tooltip (PROMPT.md §8). Con el voto «solo
+ * autocompra» (fase 10) no se compran a mano: la red lo hace sola, y la lista lo dice.
  */
 import { buyUpgrade, setAutobuyUpgrades } from '../core/actions.ts';
 import { availableUpgrades, hasAutobuyUpgrades, previewUpgrade, secondsUntil } from '../core/economy.ts';
+import { vowActive } from '../core/forest.ts';
 import * as num from '../core/num.ts';
 import { hasUpgrade, type GameState } from '../core/state.ts';
 import type { UpgradeDef } from '../data/upgrades.ts';
 import { formatDuration, formatPercent } from '../i18n/format.ts';
 import { fmt, getLocale, numberDetails, t, type MessageKey } from '../i18n/index.ts';
-import { Disposer, h, setAttr, setHidden, setText, toggleClass } from './dom.ts';
+import { Disposer, h, setAttr, setDescribedBy, setHidden, setText, toggleClass } from './dom.ts';
 import { createHint } from './hint.ts';
 import { generatorIcon, uiIcon } from './icons.ts';
 import type { Store } from './store.ts';
@@ -18,6 +20,8 @@ import { attachTooltip } from './tooltip.ts';
 import { biomeText } from './biome-text.ts';
 
 const nameKey = (id: string): MessageKey => `upg.${id}.name` as MessageKey;
+/** El motivo de «solo autocompra», uno para todas las tarjetas. */
+const VOW_LOCKED_ID = 'upg-vow-locked';
 const flavorKey = (id: string): MessageKey => `upg.${id}.flavor` as MessageKey;
 
 /** Cuánto se queda a la vista una mejora recién comprada, como «Comprada», antes de plegarse. */
@@ -99,7 +103,14 @@ export function createUpgradesTab(store: Store): TabView {
     attrs: { type: 'button', 'aria-pressed': 'false', hidden: true },
   });
   disposer.listen(autobuy, 'click', () => {
+    if (autobuy.getAttribute('aria-disabled') === 'true') return;
     store.dispatch(setAutobuyUpgrades, { on: !store.state.autobuy.upgrades });
+  });
+  const vowLocked = h('p', {
+    class: 'gen__vow',
+    id: VOW_LOCKED_ID,
+    text: t('gen.vowLocked'),
+    attrs: { hidden: true },
   });
   const root = h('div', { class: 'tab tab--upgrades' }, [
     h('div', { class: 'tab__toolbar' }, [
@@ -107,6 +118,7 @@ export function createUpgradesTab(store: Store): TabView {
       autobuy,
     ]),
     hint.root,
+    vowLocked,
     empty,
     list,
   ]);
@@ -313,7 +325,12 @@ export function createUpgradesTab(store: Store): TabView {
     const listed = defs.length > 0 || list.childElementCount > 0;
     setHidden(empty, listed);
     setHidden(autobuy, !hasAutobuyUpgrades(state));
-    setAttr(autobuy, 'aria-pressed', state.autobuy.upgrades ? 'true' : 'false');
+    // Con «solo autocompra» la autocompra de mejoras rige encendida y no se toca.
+    const vowLock = vowActive(state, 'autoOnly');
+    setHidden(vowLocked, !vowLock);
+    setAttr(autobuy, 'aria-pressed', vowLock || state.autobuy.upgrades ? 'true' : 'false');
+    setAttr(autobuy, 'aria-disabled', vowLock ? 'true' : null);
+    setAttr(autobuy, 'aria-describedby', vowLock ? VOW_LOCKED_ID : null);
     hint.update(listed);
     for (const card of cards) {
       const affordable = num.gte(state.nutrients, card.def.cost);
@@ -330,8 +347,10 @@ export function createUpgradesTab(store: Store): TabView {
             : t('gen.waitNoIncome'),
         );
       }
-      setAttr(card.button, 'aria-disabled', affordable ? 'false' : 'true');
-      toggleClass(card.button, 'is-affordable', affordable);
+      const buyable = affordable && !vowLock;
+      setAttr(card.button, 'aria-disabled', buyable ? 'false' : 'true');
+      toggleClass(card.button, 'is-affordable', buyable);
+      setDescribedBy(card.button, [VOW_LOCKED_ID], vowLock ? [VOW_LOCKED_ID] : []);
     }
     for (const card of fresh) expand(card.item);
   }

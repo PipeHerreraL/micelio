@@ -1,6 +1,8 @@
 /**
  * Pestaña Generadores: selector de cantidad, autocompra y una fila por generador con
- * icono, cantidad, producción, porcentaje del total, barra al siguiente hito y compra.
+ * icono, cantidad, producción, porcentaje del total, barra al siguiente hito y compra. Con los
+ * votos del ciclo libre (fase 10), «solo autocompra» bloquea la compra y los interruptores (la red
+ * compra sola) y «sin mutaciones» deja dormida la fila de un generador que desbloquea una mutación.
  */
 import {
   buyGenerator,
@@ -12,12 +14,14 @@ import {
 } from '../core/actions.ts';
 import {
   hasAutobuyGenerators,
+  isGeneratorAsleep,
   isGeneratorUnlocked,
   previewGenerator,
   quoteGenerator,
   secondsUntil,
   type PurchaseCandidate,
 } from '../core/economy.ts';
+import { vowActive } from '../core/forest.ts';
 import { nextMilestone, previousMilestone } from '../core/formulas.ts';
 import * as num from '../core/num.ts';
 import { derived } from '../core/selectors.ts';
@@ -44,7 +48,7 @@ import {
   type MessageKey,
   type PluralKey,
 } from '../i18n/index.ts';
-import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
+import { Disposer, h, setAttr, setDescribedBy, setHidden, setProgress, setText, toggleClass } from './dom.ts';
 import { generatorIcon } from './icons.ts';
 import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
@@ -73,10 +77,19 @@ function candidateName(candidate: PurchaseCandidate): string {
     : t(`upg.${candidate.id}.name` as MessageKey);
 }
 
-/** Estado de revelación de un generador. Una vez revelado, no vuelve a ocultarse. */
+/** Ids de los motivos que citan los botones: uno para toda la lista, no uno por fila. */
+const VOW_LOCKED_ID = 'gen-vow-locked';
+const AUTOBUY_VOW_ID = 'autobuy-vow-locked';
+const NO_PAYBACK_ID = 'autobuy-vow-nopayback';
+
+/**
+ * Estado de revelación de un generador. Una vez revelado, no vuelve a ocultarse. Bloqueado no es lo
+ * mismo que dormido: el generador de una mutación dormida («sin mutaciones») conserva su estado,
+ * con su motivo, en lugar de desaparecer de la lista a mitad de ciclo.
+ */
 export function revealState(state: GameState, id: GeneratorId): RowState {
   const def = getGenerator(id);
-  if (!isGeneratorUnlocked(state, def)) return 'hidden';
+  if (!isGeneratorUnlocked(state, def) && !isGeneratorAsleep(state, def)) return 'hidden';
   if (state.owned[id] > 0 || hasSeen(state, `gen.${id}.full`)) return 'full';
   const cost = quoteGenerator(state, id, 1).cost;
   if (num.gte(state.nutrients, cost)) return 'full';
@@ -103,6 +116,8 @@ interface Row {
   auto: HTMLButtonElement;
   info: HTMLButtonElement;
   hint: HTMLElement;
+  /** Por qué no se compra: la mutación que lo desbloquea duerme. */
+  asleep: HTMLElement;
   shown: RowState | null;
 }
 
@@ -162,26 +177,50 @@ export function createGeneratorsTab(store: Store): TabView {
       attrs: { type: 'button', 'aria-pressed': 'false' },
     });
     disposer.listen(button, 'click', () => {
+      if (button.getAttribute('aria-disabled') === 'true') return;
       store.dispatch(setAutobuyMode, { mode });
     });
     modeButtons.set(mode, button);
     modeGroup.append(button);
   }
   const paybackStatus = h('p', { class: 'autobuy__saving tabular', attrs: { hidden: true } });
+  // Con «solo autocompra» (fase 10) la Poda no rige: el modo queda bloqueado y lo dice.
+  const noPayback = h('p', {
+    class: 'autobuy__vow',
+    id: NO_PAYBACK_ID,
+    text: t('autobuy.vowNoPayback'),
+    attrs: { hidden: true },
+  });
   const modeBox = h('div', { class: 'autobuy__mode', attrs: { hidden: true } }, [
     modeGroup,
     h('p', { class: 'autobuy__desc', id: 'autobuy-payback-desc', text: t('autobuy.payback.desc') }),
+    noPayback,
     paybackStatus,
   ]);
   /** Segundo de juego del último «Ahorrando para»: se recalcula como mucho una vez por segundo. */
   let paybackShownAt = Number.NaN;
 
+  // «Solo autocompra»: los interruptores rigen todos encendidos, y no se tocan.
+  const autobuyVow = h('p', {
+    class: 'autobuy__vow',
+    id: AUTOBUY_VOW_ID,
+    text: t('autobuy.vowLocked'),
+    attrs: { hidden: true },
+  });
   const autobuyBar = h('div', { class: 'autobuy', attrs: { hidden: true } }, [
     h('h3', { class: 'autobuy__title', text: t('autobuy.title') }),
+    autobuyVow,
     thresholdText,
     thresholdGroup,
     modeBox,
   ]);
+  // Un motivo para todos los botones de compra con «solo autocompra», sobre la lista.
+  const vowLocked = h('p', {
+    class: 'gen__vow',
+    id: VOW_LOCKED_ID,
+    text: t('gen.vowLocked'),
+    attrs: { hidden: true },
+  });
 
   const list = h('ul', { class: 'gen-list' });
   const intro = createHint(store, 'hint.generators', t('hint.generators'));
@@ -200,6 +239,7 @@ export function createGeneratorsTab(store: Store): TabView {
     prairieHint.root,
     autobuyHint.root,
     autobuyBar,
+    vowLocked,
     list,
   ]);
 
@@ -219,6 +259,14 @@ export function createGeneratorsTab(store: Store): TabView {
       milestoneLabel,
     ]);
     const hint = h('p', { class: 'gen__hint', text: t('gen.hidden.hint') });
+    const unlock = def.unlock;
+    const asleep = h('p', {
+      class: 'gen__asleep',
+      id: `gen-${id}-asleep`,
+      text:
+        unlock.kind === 'mutation' ? t('gen.asleep', { name: t(`mut.${unlock.id}.name` as MessageKey) }) : '',
+      attrs: { hidden: true },
+    });
     const buyLabel = h('span', { class: 'buy__label' });
     const buyCost = h('span', { class: 'buy__cost tabular' });
     const buyWait = h('span', { class: 'buy__wait tabular' });
@@ -244,6 +292,7 @@ export function createGeneratorsTab(store: Store): TabView {
         stats,
         milestone,
         hint,
+        asleep,
       ]),
       h('div', { class: 'gen__actions' }, [buy, auto]),
     ]);
@@ -253,6 +302,7 @@ export function createGeneratorsTab(store: Store): TabView {
       store.dispatch(buyGenerator, { id, amount: store.state.settings.buyAmount });
     });
     disposer.listen(auto, 'click', () => {
+      if (auto.getAttribute('aria-disabled') === 'true') return;
       store.dispatch(setAutobuyGenerator, { id, on: !store.state.autobuy.generators[id] });
     });
     attachTooltip(
@@ -304,6 +354,7 @@ export function createGeneratorsTab(store: Store): TabView {
       auto,
       info,
       hint,
+      asleep,
       shown: null,
     };
   });
@@ -378,8 +429,18 @@ export function createGeneratorsTab(store: Store): TabView {
     // {count} va agrupado con Intl («1.000»); la forma plural se elige con el número crudo.
     setText(row.buyLabel, t('gen.buy', { count: formatCount(count), unit: tp(unitKey(id), count) }));
     setText(row.buyCost, t('gen.cost', { value: fmt(quote.cost) }));
-    setAttr(row.buy, 'aria-disabled', quote.affordable ? 'false' : 'true');
-    toggleClass(row.buy, 'is-unaffordable', !quote.affordable);
+    // Votos (fase 10): la mutación que lo desbloquea duerme, o la red compra sola.
+    const asleep = isGeneratorAsleep(state, getGenerator(id));
+    const vowLock = vowActive(state, 'autoOnly');
+    setHidden(row.asleep, !asleep);
+    const blocked = !quote.affordable || asleep || vowLock;
+    setAttr(row.buy, 'aria-disabled', blocked ? 'true' : 'false');
+    toggleClass(row.buy, 'is-unaffordable', blocked);
+    setDescribedBy(
+      row.buy,
+      [row.asleep.id, VOW_LOCKED_ID],
+      asleep ? [row.asleep.id] : vowLock ? [VOW_LOCKED_ID] : [],
+    );
     if (quote.affordable) {
       setText(row.buyWait, '');
     } else {
@@ -393,10 +454,14 @@ export function createGeneratorsTab(store: Store): TabView {
     }
 
     const autobuy = hasAutobuyGenerators(state);
-    setHidden(row.auto, !autobuy);
+    setHidden(row.auto, !autobuy || asleep);
     if (autobuy) {
-      const on = state.autobuy.generators[id];
+      // Con «solo autocompra» rigen todos encendidos, se elija lo que se elija: se ven encendidos y
+      // bloqueados, y lo guardado vuelve al romper el voto o cumplir el ciclo.
+      const on = vowLock || state.autobuy.generators[id];
       setAttr(row.auto, 'aria-pressed', on ? 'true' : 'false');
+      setAttr(row.auto, 'aria-disabled', vowLock ? 'true' : null);
+      setAttr(row.auto, 'aria-describedby', vowLock ? AUTOBUY_VOW_ID : null);
     }
   }
 
@@ -404,14 +469,23 @@ export function createGeneratorsTab(store: Store): TabView {
     const perk = partnerPerks(state).autobuyByPayback;
     // Sin la ventaja, un modo «payback» guardado se comporta como el umbral: se ve el umbral.
     const payback = isPaybackActive(state);
+    const vowLock = vowActive(state, 'autoOnly');
     setHidden(modeBox, !perk);
+    setHidden(autobuyVow, !vowLock);
+    setHidden(noPayback, !vowLock);
     // En modo amortización el umbral no se aplica: su texto y su grupo se ocultan.
     setHidden(thresholdText, payback);
     setHidden(thresholdGroup, payback);
     setHidden(paybackStatus, !payback);
     if (perk) {
       for (const [mode, button] of modeButtons) {
-        setAttr(button, 'aria-pressed', state.autobuy.mode === mode ? 'true' : 'false');
+        // Con el voto rige el umbral aunque se guardara la Poda: se ve el que rige, y la Poda,
+        // bloqueada con su motivo. El modo guardado vuelve al romper el voto o cumplir el ciclo.
+        const shown = vowLock ? 'threshold' : state.autobuy.mode;
+        setAttr(button, 'aria-pressed', shown === mode ? 'true' : 'false');
+        const locked = vowLock && mode === 'payback';
+        setAttr(button, 'aria-disabled', locked ? 'true' : null);
+        setAttr(button, 'aria-describedby', locked ? NO_PAYBACK_ID : null);
       }
     }
     if (payback) {
@@ -452,6 +526,7 @@ export function createGeneratorsTab(store: Store): TabView {
     const autobuy = hasAutobuyGenerators(state);
     setHidden(autobuyBar, !autobuy);
     if (autobuy) updateAutobuy(state);
+    setHidden(vowLocked, !vowActive(state, 'autoOnly'));
     intro.update(
       GENERATORS.some((g) => revealState(state, g.id) === 'full') &&
         GENERATORS.every((g) => state.owned[g.id] === 0),

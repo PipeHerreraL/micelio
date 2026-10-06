@@ -1,12 +1,21 @@
 /**
  * Pestaña Mutaciones (PROMPT.md §10): el árbol dibujado con sus conexiones. Los nodos
  * bloqueados se ven en silueta, con su requisito. Las conexiones se calculan a partir de la
- * posición real de los nodos, así que el árbol sigue bien dibujado al cambiar el ancho.
+ * posición real de los nodos, así que el árbol sigue bien dibujado al cambiar el ancho. Con el voto
+ * «sin mutaciones» (fase 10) las compradas duermen: el mismo nodo las despierta con las esporas del
+ * ciclo, y el árbol dice cuántas quedan.
  */
-import { buyMutation, isMutationAvailable } from '../core/actions.ts';
-import { ownsMutation } from '../core/state.ts';
+import {
+  buyMutation,
+  isMutationAsleep,
+  isMutationAvailable,
+  isMutationWakeable,
+  wakeBudget,
+  wakeMutation,
+} from '../core/actions.ts';
+import { hasMutation, ownsMutation } from '../core/state.ts';
 import { MUTATIONS, getMutation, type MutationDef, type MutationId } from '../data/mutations.ts';
-import { getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
+import { formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { Disposer, h, setAttr, setHidden, setText, svg, toggleClass } from './dom.ts';
 import { createAdaptations } from './adaptations.ts';
 import { createHint } from './hint.ts';
@@ -17,7 +26,8 @@ import { attachTooltip } from './tooltip.ts';
 const nameOf = (id: MutationId): string => t(`mut.${id}.name` as MessageKey);
 const descOf = (id: MutationId): string => t(`mut.${id}.desc` as MessageKey);
 
-type NodeState = 'owned' | 'available' | 'locked';
+/** 'asleep': comprada y dormida, se puede despertar; 'drowsy': dormida con algún requisito dormido. */
+type NodeState = 'owned' | 'available' | 'locked' | 'asleep' | 'drowsy';
 
 interface TreeNode {
   def: MutationDef;
@@ -29,6 +39,8 @@ interface TreeNode {
   parts: { desc: string; cost: string; requires: string };
   /** Estado con el que se escribieron el nombre y la descripción accesibles. */
   shown: NodeState | null;
+  /** Estado y requisitos dormidos con que se escribió el requisito visible. */
+  needKey: string;
 }
 
 function requirementText(def: MutationDef): string {
@@ -36,9 +48,17 @@ function requirementText(def: MutationDef): string {
   return t('mut.requires', { names: list.format(def.requires.map(nameOf)) });
 }
 
+/** Los requisitos que aún duermen, que hay que despertar antes. */
+function wakeNeedText(def: MutationDef, asleep: (id: MutationId) => boolean): string {
+  const list = new Intl.ListFormat(getLocale(), { style: 'long', type: 'conjunction' });
+  return t('mut.wakeNeed', { names: list.format(def.requires.filter(asleep).map(nameOf)) });
+}
+
 export function createMutationsTab(store: Store): TabView {
   const disposer = new Disposer();
   const available = h('p', { class: 'mut__available tabular' });
+  // Con «sin mutaciones»: lo que el ciclo deja para despertar (el nivel menos lo despertado).
+  const budget = h('p', { class: 'mut__budget tabular', attrs: { hidden: true } });
   const lines = svg('svg', { class: 'mut-tree__lines', 'aria-hidden': 'true', focusable: 'false' });
   const tree = h('div', { class: 'mut-tree' });
   tree.append(lines);
@@ -51,6 +71,7 @@ export function createMutationsTab(store: Store): TabView {
     ]),
     hint.root,
     h('p', { class: 'tab__intro', text: t('mutations.intro') }),
+    budget,
     h('div', { class: 'mut-tree__scroll' }, [tree]),
     adaptations.root,
   ]);
@@ -80,20 +101,24 @@ export function createMutationsTab(store: Store): TabView {
     button.style.gridRow = String(def.row + 1);
     disposer.listen(button, 'click', () => {
       if (button.getAttribute('aria-disabled') === 'true') return;
-      store.dispatch(buyMutation, { id: def.id });
+      // Una dormida ya está comprada: el mismo nodo la despierta (no se puede volver a comprar).
+      if (isMutationAsleep(store.state, def.id)) store.dispatch(wakeMutation, { id: def.id });
+      else store.dispatch(buyMutation, { id: def.id });
     });
     attachTooltip(
       button,
       () => {
         const lines = [nameOf(def.id), descOf(def.id), tp('mut.cost', def.cost)];
         // El nodo bloqueado muestra su requisito; el tooltip también, para el ratón y el teclado.
-        if (requirement && stateOf(def.id) === 'locked') lines.push(requirement);
+        const nodeState = stateOf(def.id);
+        if (requirement && nodeState === 'locked') lines.push(requirement);
+        if (nodeState === 'drowsy') lines.push(wakeNeedText(def, (id) => isMutationAsleep(store.state, id)));
         return lines;
       },
       disposer,
     );
     tree.append(button);
-    return { def, button, status, cost, requires, parts, shown: null };
+    return { def, button, status, cost, requires, parts, shown: null, needKey: '' };
   });
 
   /** Redibuja las conexiones entre nodos según su posición actual. */
@@ -112,7 +137,7 @@ export function createMutationsTab(store: Store): TabView {
         const x2 = child.left + child.width / 2 - box.left;
         const y2 = child.top - box.top;
         const mid = (y1 + y2) / 2;
-        const owned = ownsMutation(store.state, req) && ownsMutation(store.state, node.def.id);
+        const owned = hasMutation(store.state, req) && hasMutation(store.state, node.def.id);
         paths.push(
           svg('path', {
             d: `M${x1.toFixed(1)} ${y1.toFixed(1)}C${x1.toFixed(1)} ${mid.toFixed(1)} ${x2.toFixed(1)} ${mid.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
@@ -135,8 +160,10 @@ export function createMutationsTab(store: Store): TabView {
   let ownedSignature = '';
 
   function stateOf(id: MutationId): NodeState {
-    if (ownsMutation(store.state, id)) return 'owned';
-    return isMutationAvailable(store.state, id) ? 'available' : 'locked';
+    const state = store.state;
+    if (isMutationAsleep(state, id)) return isMutationWakeable(state, id) ? 'asleep' : 'drowsy';
+    if (ownsMutation(state, id)) return 'owned';
+    return isMutationAvailable(state, id) ? 'available' : 'locked';
   }
 
   /**
@@ -147,17 +174,23 @@ export function createMutationsTab(store: Store): TabView {
    */
   function labelNode(node: TreeNode, nodeState: NodeState): void {
     const name = nameOf(node.def.id);
-    setAttr(
-      node.button,
-      'aria-label',
-      nodeState === 'owned'
-        ? t('mut.owned.label', { name })
-        : nodeState === 'locked'
-          ? t('mut.locked.label', { name })
-          : t('mut.buy', { name }),
-    );
+    const labels: Record<NodeState, string> = {
+      owned: t('mut.owned.label', { name }),
+      locked: t('mut.locked.label', { name }),
+      available: t('mut.buy', { name }),
+      asleep: t('mut.wake', { name }),
+      drowsy: t('mut.asleep.label', { name }),
+    };
+    setAttr(node.button, 'aria-label', labels[nodeState]);
     const { desc, cost, requires } = node.parts;
-    const visible = nodeState === 'owned' ? [desc] : nodeState === 'locked' ? [cost, requires] : [desc, cost];
+    const visible =
+      nodeState === 'owned'
+        ? [desc]
+        : nodeState === 'locked'
+          ? [cost, requires]
+          : nodeState === 'drowsy'
+            ? [desc, cost, requires]
+            : [desc, cost];
     const own: readonly string[] = [desc, cost, requires];
     const others = (node.button.getAttribute('aria-describedby') ?? '')
       .split(/\s+/)
@@ -168,25 +201,55 @@ export function createMutationsTab(store: Store): TabView {
   function update(): void {
     const state = store.state;
     setText(available, tp('sporulate.available', state.spores.available));
+    const sleeping = state.cycle.vows.includes('noMutations');
+    setHidden(budget, !sleeping);
+    const left = sleeping ? wakeBudget(state) : 0;
+    if (sleeping) setText(budget, t('mut.wakeBudget', { count: formatCount(left) }));
     for (const node of nodes) {
       const id = node.def.id;
       const nodeState = stateOf(id);
-      node.button.dataset.state = nodeState;
-      const affordable = nodeState === 'available' && state.spores.available >= getMutation(id).cost;
+      // Dormida o despierta, para la hoja de estilos: atenuada y con borde discontinuo.
+      node.button.dataset.state = nodeState === 'drowsy' ? 'asleep' : nodeState;
+      const cost = getMutation(id).cost;
+      const affordable =
+        (nodeState === 'available' && state.spores.available >= cost) ||
+        (nodeState === 'asleep' && state.spores.available >= cost && left >= cost);
       setAttr(node.button, 'aria-disabled', affordable ? 'false' : 'true');
       toggleClass(node.button, 'is-affordable', affordable);
       if (node.shown !== nodeState) {
         node.shown = nodeState;
         labelNode(node, nodeState);
       }
-      setText(
-        node.status,
-        nodeState === 'owned' ? t('mut.owned') : nodeState === 'locked' ? t('mut.locked') : '',
-      );
+      const status: Record<NodeState, string> = {
+        owned: t('mut.owned'),
+        locked: t('mut.locked'),
+        available: '',
+        asleep: t('mut.asleep'),
+        drowsy: t('mut.asleep'),
+      };
+      setText(node.status, status[nodeState]);
       setHidden(node.cost, nodeState === 'owned');
-      setHidden(node.requires, nodeState !== 'locked');
+      setHidden(node.requires, nodeState !== 'locked' && nodeState !== 'drowsy');
+      // El requisito que se ve: el de compra o, dormida, los que faltan por despertar. Se reescribe
+      // solo si cambia (ListFormat en cada refresco sería basura por frame).
+      const asleepReqs =
+        nodeState === 'drowsy' ? node.def.requires.filter((r) => isMutationAsleep(state, r)) : [];
+      const needKey = `${nodeState}:${asleepReqs.join('|')}`;
+      if (node.needKey !== needKey) {
+        node.needKey = needKey;
+        setText(
+          node.requires,
+          nodeState === 'drowsy'
+            ? wakeNeedText(node.def, (req) => asleepReqs.includes(req))
+            : node.def.requires.length
+              ? requirementText(node.def)
+              : '',
+        );
+      }
     }
-    const signature = state.mutations.join('|');
+    // Despertar cambia qué rige, no qué está comprado: las conexiones despiertas se dibujan como
+    // las compradas, y las dormidas, como las que faltan.
+    const signature = `${state.mutations.join('|')}/${state.cycle.vows.join('|')}/${state.cycle.woken.join('|')}`;
     if (signature !== ownedSignature) {
       ownedSignature = signature;
       drawLines();

@@ -55,6 +55,8 @@ const ROWS: readonly StatRow[] = [
     raw: (s) => s.cycle.done,
     when: isReturnClosed,
   },
+  // Los votos del ciclo (fase 10), como número: su lista, larga en cualquier idioma, vive en Viento.
+  { label: 'stats.vows', value: (s) => formatCount(s.cycle.vows.length), when: (s) => s.cycle.stays > 0 },
   {
     label: 'stats.achievements',
     value: (s) => `${formatCount(s.achievements.length)} / ${formatCount(visibleAchievements(s).length)}`,

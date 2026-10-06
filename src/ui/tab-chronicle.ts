@@ -8,6 +8,7 @@
  */
 import { colonizedCount, forestGoal, isActOneClosed, isReturnClosed, lineageFactor } from '../core/forest.ts';
 import type { ChronicleEntry, CycleRecord, GameState } from '../core/state.ts';
+import { VOW_IDS } from '../data/cycle.ts';
 import {
   BIOME_ADAPTATIONS,
   BIOME_IDS,
@@ -24,7 +25,7 @@ import { Disposer, h, setHidden, setProgress, setText } from './dom.ts';
 import { createHint } from './hint.ts';
 import type { Store } from './store.ts';
 import type { TabView } from './tabs.ts';
-import { forestGoalFill, forestProgressText, soilSwatch } from './wind.ts';
+import { forestGoalFill, forestProgressText, soilSwatch, vowList } from './wind.ts';
 
 /** Partes vivas de la entrada del bosque actual. */
 interface LiveParts {
@@ -266,12 +267,18 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     return entryRoot(HOME_BIOME, 'chronicle.return.current', true, lines, returnButtons(false));
   }
 
-  /** Un récord: el bioma; y el tiempo de reloj, las partidas y la fecha. */
+  /** Un récord: el bioma y sus votos; y el tiempo de reloj, las partidas y la fecha. */
   function recordItem(record: CycleRecord): HTMLElement {
+    const name = biomeName(record.biome);
     return h('li', { class: 'chronicle__record' }, [
       h('p', { class: 'chronicle__record-place' }, [
         soilSwatch(record.biome),
-        h('span', { text: biomeName(record.biome) }),
+        h('span', {
+          text:
+            record.vows.length > 0
+              ? t('chronicle.cycle.withVows', { name, vows: vowList(record.vows) })
+              : name,
+        }),
       ]),
       h('p', {
         class: 'tabular',
@@ -289,7 +296,15 @@ export function createChronicleTab(store: Store, nav: ChapterNav): TabView {
     setHidden(cycleSection, !open);
     if (!open) return;
     setText(cycleDone, tp('chronicle.cycle.done', state.cycle.done));
-    const sorted = [...state.records].sort((a, b) => BIOME_IDS.indexOf(a.biome) - BIOME_IDS.indexOf(b.biome));
+    // Por bioma y, dentro de cada uno, de menos votos a más, en el orden de VOW_IDS.
+    const vowRank = (r: CycleRecord): number =>
+      r.vows.reduce((sum, vow) => sum * 4 + VOW_IDS.indexOf(vow) + 1, 0);
+    const sorted = [...state.records].sort(
+      (a, b) =>
+        BIOME_IDS.indexOf(a.biome) - BIOME_IDS.indexOf(b.biome) ||
+        a.vows.length - b.vows.length ||
+        vowRank(a) - vowRank(b),
+    );
     records.replaceChildren(...sorted.map(recordItem));
     setHidden(records, sorted.length === 0);
     setHidden(recordsEmpty, sorted.length > 0);

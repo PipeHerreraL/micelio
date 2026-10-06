@@ -1214,9 +1214,25 @@ body::before {
 
 .gen__stats,
 .gen__hint,
+.gen__asleep,
 .gen__milestone-label {
   color: var(--micelio-tenue);
   font-size: 0.875rem;
+}
+
+/* Votos del ciclo libre (fase 10): por qué no se compra a mano, una vez sobre la lista. */
+.gen__vow,
+.autobuy__vow {
+  color: var(--micelio-tenue);
+  font-size: 0.9rem;
+}
+
+.gen__vow {
+  margin-bottom: 0.75rem;
+}
+
+.autobuy__vow {
+  flex: 1 1 100%;
 }
 
 /* Dos líneas siempre: al comprar cambian las cifras y los porcentajes de todas las filas, el texto
@@ -1853,6 +1869,21 @@ body::before {
 
 .mut[data-state='owned'] .mut__status {
   color: var(--micelio);
+  font-weight: 600;
+}
+
+/* Dormida («sin mutaciones», fase 10): comprada pero sin efecto, atenuada y con el borde
+   discontinuo de lo que falta; con las esporas del ciclo, el acento de compra la despierta. */
+.mut[data-state='asleep'] {
+  background: var(--humus-hondo);
+}
+
+.mut[data-state='asleep'] .mut__name {
+  color: var(--micelio-tenue);
+}
+
+.mut__budget {
+  margin-bottom: 0.75rem;
   font-weight: 600;
 }
 
@@ -2727,8 +2758,57 @@ body::before {
   max-width: 60ch;
 }
 
+/* Votos (fase 10): los del ciclo con su botón de romper, bajo el progreso, y los del próximo ciclo,
+   uno por fila y a todo el ancho, con su descripción debajo (la cita su aria-describedby). */
+.wind__progress:focus-visible {
+  outline: 2px solid var(--rebozuelo);
+  outline-offset: 3px;
+}
+
+.wind__vowsnow {
+  margin: -0.35rem 0 0.4rem;
+}
+
+.wind__breaks {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.wind__break {
+  justify-self: start;
+}
+
+.wind__vows {
+  margin-bottom: 0.5rem;
+}
+
+.wind__vowshint,
+.wind__vowdesc {
+  color: var(--micelio-tenue);
+  font-size: 0.9rem;
+}
+
+.wind__vowlist {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wind__toggle {
+  width: 100%;
+  text-align: start;
+}
+
+.wind__vowdesc {
+  margin-top: 0.2rem;
+}
+
 @media (max-width: 767.98px) {
   .wind__go,
+  .wind__break,
   .chronicle__reread {
     justify-self: stretch;
     width: 100%;

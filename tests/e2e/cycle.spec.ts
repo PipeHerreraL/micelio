@@ -257,3 +257,146 @@ test('sembrar el mismo bioma lanza la transición del suelo y una red nueva', as
   );
   expect(result).toEqual({ before: false, after: true, biome: 'taiga', stays: 2 });
 });
+
+/** La taiga del ciclo 1 cumplida (30 min de reloj), con la partida nueva por delante. */
+function taigaCycleDone(now: number): GameState {
+  const s = taigaCycleAlmostDone(now);
+  sporulate(s, { now: now - 5 * MINUTE });
+  drain();
+  return s;
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, los votos se eligen y se rompen con el teclado sin dejar el foco en <body>`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const errors = collectErrors(page);
+    const now = Date.now();
+    await seedSave(page, taigaCycleDone(now), now);
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Esporular/ }).click();
+    const group = page.getByRole('group', { name: 'Votos para el próximo ciclo' });
+    const noRain = group.getByRole('button', { name: 'Sin lluvia' });
+    const noMutations = group.getByRole('button', { name: 'Sin mutaciones' });
+    await expect(noRain).toHaveAttribute('aria-pressed', 'false');
+    await noRain.focus();
+    await page.keyboard.press('Space');
+    await expect(noRain).toHaveAttribute('aria-pressed', 'true');
+    await expect(noRain).toBeFocused();
+    // El Chocó no ofrece «sin lluvia»: lo dice en su fila y su botón no siembra.
+    await expect(
+      page.getByText('En la selva del Chocó no se jura «sin lluvia»', { exact: false }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sembrar en la selva del Chocó' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    await noMutations.focus();
+    await page.keyboard.press('Enter');
+    await expect(noMutations).toHaveAttribute('aria-pressed', 'true');
+    expect(await cutOff(page, '.tab--sporulate')).toEqual([]);
+
+    await page.getByRole('button', { name: 'Sembrar en la pradera' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog(page).getByText('Votos: sin lluvia y sin mutaciones.')).toBeVisible();
+    // Pradera: 0,35 · 0,59 = 0,2065 de la R del ciclo.
+    await expect(dialog(page).getByText(/pide el 21\s%/)).toBeVisible();
+    await expect(
+      dialog(page).getByText('mutaciones (dormidas hasta que las despiertes)', { exact: false }),
+    ).toBeVisible();
+    await expect(dialog(page).getByRole('button', { name: 'Quedarme aquí' })).toBeFocused();
+    await dialog(page).getByRole('button', { name: 'Sembrar', exact: true }).click();
+    await expect(page.locator('#wind-title')).toBeFocused();
+    expect((await savedState(page)).cycle).toMatchObject({
+      stays: 2,
+      vows: ['noRain', 'noMutations'],
+      woken: [],
+    });
+    // Jurados, ya no son una elección: el grupo vuelve sin marcar.
+    await expect(noRain).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('.wind__vowsnow')).toHaveText(
+      'Votos de este ciclo: sin lluvia y sin mutaciones.',
+    );
+
+    // Romper el primero: el foco empieza en mantenerlo y luego pasa a romper el siguiente.
+    await page.getByRole('button', { name: 'Romper el voto «sin lluvia»' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(dialog(page).getByRole('heading', { name: '¿Romper el voto «sin lluvia»?' })).toBeVisible();
+    await expect(dialog(page).getByRole('button', { name: 'Mantener el voto' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(dialog(page).getByRole('button', { name: 'Romper', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'Romper el voto «sin mutaciones»' })).toBeFocused();
+    await expect(page.locator('[aria-live="polite"]')).toContainText(
+      'Rompiste el voto «sin lluvia»: la meta sube.',
+    );
+    // Romper el último: el foco va al estado del ciclo, que sigue ahí.
+    await page.keyboard.press('Enter');
+    await expect(dialog(page).getByText('Tus mutaciones despiertan todas.')).toBeVisible();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#wind-status')).toBeFocused();
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+    expect((await savedState(page)).cycle.vows).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+/**
+ * En el natal del ciclo 2 con «solo autocompra» y «sin mutaciones» y unas esporas del ciclo para
+ * despertar. La Red planetaria ya se conocía: el Acto I la pide.
+ */
+function vowCycle(now: number): GameState {
+  const s = taigaCycleDone(now);
+  disperse(s, { to: 'natal', now: now - 4 * MINUTE, vows: ['autoOnly', 'noMutations'] });
+  // Con las Esporas aladas dormidas, k = 15: preparado para 25 con k = 18,75, el nivel llega a 20.
+  prime(s, 25);
+  sporulate(s, { now: now - 2 * MINUTE });
+  drain();
+  s.seen.push('gen.planetary.full');
+  return s;
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, con «sin mutaciones» el árbol se despierta con el teclado y la Red planetaria sigue en su sitio; con «solo autocompra», comprar está bloqueado`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const errors = collectErrors(page);
+    const now = Date.now();
+    await seedSave(page, vowCycle(now), now);
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Mutaciones/ }).click();
+    await expect(page.locator('.mut__budget')).toHaveText(/Esporas de este ciclo para despertar: 20/);
+    await expect(page.getByRole('button', { name: 'Quitina ligera, dormida' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+    const soil = page.getByRole('button', { name: 'Despertar: Memoria del suelo' });
+    await soil.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[aria-live="polite"]')).toContainText('Despierta: Memoria del suelo.');
+    await expect(page.locator('.mut__budget')).toHaveText(/despertar: 19/);
+    // El nodo sigue ahí, ya despierto, con el foco: el siguiente Espacio no absorbe.
+    await expect(page.getByRole('button', { name: 'Memoria del suelo, adquirida' })).toBeFocused();
+    // El árbol se desplaza en horizontal dentro de su caja en el móvil (a propósito); la página, no.
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+    ).toBe(true);
+
+    await page.getByRole('tab', { name: /Generadores/ }).click();
+    await expect(page.locator('#gen-vow-locked')).toHaveText('Voto «solo autocompra»: la red compra sola.');
+    const planetary = page.locator('.gen').last();
+    await expect(planetary).toBeVisible();
+    await expect(
+      planetary.getByText('Duerme con «Más allá del bosque»: despiértala en Mutaciones.'),
+    ).toBeVisible();
+    for (const buy of await page.locator('.gen:visible .gen__buy').all()) {
+      await expect(buy).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(await cutOff(page, '.tab--generators')).toEqual([]);
+    expect((await savedState(page)).cycle.woken).toEqual(['soilMemory']);
+    expect(errors).toEqual([]);
+  });
+}

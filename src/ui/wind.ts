@@ -1,9 +1,9 @@
 /**
  * Sección «Viento de esporas» de la pestaña Esporular (docs/ROADMAP.md, fases 8 y 10): dónde vive
  * el linaje, cuánto falta para colonizar, los destinos que quedan (tras el cuarto, El regreso y,
- * cumplido, sembrar cualquier bioma en el ciclo libre) y su confirmación. Aparece con el Acto I. Las
- * filas se crean una vez y se ocultan cuando el viento no las ofrece (`windTargets`); el foco nunca
- * se queda en un botón que desaparece (BUG-JOURNAL #5 y #8).
+ * cumplido, sembrar cualquier bioma en el ciclo libre, con sus votos) y su confirmación. Aparece con
+ * el Acto I. Las filas se crean una vez y se ocultan cuando el viento no las ofrece (`windTargets`);
+ * el foco nunca se queda en un botón que desaparece (BUG-JOURNAL #5, #8 y #15).
  */
 import {
   canSporulate,
@@ -11,6 +11,7 @@ import {
   disperse,
   disperseBlock,
   disperseFunds,
+  renounceVow,
   sporeGain,
 } from '../core/actions.ts';
 import {
@@ -20,6 +21,8 @@ import {
   forestGoal,
   isActOneClosed,
   lineageFactor,
+  offeredVows,
+  vowGoalFactor,
   windTargets,
   type ForestGoal,
   type WindTargetKind,
@@ -36,9 +39,9 @@ import {
   isDestinationId,
   type BiomeId,
 } from '../data/biomes.ts';
-import { CYCLE_GOAL_LEVEL } from '../data/cycle.ts';
+import { CYCLE_GOAL_LEVEL, VOW_IDS, type VowId } from '../data/cycle.ts';
 import { SPORE_SOFTCAP_EXPONENT } from '../data/prestige.ts';
-import { formatDuration, formatFactor } from '../i18n/format.ts';
+import { formatDuration, formatFactor, formatPercent } from '../i18n/format.ts';
 import { formatBonus, formatCount, getLocale, t, tp, type MessageKey } from '../i18n/index.ts';
 import { biomeName, biomeRules, biomeSoil } from './biome-text.ts';
 import { Disposer, h, setAttr, setHidden, setProgress, setText, toggleClass } from './dom.ts';
@@ -99,6 +102,23 @@ interface TargetRow {
   button: HTMLButtonElement;
   /** El mejor ciclo del bioma, en las filas del ciclo libre. */
   record: HTMLElement | null;
+  /** Por qué no se siembra con los votos elegidos (el Chocó con «sin lluvia»); null si los ofrece todos. */
+  vowWhy: HTMLElement | null;
+}
+
+/** Un voto en minúscula, dentro de la frase («sin lluvia»). */
+export function vowInline(vow: VowId): string {
+  return t(`vow.${vow}.inline` as MessageKey);
+}
+
+/** Varios votos en una frase: «sin lluvia y sin mutaciones». */
+export function vowList(vows: readonly VowId[]): string {
+  return new Intl.ListFormat(getLocale(), { style: 'long', type: 'conjunction' }).format(vows.map(vowInline));
+}
+
+/** La parte de los nutrientes que pide esporular con unos votos: «14 %», sin decimales salvo por debajo del 1 %. */
+function goalPercent(factor: number): string {
+  return formatPercent(factor, getLocale(), factor < 0.01 ? 1 : 0);
 }
 
 /** La meta de El regreso: en su fila, en su confirmación y durante el tramo. */
@@ -140,8 +160,14 @@ export interface DepartureText {
  * La confirmación de partir hacia `to`, calculada del estado: viajar, volver a casa o sembrar. En
  * un ciclo sin cumplir dice si la esporulación de partir llega a la meta (queda el récord) o no
  * (este ciclo no dejará récord): salir sin cumplir está permitido, pero no debe pillar por sorpresa.
+ * Al sembrar con votos, las reglas los dicen con la meta que dejan («pide el 14 % de los nutrientes»).
  */
-export function departureText(state: GameState, to: BiomeId, kind: WindTargetKind): DepartureText {
+export function departureText(
+  state: GameState,
+  to: BiomeId,
+  kind: WindTargetKind,
+  vows: readonly VowId[] = [],
+): DepartureText {
   const gained = canSporulate(state) ? sporeGain(state) : 0;
   const cost = departureCost(state);
   const goal = forestGoal(state);
@@ -157,7 +183,8 @@ export function departureText(state: GameState, to: BiomeId, kind: WindTargetKin
     tp('wind.confirm.cost', disperseFunds(state) - cost, { cost: formatCount(cost) }),
     t('wind.confirm.bonus', { current: bonusPercent(state, state.spores.level + gained) }),
     t('wind.confirm.lose'),
-    t('wind.confirm.keep'),
+    // Con «sin mutaciones» viajan, pero dormidas: «viajan contigo» a secas sería falso.
+    vows.includes('noMutations') ? t('wind.confirm.keepAsleep') : t('wind.confirm.keep'),
   );
   // «No se puede volver a un bioma que dejaste» sería falso de camino a casa y en el ciclo libre.
   if (kind === 'journey') lines.push(t('wind.confirm.oneWay'));
@@ -171,8 +198,16 @@ export function departureText(state: GameState, to: BiomeId, kind: WindTargetKin
         lines,
         yes: t('wind.return.yes'),
       };
-    case 'cycle':
-      return { title: t('wind.sow.title'), rules: biomeRules(to), lines, yes: t('wind.sow.yes') };
+    case 'cycle': {
+      const rules = biomeRules(to);
+      if (vows.length > 0) {
+        rules.push(
+          t('wind.confirm.vows', { list: vowList(vows) }),
+          t('wind.confirm.goal', { percent: goalPercent(vowGoalFactor(to, vows)) }),
+        );
+      }
+      return { title: t('wind.sow.title'), rules, lines, yes: t('wind.sow.yes') };
+    }
   }
 }
 
@@ -189,7 +224,65 @@ export function createWindSection(store: Store): WindSection {
   const progressText = h('span', { class: 'tabular' });
   const progressFill = h('span', { class: 'bar__fill' });
   const progressBar = h('span', { class: 'bar bar--thin', attrs: { 'aria-hidden': 'true' } }, [progressFill]);
-  const progress = h('p', { class: 'wind__progress' }, [progressText, progressBar]);
+  // Enfocable desde el código: romper el último voto deja el foco en el estado del ciclo.
+  const progress = h('p', { class: 'wind__progress', id: 'wind-status', attrs: { tabindex: -1 } }, [
+    progressText,
+    progressBar,
+  ]);
+  // Votos del ciclo actual (fase 10): cuáles rigen y un botón para romper cada uno.
+  const vowsNow = h('p', { class: 'wind__vowsnow', attrs: { hidden: true } });
+  const breakButtons = new Map<VowId, HTMLButtonElement>();
+  const breakList = h(
+    'div',
+    { class: 'wind__breaks', attrs: { hidden: true } },
+    VOW_IDS.map((vow) => {
+      const button = h('button', {
+        class: 'button button--quiet wind__break',
+        text: t('wind.renounce.button', { name: vowInline(vow) }),
+        attrs: { type: 'button', hidden: true },
+      });
+      disposer.listen(button, 'click', () => {
+        renounce(vow);
+      });
+      breakButtons.set(vow, button);
+      return button;
+    }),
+  );
+  // Votos para el próximo ciclo: la elección vive en la interfaz hasta sembrar y no se guarda.
+  const chosen = new Set<VowId>();
+  const vowToggles = new Map<VowId, HTMLButtonElement>();
+  const vowGroup = h(
+    'div',
+    { class: 'wind__vows', attrs: { role: 'group', 'aria-labelledby': 'wind-vows-title', hidden: true } },
+    [
+      h('h4', { class: 'wind__heading', id: 'wind-vows-title', text: t('wind.vows.title') }),
+      h('p', { class: 'wind__vowshint', text: t('wind.vows.hint') }),
+      h(
+        'ul',
+        { class: 'wind__vowlist' },
+        VOW_IDS.map((vow) => {
+          const desc = `wind-vow-${vow}-desc`;
+          const toggle = h('button', {
+            class: 'toggle wind__toggle',
+            text: t(`vow.${vow}.name` as MessageKey),
+            attrs: { type: 'button', 'aria-pressed': 'false', 'aria-describedby': desc },
+          });
+          disposer.listen(toggle, 'click', () => {
+            if (chosen.has(vow)) chosen.delete(vow);
+            else chosen.add(vow);
+            refresh();
+          });
+          vowToggles.set(vow, toggle);
+          return h('li', { class: 'wind__vow' }, [
+            toggle,
+            h('p', { class: 'wind__vowdesc', id: desc, text: t(`vow.${vow}.desc` as MessageKey) }),
+          ]);
+        }),
+      ),
+    ],
+  );
+  /** Los votos elegidos, en el orden de VOW_IDS: como los guarda sembrar. */
+  const chosenVows = (): VowId[] => VOW_IDS.filter((vow) => chosen.has(vow));
   const lineage = h('p', { class: 'wind__lineage', attrs: { hidden: true } });
   const intro = h('p', { class: 'tab__intro' });
   const cost = h('p', { class: 'wind__cost tabular', text: tp('wind.cost', DISPERSE_COST) });
@@ -263,9 +356,21 @@ export function createWindSection(store: Store): WindSection {
         : h('div', { class: 'wind__head' }, head);
     const parts: Node[] = [top];
     if (kind === 'return') parts.push(h('p', { class: 'wind__goal', text: returnGoalText() }));
+    // Solo el Chocó deja un voto fuera (el bioma más lluvioso no ofrece «sin lluvia»), y su texto lo
+    // nombra: con los votos elegidos que no ofrece, su fila dice por qué no se siembra.
+    const vowWhy =
+      kind === 'cycle' && !offeredVows(biome).includes('noRain')
+        ? h('p', {
+            class: 'wind__why wind__vowwhy',
+            id: `wind-vowwhy-${biome}`,
+            text: t('wind.vows.choco'),
+            attrs: { hidden: true },
+          })
+        : null;
+    if (vowWhy) parts.push(vowWhy);
     const root = h('li', { class: 'wind__dest' }, [...parts, button]);
     list.append(root);
-    return { biome, kind, root, button, record };
+    return { biome, kind, root, button, record, vowWhy };
   }
 
   const rows: TargetRow[] = [
@@ -279,9 +384,12 @@ export function createWindSection(store: Store): WindSection {
     hint.root,
     here,
     progress,
+    vowsNow,
+    breakList,
     lineage,
     intro,
     cost,
+    vowGroup,
     why,
     heading,
     list,
@@ -290,7 +398,8 @@ export function createWindSection(store: Store): WindSection {
   ]);
 
   function confirm(to: BiomeId, kind: WindTargetKind): void {
-    const text = departureText(store.state, to, kind);
+    const vows = kind === 'cycle' ? chosenVows() : [];
+    const text = departureText(store.state, to, kind, vows);
     let dispersed = false;
     openModal({
       title: text.title,
@@ -320,7 +429,10 @@ export function createWindSection(store: Store): WindSection {
           label: text.yes,
           kind: 'primary',
           onSelect: () => {
-            store.dispatch(disperse, { to, now: Date.now() });
+            // Jurados, ya no son una elección: el próximo ciclo empieza otra vez sin votos marcados.
+            // Antes de despachar, que refresca la sección.
+            if (kind === 'cycle') chosen.clear();
+            store.dispatch(disperse, { to, now: Date.now(), vows });
             dispersed = true;
             return undefined;
           },
@@ -338,7 +450,57 @@ export function createWindSection(store: Store): WindSection {
     });
   }
 
-  return {
+  /**
+   * Romper un voto: no se puede volver a jurar, así que el foco empieza en mantenerlo y «Romper» es
+   * la acción peligrosa. Al romperlo su botón desaparece: el foco pasa al de romper el siguiente voto
+   * vigente o, sin ninguno, al estado del ciclo (BUG-JOURNAL #5, #8 y #15).
+   */
+  function renounce(vow: VowId): void {
+    const state = store.state;
+    const remaining = state.cycle.vows.filter((v) => v !== vow);
+    const body = [
+      t('wind.renounce.body', { percent: goalPercent(vowGoalFactor(state.forest.biome, remaining)) }),
+    ];
+    if (vow === 'noMutations') body.push(t('wind.renounce.wakeAll'));
+    let broken = false;
+    openModal({
+      title: t('wind.renounce.title', { name: vowInline(vow) }),
+      body,
+      actions: [
+        { label: t('wind.renounce.no'), kind: 'quiet', autofocus: true },
+        {
+          label: t('wind.renounce.yes'),
+          kind: 'danger',
+          onSelect: () => {
+            store.dispatch(renounceVow, { vow });
+            broken = true;
+            return undefined;
+          },
+        },
+      ],
+      onClose: () => {
+        if (!broken) return;
+        const after = VOW_IDS.indexOf(vow);
+        const next =
+          remaining.find((v) => VOW_IDS.indexOf(v) > after) ??
+          (remaining.length > 0 ? remaining[0] : undefined);
+        requestAnimationFrame(() => {
+          const target = next === undefined ? undefined : breakButtons.get(next);
+          if (target && !target.hidden) target.focus();
+          else progress.focus();
+        });
+      },
+    });
+  }
+
+  /** La elección de votos no pasa por el estado: se pinta en el acto. */
+  function refresh(): void {
+    section.update();
+  }
+  /** Votos con que se escribió la línea de los vigentes: ListFormat en cada refresco sería basura. */
+  let vowsShown = '';
+
+  const section: WindSection = {
     root,
     update() {
       const state = store.state;
@@ -392,6 +554,22 @@ export function createWindSection(store: Store): WindSection {
       else if (block === 'spores') reason = tp('wind.needSpores', missing);
       setHidden(why, none || reason === null);
       if (reason !== null) setText(why, reason);
+
+      // Votos (fase 10): los vigentes con su botón de romper y, para sembrar, los del próximo ciclo.
+      const vows = state.cycle.vows;
+      setHidden(vowsNow, vows.length === 0);
+      setHidden(breakList, vows.length === 0);
+      const vowsKey = vows.join('|');
+      if (vows.length > 0 && vowsKey !== vowsShown) {
+        vowsShown = vowsKey;
+        setText(vowsNow, t('wind.vows.current', { list: vowList(vows) }));
+      }
+      for (const [vow, button] of breakButtons) setHidden(button, !vows.includes(vow));
+      setHidden(vowGroup, !sowing);
+      for (const [vow, toggle] of vowToggles)
+        setAttr(toggle, 'aria-pressed', chosen.has(vow) ? 'true' : 'false');
+      const picked = chosenVows();
+
       for (const row of rows) {
         const offered = targets.some((target) => target.biome === row.biome && target.kind === row.kind);
         setHidden(row.root, !offered);
@@ -404,10 +582,16 @@ export function createWindSection(store: Store): WindSection {
               : t('wind.cycle.noRecord'),
           );
         }
-        setAttr(row.button, 'aria-disabled', reason === null ? 'false' : 'true');
-        toggleClass(row.button, 'is-unaffordable', reason !== null);
+        const vowBlocked = row.vowWhy !== null && picked.some((vow) => !offeredVows(row.biome).includes(vow));
+        if (row.vowWhy) setHidden(row.vowWhy, !vowBlocked);
+        const blocked = reason !== null || vowBlocked;
+        setAttr(row.button, 'aria-disabled', blocked ? 'true' : 'false');
+        toggleClass(row.button, 'is-unaffordable', blocked);
         // Un motivo oculto citado por id se lee igual: sin motivo, no se cita (tab-mutations.ts).
-        setAttr(row.button, 'aria-describedby', reason === null ? null : why.id);
+        const cited = [reason === null ? null : why.id, vowBlocked ? (row.vowWhy?.id ?? null) : null].filter(
+          (id): id is string => id !== null,
+        );
+        setAttr(row.button, 'aria-describedby', cited.length > 0 ? cited.join(' ') : null);
       }
     },
     destroy: () => {
@@ -415,4 +599,5 @@ export function createWindSection(store: Store): WindSection {
       hint.destroy();
     },
   };
+  return section;
 }

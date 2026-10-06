@@ -67,6 +67,18 @@ export function setAttr(el: Element, name: string, value: string | null): void {
   if (current !== value) el.setAttribute(name, value);
 }
 
+/**
+ * Escribe en aria-describedby los ids propios que tocan ahora (`ids`, de entre `own`) sin pisar los
+ * ajenos: el tooltip añade y quita el suyo, y un motivo oculto citado por id se leería igual.
+ */
+export function setDescribedBy(el: Element, own: readonly string[], ids: readonly string[]): void {
+  const others = (el.getAttribute('aria-describedby') ?? '')
+    .split(/\s+/)
+    .filter((id) => id && !own.includes(id));
+  const next = [...ids, ...others];
+  setAttr(el, 'aria-describedby', next.length > 0 ? next.join(' ') : null);
+}
+
 export function setHidden(el: HTMLElement, hidden: boolean): void {
   if (el.hidden !== hidden) el.hidden = hidden;
 }

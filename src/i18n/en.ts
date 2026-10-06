@@ -106,6 +106,8 @@ export const en: Catalog = {
   'gen.hidden': '???',
   'gen.hidden.hint': 'Something stirs further down. Keep absorbing.',
   'gen.hidden.label': 'More about an undiscovered generator',
+  'gen.vowLocked': '“Autobuy only” vow: the network buys on its own.',
+  'gen.asleep': 'Asleep with “{name}”: wake it in Mutations.',
   'gen.autobuy.label': 'Autobuy {name}',
   'gen.autobuy.on': 'Auto',
   'generators.title': 'Generators',
@@ -292,6 +294,11 @@ export const en: Catalog = {
   'mut.locked': 'Locked',
   'mut.locked.label': '{name}, locked',
   'mut.done': 'Mutated: {name}',
+  'mut.asleep': 'Asleep',
+  'mut.asleep.label': '{name}, asleep',
+  'mut.wake': 'Wake: {name}',
+  'mut.wakeBudget': 'Spores from this cycle to wake mutations: {count}',
+  'mut.wakeNeed': 'Wake first: {names}',
 
   // Network maturity and adaptations (phase 7)
   'sporulate.maturity':
@@ -436,8 +443,37 @@ export const en: Catalog = {
   'wind.sow.title': 'Sow a new cycle?',
   'wind.sow.yes': 'Sow',
   'wind.rules.more': 'Rules',
+  'wind.vows.title': 'Vows for the next cycle',
+  'wind.vows.hint':
+    'Each vow takes something away and lowers the goal to make up for it. You swear them when sowing; later you can break them, but not add more.',
+  'wind.vows.choco': 'In the Chocó rainforest you cannot swear “no rain”: the rain never stops there.',
+  'wind.vows.current': 'Vows this cycle: {list}.',
+  'vow.noRain.name': 'No rain',
+  'vow.noRain.inline': 'no rain',
+  'vow.noRain.desc': 'Not a single drop falls during the whole cycle.',
+  'vow.autoOnly.name': 'Autobuy only',
+  'vow.autoOnly.inline': 'autobuy only',
+  'vow.autoOnly.desc':
+    'You do not buy generators or upgrades: the network buys them on its own, with your autobuy threshold. Pruning does not apply.',
+  'vow.noMutations.name': 'No mutations',
+  'vow.noMutations.inline': 'no mutations',
+  'vow.noMutations.desc':
+    'Your mutations fall asleep: wake them in Mutations with the spores you earn this cycle.',
+  'wind.confirm.vows': 'Vows: {list}.',
+  'wind.confirm.goal': 'With these vows, sporulating here takes {percent} of the nutrients.',
+  'wind.confirm.keepAsleep':
+    'Coming with you: available spores, mutations (asleep until you wake them), adaptations, lineage, achievements, autobuy, lifetime stats and settings.',
+  'wind.renounce.button': 'Break the “{name}” vow',
+  'wind.renounce.title': 'Break the “{name}” vow?',
+  'wind.renounce.body':
+    'The goal rises: sporulating here will take {percent} of the nutrients. You keep the level you reached, but you cannot swear it again this cycle, and its record will be without it.',
+  'wind.renounce.wakeAll': 'All your mutations wake up.',
+  'wind.renounce.yes': 'Break',
+  'wind.renounce.no': 'Keep the vow',
   'cycle.done': '{name}: cycle complete in {time}.',
   'cycle.record': '{name}: new record, {time}.',
+  'cycle.broken': 'You broke the “{name}” vow: the goal rises.',
+  'cycle.woken': 'Awake: {name}.',
   'actOne.announce': 'End of Act I. The spore wind can now carry you to other biomes.',
   'hint.wind':
     "There's no rush to disperse: stay here as long as you like. In a new biome, runs last as long as they did at the start, with new rules.",
@@ -550,6 +586,7 @@ export const en: Catalog = {
   'chronicle.cycle.done.other': '{count} cycles completed',
   'chronicle.cycle.record.one': '{time} · {count} run · {date}',
   'chronicle.cycle.record.other': '{time} · {count} runs · {date}',
+  'chronicle.cycle.withVows': '{name} · {vows}',
   'chronicle.cycle.empty': 'No records yet: complete a cycle to set the first one.',
   'hint.chronicle': 'Plates you close can be reread here.',
   // Adaptaciones de bioma
@@ -618,6 +655,7 @@ export const en: Catalog = {
   'stats.biome': 'Current biome',
   'stats.dispersals': 'Dispersals',
   'stats.cycles': 'Cycles completed',
+  'stats.vows': 'Vows this cycle',
   'stats.history.rowIn.one': 'Run {n} ({biome}): {time}, +{count} spore',
   'stats.history.rowIn.other': 'Run {n} ({biome}): {time}, +{count} spores',
   // Textos que cambian en el Chocó: en la selva baja no hay abetos ni otoño
@@ -648,6 +686,9 @@ export const en: Catalog = {
   'autobuy.upgrades': 'Autobuy upgrades',
   'autobuy.allOn': 'Turn all on',
   'autobuy.allOff': 'Turn all off',
+  'autobuy.vowLocked': 'With the “autobuy only” vow, the network buys everything, switches on or off.',
+  'autobuy.vowNoPayback':
+    'With the “autobuy only” vow, Pruning does not apply: the network buys by threshold.',
 
   // Logros
   'achievements.title': 'Achievements',

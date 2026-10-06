@@ -113,6 +113,9 @@ export const es = {
   'gen.hidden': '???',
   'gen.hidden.hint': 'Algo se mueve más abajo. Sigue absorbiendo.',
   'gen.hidden.label': 'Más información sobre un generador por descubrir',
+  // Votos del ciclo libre (fase 10): por qué no se compra o no se puede comprar.
+  'gen.vowLocked': 'Voto «solo autocompra»: la red compra sola.',
+  'gen.asleep': 'Duerme con «{name}»: despiértala en Mutaciones.',
   'gen.autobuy.label': 'Autocompra de {name}',
   'gen.autobuy.on': 'Auto',
   'generators.title': 'Generadores',
@@ -297,6 +300,12 @@ export const es = {
   'mut.locked': 'Bloqueada',
   'mut.locked.label': '{name}, bloqueada',
   'mut.done': 'Mutaste: {name}',
+  // «Sin mutaciones» (fase 10): las compradas duermen hasta despertarlas en el ciclo.
+  'mut.asleep': 'Dormida',
+  'mut.asleep.label': '{name}, dormida',
+  'mut.wake': 'Despertar: {name}',
+  'mut.wakeBudget': 'Esporas de este ciclo para despertar: {count}',
+  'mut.wakeNeed': 'Despierta antes: {names}',
 
   // Madurez de la red y adaptaciones (fase 7)
   'sporulate.maturity':
@@ -443,8 +452,38 @@ export const es = {
   'wind.sow.title': '¿Sembrar un ciclo nuevo?',
   'wind.sow.yes': 'Sembrar',
   'wind.rules.more': 'Reglas',
+  // Votos (fase 10, bloque B): se juran al sembrar y se pueden romper, nunca añadir.
+  'wind.vows.title': 'Votos para el próximo ciclo',
+  'wind.vows.hint':
+    'Cada voto quita algo y rebaja la meta para compensar. Se juran al sembrar; luego se pueden romper, pero no añadir.',
+  'wind.vows.choco': 'En la selva del Chocó no se jura «sin lluvia»: allí la lluvia no para.',
+  'wind.vows.current': 'Votos de este ciclo: {list}.',
+  'vow.noRain.name': 'Sin lluvia',
+  'vow.noRain.inline': 'sin lluvia',
+  'vow.noRain.desc': 'No cae ninguna gota en todo el ciclo.',
+  'vow.autoOnly.name': 'Solo autocompra',
+  'vow.autoOnly.inline': 'solo autocompra',
+  'vow.autoOnly.desc':
+    'No compras generadores ni mejoras: la red los compra sola, con tu umbral de autocompra. La Poda no rige.',
+  'vow.noMutations.name': 'Sin mutaciones',
+  'vow.noMutations.inline': 'sin mutaciones',
+  'vow.noMutations.desc':
+    'Tus mutaciones duermen: despiértalas en Mutaciones con las esporas que ganes en este ciclo.',
+  'wind.confirm.vows': 'Votos: {list}.',
+  'wind.confirm.goal': 'Con estos votos, esporular aquí pide el {percent} de los nutrientes.',
+  'wind.confirm.keepAsleep':
+    'Viajan contigo: esporas disponibles, mutaciones (dormidas hasta que las despiertes), adaptaciones, linaje, logros, autocompra, estadísticas de vida y ajustes.',
+  'wind.renounce.button': 'Romper el voto «{name}»',
+  'wind.renounce.title': '¿Romper el voto «{name}»?',
+  'wind.renounce.body':
+    'La meta sube: esporular aquí pedirá el {percent} de los nutrientes. El nivel que llevas se queda, pero este ciclo ya no podrá jurarlo otra vez, y su récord será sin él.',
+  'wind.renounce.wakeAll': 'Tus mutaciones despiertan todas.',
+  'wind.renounce.yes': 'Romper',
+  'wind.renounce.no': 'Mantener el voto',
   'cycle.done': '{name}: ciclo cumplido en {time}.',
   'cycle.record': '{name}: nuevo récord, {time}.',
+  'cycle.broken': 'Rompiste el voto «{name}»: la meta sube.',
+  'cycle.woken': 'Despierta: {name}.',
   'actOne.announce': 'Fin del Acto I. El viento de esporas ya puede llevarte a otros biomas.',
   'hint.wind':
     'Dispersar no tiene prisa: puedes quedarte aquí lo que quieras. En un bioma nuevo, las partidas vuelven a durar lo que al principio, con reglas nuevas.',
@@ -557,6 +596,7 @@ export const es = {
   'chronicle.cycle.done.other': '{count} ciclos cumplidos',
   'chronicle.cycle.record.one': '{time} · {count} partida · {date}',
   'chronicle.cycle.record.other': '{time} · {count} partidas · {date}',
+  'chronicle.cycle.withVows': '{name} · {vows}',
   'chronicle.cycle.empty': 'Aún no hay récords: cumple un ciclo para dejar el primero.',
   'hint.chronicle': 'Las láminas que cierres se pueden releer aquí.',
   // Adaptaciones de bioma
@@ -626,6 +666,7 @@ export const es = {
   'stats.biome': 'Bioma actual',
   'stats.dispersals': 'Dispersiones',
   'stats.cycles': 'Ciclos cumplidos',
+  'stats.vows': 'Votos de este ciclo',
   'stats.history.rowIn.one': 'Partida {n} ({biome}): {time}, +{count} espora',
   'stats.history.rowIn.other': 'Partida {n} ({biome}): {time}, +{count} esporas',
   // Textos que cambian en el Chocó: en la selva baja no hay abetos ni otoño
@@ -656,6 +697,9 @@ export const es = {
   'autobuy.upgrades': 'Autocompra de mejoras',
   'autobuy.allOn': 'Activar todos',
   'autobuy.allOff': 'Desactivar todos',
+  'autobuy.vowLocked':
+    'Con el voto «solo autocompra», la red lo compra todo, con los interruptores o sin ellos.',
+  'autobuy.vowNoPayback': 'Con el voto «solo autocompra», la Poda no rige: la red compra por umbral.',
 
   // Logros
   'achievements.title': 'Logros',
