@@ -466,6 +466,10 @@ export const es = {
   'wind.cycle.best.one': 'Récord: {time}, en {count} partida',
   'wind.cycle.best.other': 'Récord: {time}, en {count} partidas',
   'wind.cycle.noRecord': 'Aún sin récord',
+  // Con votos marcados, la fila dice el récord de esa combinación: los récords no se mezclan.
+  'wind.cycle.bestVows.one': 'Récord con estos votos: {time}, en {count} partida',
+  'wind.cycle.bestVows.other': 'Récord con estos votos: {time}, en {count} partidas',
+  'wind.cycle.noRecordVows': 'Aún sin récord con estos votos',
   'wind.cycle.leave': 'Puedes sembrar cuando quieras; un ciclo sin cumplir no deja récord.',
   'wind.cycle.noRecordWarning': 'Este ciclo no dejará récord: aún no llega al nivel {goal}.',
   'wind.cycle.willComplete': 'Esta esporulación cumple el ciclo: su récord queda.',

@@ -15,13 +15,13 @@ import {
   sporeGain,
 } from '../core/actions.ts';
 import {
-  bestRecord,
   closedRingAhead,
   colonizedCount,
   forestGoal,
   isActOneClosed,
   lineageFactor,
   offeredVows,
+  recordFor,
   vowGoalFactor,
   windTargets,
   type ForestGoal,
@@ -29,7 +29,7 @@ import {
 } from '../core/forest.ts';
 import { sporeFactor } from '../core/formulas.ts';
 import { derived } from '../core/selectors.ts';
-import type { GameState } from '../core/state.ts';
+import type { CycleRecord, GameState } from '../core/state.ts';
 import {
   BIOME_IDS,
   COLONIZE_LEVEL,
@@ -100,7 +100,7 @@ interface TargetRow {
   kind: WindTargetKind;
   root: HTMLElement;
   button: HTMLButtonElement;
-  /** El mejor ciclo del bioma, en las filas del ciclo libre. */
+  /** El récord del bioma con los votos marcados para el próximo ciclo, en las filas del ciclo libre. */
   record: HTMLElement | null;
   /** Por qué no se siembra con los votos elegidos (el Chocó con «sin lluvia»); null si los ofrece todos. */
   vowWhy: HTMLElement | null;
@@ -119,6 +119,18 @@ export function vowList(vows: readonly VowId[]): string {
 /** La parte de los nutrientes que pide esporular con unos votos: «14 %», sin decimales salvo por debajo del 1 %. */
 function goalPercent(factor: number): string {
   return formatPercent(factor, getLocale(), factor < 0.01 ? 1 : 0);
+}
+
+/**
+ * La línea del récord de una fila de sembrar: el de la combinación marcada para el próximo ciclo,
+ * que es el que ese ciclo puede batir (los récords se comparan dentro de cada combinación, D12). El
+ * mejor del bioma con cualquier combinación engañaba: con votos la meta baja, y su tiempo pasaba por
+ * el del bioma sin votos. Con votos marcados la línea lo dice; sin votos, como siempre.
+ */
+function recordText(record: CycleRecord | null, vows: readonly VowId[]): string {
+  if (record === null) return vows.length > 0 ? t('wind.cycle.noRecordVows') : t('wind.cycle.noRecord');
+  const time = formatDuration(record.time / 1000, getLocale());
+  return tp(vows.length > 0 ? 'wind.cycle.bestVows' : 'wind.cycle.best', record.runs, { time });
 }
 
 /** La meta de El regreso: en su fila, en su confirmación y durante el tramo. */
@@ -574,13 +586,7 @@ export function createWindSection(store: Store): WindSection {
         const offered = targets.some((target) => target.biome === row.biome && target.kind === row.kind);
         setHidden(row.root, !offered);
         if (row.record && offered) {
-          const best = bestRecord(state, row.biome);
-          setText(
-            row.record,
-            best
-              ? tp('wind.cycle.best', best.runs, { time: formatDuration(best.time / 1000, getLocale()) })
-              : t('wind.cycle.noRecord'),
-          );
+          setText(row.record, recordText(recordFor(state.records, row.biome, picked), picked));
         }
         const vowBlocked = row.vowWhy !== null && picked.some((vow) => !offeredVows(row.biome).includes(vow));
         if (row.vowWhy) setHidden(row.vowWhy, !vowBlocked);

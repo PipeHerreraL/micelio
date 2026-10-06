@@ -6,7 +6,7 @@
  */
 import { CYCLE_GOAL_LEVEL, MAX_RECORDS } from '../data/cycle.ts';
 import { emit } from '../core/events.ts';
-import { sameVows } from '../core/forest.ts';
+import { recordFor } from '../core/forest.ts';
 import { invalidate } from '../core/selectors.ts';
 import type { CycleRecord, GameState } from '../core/state.ts';
 
@@ -16,11 +16,10 @@ import type { CycleRecord, GameState } from '../core/state.ts';
  * Devuelve si escribió.
  */
 function writeRecord(state: GameState, record: CycleRecord): boolean {
-  const index = state.records.findIndex((r) => r.biome === record.biome && sameVows(r.vows, record.vows));
-  const old = state.records[index];
+  const old = recordFor(state.records, record.biome, record.vows);
   if (old) {
     if (record.time >= old.time) return false;
-    state.records[index] = record;
+    state.records[state.records.indexOf(old)] = record;
     return true;
   }
   // Inalcanzable: hay MAX_RECORDS combinaciones de bioma y votos. Si llegara a pasar, se pierde el

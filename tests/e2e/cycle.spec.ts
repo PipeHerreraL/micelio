@@ -344,6 +344,57 @@ for (const phone of PHONES) {
 }
 
 /**
+ * Tras el ciclo de la taiga, la pradera cumplida con «solo autocompra» en 1 h 12 min: un récord con
+ * un voto y un tiempo con horas y minutos, la línea más larga que suele tener una fila. Con un voto
+ * que el Chocó ofrece, para que ninguna fila sume su motivo.
+ */
+function autoOnlyPrairie(now: number): GameState {
+  const s = taigaCycleDone(now - 80 * MINUTE);
+  disperse(s, { to: 'prairie', now: now - 84 * MINUTE, vows: ['autoOnly'] });
+  prime(s, 520);
+  sporulate(s, { now: now - 12 * MINUTE });
+  drain();
+  return s;
+}
+
+for (const phone of PHONES) {
+  test(`a ${phone.width} px, cada fila de sembrar dice el récord de los votos marcados y sigue compacta`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(phone);
+    const errors = collectErrors(page);
+    const now = Date.now();
+    await seedSave(page, autoOnlyPrairie(now), now);
+    await page.goto('./');
+    await page.getByRole('tab', { name: /Esporular/ }).click();
+    const recordOf = (name: string) =>
+      page
+        .locator('.wind__dest')
+        .filter({ has: page.getByRole('button', { name, exact: true }) })
+        .locator('.wind__record');
+    const prairie = recordOf('Sembrar en la pradera');
+    const taiga = recordOf('Sembrar en la taiga');
+    // Sin votos marcados, la pradera no tiene récord: el de «solo autocompra» es de otra meta.
+    await expect(prairie).toHaveText('Aún sin récord');
+    await expect(taiga).toContainText('Récord: ');
+    const group = page.getByRole('group', { name: 'Votos para el próximo ciclo' });
+    await group.getByRole('button', { name: 'Solo autocompra' }).click();
+    await expect(prairie).toHaveText('Récord con estos votos: 1 h 12 min, en 1 partida');
+    await expect(taiga).toHaveText('Aún sin récord con estos votos');
+    const heights = await page
+      .locator('.wind__dest:visible')
+      .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+    expect(heights).toHaveLength(5);
+    for (const height of heights) {
+      expect(height).toBeGreaterThanOrEqual(110);
+      expect(height).toBeLessThanOrEqual(150);
+    }
+    expect(await cutOff(page, '.tab--sporulate')).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+/**
  * En el natal del ciclo 2 con «solo autocompra» y «sin mutaciones» y unas esporas del ciclo para
  * despertar. La Red planetaria ya se conocía: el Acto I la pide.
  */

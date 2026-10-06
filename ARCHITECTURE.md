@@ -803,12 +803,14 @@ ciclo, no cuánto dura, y cada combinación tiene su propio récord. Sale en la 
   objeto nuevo por frame, y el bot las ignora, como a Fuego de zorro. Descartados: gratis y 1000·2^r
   (unos 33 ciclos por cosmética). Deuda aceptada: la Esporada no deja elegir color.
 - **La interfaz, sin pestañas nuevas** (§4.32): en Viento, los interruptores de los votos
-  (`aria-pressed`), que viven en la interfaz hasta sembrar, y bajo el progreso los vigentes con su
-  botón de romper: la confirmación empieza en «Mantener el voto», y al romper el foco pasa al
-  siguiente o al estado del ciclo, nunca a `<body>` (BUG-JOURNAL #5, #8 y #15). El árbol dormido se
-  atenúa y cada nodo dice «dormida» y se despierta desde sí mismo. Estadísticas cuenta los votos como
-  número (la lista vive en Viento, para no aplastar la columna de etiquetas a 375 px), la Crónica
-  dice los votos de cada récord y las cosméticas van bajo las Adaptaciones, cerradas con su motivo.
+  (`aria-pressed`), que viven en la interfaz hasta sembrar (cada fila de sembrar dice el récord de
+  la combinación marcada, `recordFor`: los récords no se mezclan; BUG-JOURNAL #27), y bajo el
+  progreso los vigentes con su botón de romper: la confirmación empieza en «Mantener el voto», y al
+  romper el foco pasa al siguiente o al estado del ciclo, nunca a `<body>` (BUG-JOURNAL #5, #8 y
+  #15). El árbol dormido se atenúa y cada nodo dice «dormida» y se despierta desde sí mismo.
+  Estadísticas cuenta los votos como número (la lista vive en Viento, para no aplastar la columna de
+  etiquetas a 375 px), la Crónica dice los votos de cada récord y las cosméticas van bajo las
+  Adaptaciones, cerradas con su motivo.
 - **El bot y la calibración.** Sobre el orden T‑C‑P‑U, cada combinación se siembra desde El regreso
   recién cumplido (la primera siembra) y, aparte, desde el final de la primera vuelta con las
   adaptaciones de bioma al máximo (el régimen estable), y se compara semilla a semilla con el ciclo

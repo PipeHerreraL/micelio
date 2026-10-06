@@ -107,6 +107,36 @@ describe('elegir votos en Viento (fase 10)', () => {
     expect(departureText(s, 'natal', 'cycle').rules).toEqual([]);
   });
 
+  it('cada fila de sembrar dice el récord de los votos marcados, no el mejor del bioma con otros votos', () => {
+    // El natal cumplido en 1 h con «sin lluvia» (la meta baja) y luego en 3 h sin votos.
+    const s = sownIn('natal', SOWN_AT, ['noRain']);
+    reachLevel(s, 520, SOWN_AT + HOUR);
+    disperse(s, { to: 'natal', now: SOWN_AT + 2 * HOUR });
+    reachLevel(s, 120, SOWN_AT + 3 * HOUR);
+    reachLevel(s, 520, SOWN_AT + 5 * HOUR);
+    drain();
+    const wind = mount(createWindSection(createStore(s)));
+    const recordOf = (biome: string): string | null | undefined =>
+      Array.from(wind.root.querySelectorAll<HTMLElement>('.wind__dest'))
+        .find((row) => visible(row) && row.querySelector('.wind__go')?.textContent === `Sembrar en ${biome}`)
+        ?.querySelector('.wind__record')?.textContent;
+    const toggle = (name: string) =>
+      Array.from(wind.root.querySelectorAll<HTMLButtonElement>('.wind__toggle'))
+        .find((b) => b.textContent === name)
+        ?.click();
+    // Sin votos marcados, el récord sin votos: el de 1 h es de otra meta y no se puede batir así.
+    expect(recordOf('el bosque natal')).toBe('Récord: 3 h, en 2 partidas');
+    toggle('Sin lluvia');
+    expect(recordOf('el bosque natal')).toBe('Récord con estos votos: 1 h, en 1 partida');
+    expect(recordOf('la taiga')).toBe('Aún sin récord con estos votos');
+    toggle('Sin mutaciones');
+    expect(recordOf('el bosque natal')).toBe('Aún sin récord con estos votos');
+    toggle('Sin lluvia');
+    toggle('Sin mutaciones');
+    expect(recordOf('el bosque natal')).toBe('Récord: 3 h, en 2 partidas');
+    expect(recordOf('la taiga')).toBe('Aún sin récord');
+  });
+
   it('los votos vigentes se dicen bajo el progreso, cada uno con su botón de romper', () => {
     const store = createStore(sownIn('prairie', SOWN_AT, ['noRain', 'noMutations']));
     const wind = mount(createWindSection(store));

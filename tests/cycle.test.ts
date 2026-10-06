@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { completesGoal, disperse, disperseBlock, sporeGain, wakeMutation } from '../src/core/actions.ts';
 import { drain, type GameEvent } from '../src/core/events.ts';
 import {
-  bestRecord,
   dispersalCount,
   forestGoal,
   isFreeStay,
   lineageFactor,
   offeredVows,
+  recordFor,
   sporeScale,
   sporulateRequirement,
   windTargets,
@@ -199,8 +199,10 @@ describe('cumplir un ciclo y su récord (fase 10)', () => {
     expect(s.records[0]).toEqual(best);
     expect(drain().find((e) => e.type === 'cycleDone')).toMatchObject({ record: false });
     expect(s.cycle).toMatchObject({ stays: 4, done: 4 });
-    expect(bestRecord(s, 'taiga')).toEqual(best);
-    expect(bestRecord(s, 'tundra')).toBeNull();
+    expect(recordFor(s.records, 'taiga', [])).toEqual(best);
+    expect(recordFor(s.records, 'tundra', [])).toBeNull();
+    // Los récords son por combinación: el de la taiga sin votos no es el de la taiga sin lluvia.
+    expect(recordFor(s.records, 'taiga', ['noRain'])).toBeNull();
   });
 
   it('si la esporulación de sembrar llega a 500, el ciclo se cumple antes de irse y el récord es del bioma que se deja', () => {

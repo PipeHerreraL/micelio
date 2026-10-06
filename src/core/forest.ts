@@ -285,13 +285,18 @@ export function isAdaptationOpen(records: readonly CycleRecord[], id: Adaptation
   return vow === undefined || hasVowRecord(records, [vow]);
 }
 
-/** El mejor ciclo cumplido en un bioma, con cualquier combinación de votos; null si no hay. */
-export function bestRecord(state: Readonly<GameState>, biome: BiomeId): CycleRecord | null {
-  let best: CycleRecord | null = null;
-  for (const record of state.records) {
-    if (record.biome === biome && (best === null || record.time < best.time)) best = record;
-  }
-  return best;
+/**
+ * El récord de un bioma con estos votos y solo estos (en el orden de VOW_IDS); null si no hay. Los
+ * récords se comparan dentro de cada combinación (D12): con votos la meta baja, así que el mejor
+ * tiempo del bioma con cualquier combinación no es el que un ciclo con otros votos puede batir. Lo
+ * leen la escritura del récord y las filas de sembrar de Viento.
+ */
+export function recordFor(
+  records: readonly CycleRecord[],
+  biome: BiomeId,
+  vows: readonly VowId[],
+): CycleRecord | null {
+  return records.find((record) => record.biome === biome && sameVows(record.vows, vows)) ?? null;
 }
 
 // ---------------------------------------------------------------------------------------

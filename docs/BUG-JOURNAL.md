@@ -44,6 +44,7 @@ Ninguna entrada se borra, aunque el código se haya movido.
 | [24](#24) | `src/systems/save.ts`, `src/main.ts`                                      | Una versión vieja, sin conexión, podía pisar la partida de una más nueva                   |
 | [25](#25) | `src/ui/hud.ts`, `src/i18n/`                                              | En el móvil, la franja fija de arriba saltaba a mitad de partida                           |
 | [26](#26) | `src/i18n/` (`caption.compact`)                                           | En el móvil, la cartela partía «Selva del Chocó · 312/500» con el «·» al principio         |
+| [27](#27) | `src/ui/wind.ts`, `src/core/forest.ts`                                    | Viento daba como récord del bioma el de otros votos                                        |
 
 ---
 
@@ -630,6 +631,37 @@ al «·», que en inglés dejaba «rainforest · 312/500» en un solo trozo más
 **Qué lo sostiene.** `tests/e2e/wind.spec.ts` → «a 375 px (y a 412 px), la línea compacta de la
 cartela no se parte en su separador ni deja «nivel» sin su cifra» (cinco perfiles, en español y en
 inglés, y que el texto no se salga de la cartela). Falla sin el arreglo (comprobado en los diez).
+
+---
+
+<a id="27"></a>
+
+## 27. Viento daba como récord del bioma el de otros votos
+
+**Zona:** `src/ui/wind.ts` (filas de sembrar) y `src/core/forest.ts` (`recordFor`, antes `bestRecord`)
+
+**Síntoma.** Lo encontró la revisión del bloque B de la fase 10: con un ciclo de la taiga cumplido en
+1 h con «sin lluvia» y otro en 3 h sin votos, la fila «Sembrar en la taiga» decía «Récord: 1 h»
+aunque no hubiera ningún voto marcado. Un ciclo sin votos no puede batir ese tiempo: el voto rebaja
+la meta.
+
+**Causa.** La fila leía `bestRecord`, el mejor tiempo del bioma con cualquier combinación de votos.
+Los récords se comparan dentro de cada combinación (D12 de la especificación de la fase 10), y
+`writeRecord` ya los escribía así; solo la lectura de Viento los mezclaba.
+
+**Arreglo.** `recordFor(records, biome, vows)` da el récord de una combinación exacta, y lo leen la
+escritura del récord y las filas de sembrar. Cada fila dice el de los votos marcados para el
+próximo ciclo: sin votos, «Récord: …» como antes; con votos, «Récord con estos votos: …» o «Aún sin
+récord con estos votos». Descartado: el mejor del bioma con sus votos al lado («…, en 1 partida
+(sin lluvia y sin mutaciones)»), que seguía mezclando metas distintas y a 375 px pasaba a dos
+líneas (medido en los cinco perfiles; «Récord con estos votos: 1 h 12 min, en 12 partidas» cabe en
+una).
+
+**Qué lo sostiene.** `tests/ui-vows.test.ts` → «cada fila de sembrar dice el récord de los votos
+marcados, no el mejor del bioma con otros votos» (falla sin el arreglo: comprobado, «Récord: 1 h, en
+1 partida» en vez de «Récord: 3 h, en 2 partidas»), y `tests/e2e/cycle.spec.ts` → «a 375 px (y a
+412 px), cada fila de sembrar dice el récord de los votos marcados y sigue compacta» (cinco
+perfiles; las filas siguen en 110–150 px con la línea más larga).
 
 ---
 
