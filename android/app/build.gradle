@@ -61,6 +61,25 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    // Las pruebas del actualizador (ARCHITECTURE.md §4.34) comprueban las mismas fixtures que Node
+    // (tests/fixtures/ota/, de scripts/ota-fixtures.ts): si los dos lados difieren en una regla,
+    // falla una prueba y no una actualización en los teléfonos.
+    def otaFixtures = file('../../tests/fixtures/ota')
+    testOptions {
+        unitTests.all { test ->
+            test.systemProperty 'micelio.otaFixtures', otaFixtures.absolutePath
+            test.inputs.dir(otaFixtures)
+        }
+    }
+    // Una API más nueva que minSdkVersion (24) deja la app sin abrir en Android 7: java.util.Base64 y
+    // java.nio.file son de la 26. lintVital no mira NewApi por defecto; con fatal, también frena
+    // assembleRelease. Solo nuestro código: el de Capacitor llega de npm y no se arregla aquí.
+    lint {
+        checkOnly.add('NewApi')
+        fatal.add('NewApi')
+        abortOnError = true
+        checkDependencies = false
+    }
 }
 
 repositories {

@@ -3,7 +3,8 @@ name: Android
 # App de Android (ARCHITECTURE.md §4.31): compila el .apk con Capacitor en cada cambio (para ver que
 # compila; versión de depuración, con otro paquete) y, al publicar una release, lo firma con la
 # clave del proyecto, comprueba que es esa clave y lo adjunta como micelio.apk (el enlace de Ajustes
-# apunta a releases/latest/download/micelio.apk).
+# apunta a releases/latest/download/micelio.apk). En cada build corre además JUnit y el lint de
+# NewApi del actualizador (§4.34).
 
 on:
   push:
@@ -52,8 +53,17 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: gradle
-      - run: npm ci
+      # Sin scripts de instalación: en el lock solo los tiene fsevents, que es de macOS, y así nada
+      # de npm se ejecuta al instalar en la máquina que compila el .apk.
+      - run: npm ci --ignore-scripts
       - run: npm run build:android
+
+      # El Java del actualizador (ARCHITECTURE.md §4.34): JUnit con las fixtures que comparte con
+      # Node, y lint de NewApi, fatal (android/app/build.gradle). Después de build:android, que crea
+      # capacitor-cordova-android-plugins, sin el que Gradle no configura el proyecto.
+      - name: Pruebas de Java y lint
+        working-directory: android
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug
 
       # La clave solo se usa al publicar: un .apk de prueba firmado con ella se instalaría encima
       # de la app del jugador.
@@ -120,6 +130,15 @@ jobs:
             fi
           fi
           ls -l "$APK"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/tests/
+            android/app/build/reports/lint-results-debug.*
+          retention-days: 7
 
       - uses: actions/upload-artifact@v7
         with:
