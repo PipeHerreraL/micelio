@@ -799,6 +799,33 @@ public class OtaServiceTest {
     }
 
     /**
+     * Un activo intacto que dejó de arrancar tres veces se sigue sirviendo y se busca en cada vuelta al
+     * primer plano, sin el intervalo; un arranque que sí llega a ready() no lo apaga, porque el fallo
+     * suele depender de la partida.
+     */
+    @Test
+    public void anIntactActiveThatStoppedStartingIsLookedForEveryTime() throws Exception {
+        onDisk(Fixtures.release("1.6.2", 1), true, OtaSelector.BOOTS_BEFORE_RECHECK - 1);
+        start("1.6.1");
+        OtaService.Session session = service.select(host);
+        assertEquals("1.6.2", session.version);
+        assertTrue(store.read().checkEveryBoot);
+        assertEquals(Collections.singletonList(OtaService.NOT_TRIAL), ready(session));
+        OtaState state = store.read();
+        assertEquals(0, state.active.bootsWithoutReady);
+        assertTrue(state.checkEveryBoot);
+
+        service.resumed(session);
+        serial.advance(OtaService.CHECK_DELAY_MILLIS);
+        settle();
+        service.paused(session);
+        service.resumed(session);
+        serial.advance(OtaService.CHECK_DELAY_MILLIS);
+        settle();
+        assertEquals("cada vuelta, aunque haya respuesta", Arrays.asList(MANIFEST_URL, MANIFEST_URL), http.requests);
+    }
+
+    /**
      * Un activo con un archivo dañado (al tercer arranque sin ready()) se descarta y se busca al
      * instante, sin esperar a los 15 s ni al intervalo: la misma versión se vuelve a bajar.
      */

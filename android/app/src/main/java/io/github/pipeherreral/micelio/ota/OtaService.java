@@ -514,6 +514,9 @@ final class OtaService {
                 // Aunque no se escriba, en este proceso es cierto; la siguiente escritura lo lleva al disco.
                 save(next);
             }
+            // checkEveryBoot sigue: si el activo dejó de arrancar con sus archivos intactos, el fallo es
+            // de su código y suele depender de la partida (llegar a la tundra); que esta vez arranque no
+            // lo arregla. Solo lo apaga otra versión activa, o perder esta.
             return NOT_TRIAL;
         }
         if (!isUndecidedTrial(session)) return TOO_LATE;
