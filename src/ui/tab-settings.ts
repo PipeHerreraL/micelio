@@ -135,7 +135,8 @@ export function createSettingsTab(store: Store, services: SettingsServices): Tab
     disposer.listen(button, 'click', () => {
       // Mientras llega un catálogo, el selector espera (aria-busy) y no pide otro.
       if (localeGroup.getAttribute('aria-busy') === 'true') return;
-      // Con el inglés guardado pero sin llegar al arrancar se juega en español: elegirlo lo reintenta.
+      // Con el inglés guardado pero sin llegar al arrancar se juega en español: elegirlo lo vuelve a
+      // pedir (en Chromium falla igual hasta recargar; ARCHITECTURE.md §4.32).
       if (getLocale() === locale && store.state.settings.locale === locale) return;
       setAttr(localeGroup, 'aria-busy', 'true');
       void services.changeLocale(locale, `setting-locale-${locale}`).finally(() => {

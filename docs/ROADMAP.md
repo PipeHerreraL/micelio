@@ -22,6 +22,9 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 3. **Primero más contenido (Viento) y después el modo no fúngico.**
 4. **Hay partidas avanzadas de la 1.0 que cuidar:** el rendimiento decreciente del nivel de
    esporas empieza en el nivel 1000 (no en 200), y hay que volver a medirlo.
+5. **Game+ en la versión siguiente a la fase 10** (2026-10-04): volver a los biomas ya colonizados
+   en escalones más difíciles, con premios que el ciclo libre no da. Va en la 1.7.0 como fase 11, y
+   las eras geológicas pasan a la fase 12 (1.8.0). No cambia nada de la fase 10.
 
 ## Reglas comunes
 
@@ -30,7 +33,8 @@ con `scripts/simulate.ts` antes de dar cada fase por buena._
 - Cada sistema nuevo tiene su moneda y su `rngSeed` propios; sus logros no suman al +1 %
   global.
 - Todo sumidero de esporas crece ×2 por nivel, al ritmo del ingreso. Excepción medida:
-  Dispersar cuesta 300 fijas, porque el ingreso por bioma es plano (el nivel vuelve a 0).
+  Dispersar cuesta 300 fijas, porque el ingreso por bioma es plano (el nivel vuelve a 0); por lo
+  mismo, sembrar en el ciclo libre (fase 10) también cuesta 300 fijas.
   Los logros de Viento sí suman al +1 %: Viento no es un sistema con moneda propia
   (ARCHITECTURE.md §4.28).
 - Cada fase es jugable y publicable sola, con su migración de guardado y sus objetivos en el
@@ -48,7 +52,8 @@ fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor 
 | 8    | 1.3.0   | Viento I: fin del Acto I, Dispersar, taiga, Chocó y Crónica (hecha) | L      |
 | 9    | 1.4.0   | El Plasmodio y la estructura de socios (hecha)                      | L      |
 | 10   | 1.6.0   | Viento II: pradera, tundra, «El regreso» y ciclo libre              | M      |
-| 11   | 1.7.0   | Tiempo profundo: las eras geológicas                                | L      |
+| 11   | 1.7.0   | Game+: los biomas otra vez, en escalones más difíciles              | M      |
+| 12   | 1.8.0   | Tiempo profundo: las eras geológicas                                | L      |
 
 ### Fase 6 — Cimientos (S)
 
@@ -133,8 +138,37 @@ fase 10 (ARCHITECTURE.md §4.31). Desde ahí, cada fase sube una versión menor 
   uniendo las siluetas de los biomas.
 - **Ciclo libre** con votos opcionales (sin lluvia, solo autocompra, sin mutaciones) que dan
   récords en la Crónica y adaptaciones cosméticas.
+- **Decisiones del usuario (2026-10-04):** la tundra rinde entera lo que pasa de 8 h de una
+  ausencia (el «deshielo», con el perfil ausente como objetivo) y la 1.6.0 sale en una sola
+  entrega con los dos bloques: A (pradera, tundra, El regreso y ciclo libre con récords, que ya
+  resuelve el muro) y B (votos y adaptaciones cosméticas).
+- **Bloque A (en la rama `fase-10`, sin publicar):** 119 de 119 objetivos en `npm run sim` y 17 de
+  17 del plasmodio. Pradera y tundra forman un segundo anillo que se abre con la taiga y el Chocó
+  colonizados, así que los tramos 1–2 quedan idénticos bit a bit; sus tramos colonizan en
+  2,18–3,13 h con partidas de 21–31 min de mediana, y la mediana de cada partida no pasa de una
+  hora (la más larga, 58:49, en la pradera tercera). El regreso es un tramo jugable más, al natal
+  mil años después, que se cumple en 2,36–2,66 h; después, sembrar cualquiera de los cinco biomas
+  por 300 esporas, con R y linaje fijos: la primera vuelta del ciclo dura 2,29–3,05 h por bioma, el
+  régimen estable 1,51–1,95 h, y tampoco ahí la mediana de una partida pasa de una hora. Quien está
+  hoy en el muro carga con los dos biomas nuevos abiertos y sin perder una cifra (guardado versión
+  7). Ver ARCHITECTURE.md §4.32. Riesgos: el Chocó del ciclo, al límite en las dos direcciones (la
+  más larga de la primera vuelta en 56:52, el estable con partidas de 15:21 de mediana), y las
+  partidas de espera, en 1 de mediana, justo en su objetivo.
 
-### Fase 11 — Tiempo profundo (L)
+### Fase 11 — Game+ (M)
+
+Petición del usuario (2026-10-04), para la versión siguiente a la fase 10. Diseño por hacer; lo que
+pidió:
+
+- **Volver a los biomas anteriores en escalones** (game+1, game+2…), cada uno más difícil que el
+  anterior: meta y escala más altas y alguna regla nueva.
+- **Premios que el ciclo libre no da:** mejoras permanentes o una moneda propia (con su `rngSeed`
+  propio si la hay, como pide la regla común).
+- No cambia nada de la fase 10: el ciclo libre y sus récords siguen como están.
+- Riesgo ya medido en esta hoja de ruta: un premio multiplicativo pasivo acorta todas las partidas
+  (ver la fase 12); el simulador tendrá que medir cada escalón.
+
+### Fase 12 — Tiempo profundo (L)
 
 - Una capa por encima de los biomas: la red se repliega en un esclerocio mientras el paisaje
   cambia (bosque tras el fuego, ladera volcánica, morrena glaciar, turbera) y recoloniza.

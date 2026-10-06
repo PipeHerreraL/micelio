@@ -38,7 +38,11 @@ analítica: la partida se guarda en tu navegador.
   **viento de esporas** puede llevar tu linaje a la **taiga** o a la **selva del Chocó**. Allí el
   nivel de esporas vuelve a 0, con reglas nuevas y tres adaptaciones propias por bioma; las
   mutaciones y las adaptaciones viajan contigo. Coloniza cada bioma (nivel 500) y queda escrito
-  en la **Crónica**.
+  en la **Crónica**. Con los dos bosques colonizados se abren la **pradera** y la **tundra**, donde
+  acaban los árboles.
+- Tras el cuarto bioma, **El regreso** lleva tu linaje al bosque natal mil años después. Cumplido,
+  empieza el **ciclo libre**: siembra el bioma que quieras, llega otra vez al nivel 500 y bate tu
+  mejor tiempo en cada uno.
 - Tras el Acto I llega un vecino: el **plasmodio** de _Physarum polycephalum_, un moho
   mucilaginoso (no es un hongo). En la pestaña **Socios** pones copos de avena y lámparas en una
   placa y miras cómo une la comida con una red que engorda los tubos útiles y seca los demás.

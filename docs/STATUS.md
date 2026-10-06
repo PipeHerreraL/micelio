@@ -1,13 +1,13 @@
 # En qué punto vamos
 
-_Actualizado: 2026-10-02. Versión 1.5.0._
+_Actualizado: 2026-10-05. Versión 1.5.0 publicada; la fase 10 (1.6.0) avanza en la rama `fase-10`._
 
 Este archivo responde una sola pregunta: **si me siento ahora mismo, ¿qué hago?**
 Todo lo demás vive en otro lado y se enlaza desde aquí. Se actualiza al cerrar un
 bloque de trabajo, no en cada commit.
 
 - `AGENTS.md`: cómo trabajamos aquí. Léelo antes de tocar nada.
-- `docs/BUG-JOURNAL.md`: los 24 fallos que ya costaron caro encontrar.
+- `docs/BUG-JOURNAL.md`: los 25 fallos que ya costaron caro encontrar.
 - `ARCHITECTURE.md`: el plan, con lo que resultó equivocado tachado.
 - `docs/BALANCE.md`: tabla de valores y resultados del simulador.
 
@@ -29,11 +29,30 @@ bloque de trabajo, no en cada commit.
 Un único objeto plano y serializable; la definición al día está en `src/core/state.ts`. Los
 valores derivados (N/s, valor del clic, multiplicadores) no viven en el estado: se calculan en
 `src/core/selectors.ts` con caché por estado e invalidación explícita (ARCHITECTURE.md §4.6).
-El guardado es `{ version, savedAt, state }` en `localStorage['micelio:save']`, versión 6. Desde
+El guardado es `{ version, savedAt, game, state }` en `localStorage['micelio:save']`, versión 7. Desde
 la fase 9, `state.partners` guarda los socios (el plasmodio, con su placa, su red y su Rastro);
-su estado y su validación viven en `src/partners/`.
+su estado y su validación viven en `src/partners/`. Desde la fase 10, `state.cycle` cuenta los
+ciclos del ciclo libre (empezados y cumplidos; los votos del bloque B, vacíos hasta entonces) y
+`state.records` guarda el mejor tiempo por bioma y votos.
 
 ## Lo último que se hizo
+
+- **Fase 10, bloque A (en la rama `fase-10`, sin publicar):** la 1.6.0 saldrá en una sola entrega
+  con el bloque B (decisión del usuario). Pradera y tundra forman un segundo anillo de destinos que
+  se abre con la taiga y el Chocó colonizados: quien está hoy en el muro los ve al cargar, con la
+  lámina «Donde acaban los árboles», sin perder una cifra. Seis adaptaciones nuevas, el deshielo de
+  la tundra (lo que pasa de 8 h de una ausencia rinde entero) y noticias con fuente. Tras el cuarto
+  bioma, El regreso al natal mil años después, con la Red planetaria uniendo las siluetas de los
+  cinco biomas; y después el ciclo libre: sembrar cualquier bioma por 300 esporas, con R y linaje
+  fijos y un récord de reloj por bioma en la Crónica. Resuelve el muro: ninguna partida del viaje
+  ni del ciclo pasa de una hora de mediana. Guardado versión 7, entero de una vez
+  (ARCHITECTURE.md §4.32). El inglés de la interfaz y las noticias de los biomas llegan aparte: el
+  JS inicial pesa 83,7 kB de 95.
+- `npm run sim` cumple 119 de 119 objetivos (los 39 de antes, idénticos; 3 redefinidos; 40 de los
+  tramos 3–4, 4 de El regreso, 2 del perfil ausente, 20 de la primera vuelta del ciclo, 9 del
+  régimen estable y 2 de esporas) y 17 de 17 del plasmodio, repartido entre hilos. 873 pruebas
+  unitarias y 286 de navegador en los cinco perfiles, también a 375 × 667 y 412 × 915 y con el
+  pseudoidioma; ~165 fps en la tundra y en El regreso (en WebKit, 49–57, como el natal en ese motor).
 
 - **v1.5.0, instaladores para el móvil (petición del usuario):** el juego se instala como app
   desde el navegador (Android e iPhone), funciona sin conexión, y en Android hay además un .apk
@@ -112,9 +131,13 @@ su estado y su validación viven en `src/partners/`.
 
 La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
-1. **Fase 10 — Viento de esporas II (v1.6.0):** pradera, tundra, el epílogo «El regreso» y el
-   ciclo libre, que resuelve el muro que hoy queda tras colonizar el último bioma.
-2. **Fase 11 — Tiempo profundo (v1.7.0):** las eras geológicas.
+1. **Fase 10, bloque B (commits 12–15 de su especificación):** los votos del ciclo libre (sin
+   lluvia, solo autocompra, sin mutaciones), que se miden primero en el prototipo con la regla de
+   la meta, y sus adaptaciones cosméticas. Después, la calibración, `tests/fixtures/save-v7.json` escrito
+   con el build, la versión 1.6.0 (`versionCode` 10600) y la publicación en una sola entrega.
+2. **Fase 11 — Game+ (v1.7.0), petición del usuario:** volver a los biomas en escalones más
+   difíciles (game+1, +2…), con premios que el ciclo libre no da.
+3. **Fase 12 — Tiempo profundo (v1.8.0):** las eras geológicas.
 
 ## Deuda conocida
 
@@ -124,12 +147,30 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
   en 2,06 h (objetivo ≥ 2 h) y el pasivo de la taiga segunda tarda 2,48 veces el activo
   (objetivo ≤ 2,5). Si un cambio de balance los mueve, el §14.4 de la especificación de la
   fase 8 dice qué palanca tocar (`docs/BALANCE.md`).
+- En la fase 10 quedan también al límite: el Chocó del ciclo libre en las dos direcciones (la
+  partida más larga de la primera vuelta en 56:52, ≤ 60 min; las del régimen estable en 15:21 de
+  mediana, ≥ 15), la pradera tercera (la más larga en 58:13–58:49, ≤ 60 min), la taiga del régimen
+  estable (la más corta en 10:12, ≥ 10 min) y las partidas de espera (1 de mediana, ≤ 1: la primera
+  siembra tras El regreso espera una partida). Guardar esporas durante El regreso dejaba las
+  esperas en 0 pero sacaba al Chocó de su objetivo (ARCHITECTURE.md §4.32).
 - La transición del suelo al dispersar (deduplicación de la esporulación, cambio de tamaño a
-  mitad del fundido) se verificó con un arnés fuera del repo, no con una prueba del repo.
-- El JS inicial pesa 74,0 kB de 95 (`npm run budget`): las noticias y, desde la fase 10, el inglés
-  de la interfaz llegan aparte (el juego espera al inglés antes de montarse si es el idioma elegido).
-  Si hace falta más sitio, las coordenadas de las placas del plasmodio (unos 3 kB comprimidos) pueden
-  salir a su propio trozo.
+  mitad del fundido) se verificó con un arnés fuera del repo. Desde la fase 10 hay una prueba del
+  repo de que se lanza al cambiar de viaje, también al sembrar el mismo bioma
+  (`tests/e2e/cycle.spec.ts`); lo demás sigue sin ella.
+- El JS inicial pesa 83,7 kB de 95 (`npm run budget`): las noticias (las de los biomas, solo tras
+  dispersar) y, desde la fase 10, el inglés de la interfaz llegan aparte (el juego espera al inglés
+  antes de montarse si es el idioma elegido). El bloque B aún tiene que entrar. Si hace falta más
+  sitio, la reserva prevista es un catálogo de los textos del viaje que llegue aparte al cerrar el
+  Acto I (unos 1,5 kB). Las coordenadas de las placas del plasmodio ahorrarían otros 1,5 kB, pero
+  su paquete (19,2 kB de 20) pasaría de su tope.
+- En Chromium, si el inglés no llegó al arrancar, elegirlo otra vez en Ajustes no lo recupera: el
+  `import()` fallido se queda en el mapa de módulos y solo recargar lo trae (el aviso ya pide
+  recargar). Igual
+  con las noticias de los biomas: si fallan, en un destino el teletipo se queda sin noticias hasta
+  recargar (mejor nada que una noticia del natal que allí sería falsa).
+- La banda de la Red planetaria queda tapada en parte en el escenario del móvil (la imagen entera
+  está en la lámina «La red planetaria»), el pasivo de los ciclos no se mide y los récords son de
+  reloj: quien atrase el del dispositivo puede falsear el suyo (son personales; aceptado).
 - La app de Android (.apk) se compiló y se comprobó en GitHub Actions (paquete, versión y firma),
   pero no se ha probado en un teléfono de verdad, ni la app instalable del iPhone. Desde 2027
   Google exigirá desarrolladores verificados también para los .apk descargados (antes, solo en
@@ -149,3 +190,7 @@ La hoja de ruta está en [`docs/ROADMAP.md`](ROADMAP.md).
 
 Rama única `main`, commits pequeños en verde. Cada fase cierra con lint, pruebas y
 build en verde, commit, push, etiqueta `v0.N.0` y release.
+
+La fase 10 es la excepción: va en la rama `fase-10` y `main` no se sube hasta la etiqueta de la
+1.6.0. Un push a `main` publica en Pages, y una versión 7 del guardado escrita por un commit
+intermedio no debe llegar a ningún jugador.

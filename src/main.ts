@@ -194,8 +194,9 @@ if (loaded.kind === 'loaded') {
 
 const store: Store = createStore(initialState);
 /**
- * El catálogo del idioma elegido no llegó: se juega en español con un aviso fijo, y elegirlo otra
- * vez en Ajustes lo reintenta.
+ * El catálogo del idioma elegido no llegó: se juega en español con un aviso fijo, que pide recargar.
+ * Elegirlo otra vez en Ajustes vuelve a pedirlo, pero en Chromium un import() fallido se queda en el
+ * mapa de módulos y falla igual: solo recargar lo trae (ARCHITECTURE.md §4.32).
  */
 let localeFailed = false;
 

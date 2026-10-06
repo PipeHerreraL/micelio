@@ -45,7 +45,9 @@ export function offlineCapSeconds(state: GameState): number {
 /**
  * Deshielo (tundra, fase 10): de una ausencia ya recortada al tope, los segundos que pasan de las
  * horas de deshielo del bioma; esos rinden sin su factor de todos los generadores. Bajo la nieve
- * el suelo apenas se congela y los hongos siguen trabajando cerca de 0 °C todo el invierno. Se
+ * el suelo apenas se congela y los hongos siguen trabajando cerca de 0 °C todo el invierno: en la
+ * tundra alpina de Niwot Ridge (Colorado), la biomasa microbiana del suelo llega a su máximo del año
+ * bajo la nieve, y casi toda es de hongos (Schadt y colegas, 2003, Science 301: 1359–1361). Se
  * aplica al cobrar la ausencia, como el tope, y no en los derivados: mirar rinde lo de siempre, y
  * una ausencia corta (cambiar de app, cerrar y abrir) también.
  */

@@ -362,10 +362,12 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   natal con `forest.earned` = nutrientes de vida, y la validación cruza bosque, Crónica, rangos
   e historial.
 - **Las esporas salen de los nutrientes del bosque**, con requisito y escala por bosque:
-  1e8 en el natal; en un destino, R = escala del bioma · 3,5^(tramo − 1) (taiga 1e11, Chocó
-  2e11). Con los de toda la vida, el prototipo daba 11.330 esporas de golpe al llegar. En el
-  natal los dos valen lo mismo bit a bit, y el simulador da idéntico en las 21 métricas de
-  antes.
+  1e8 en el natal; en un destino, ~~R = escala del bioma · 3,5^(tramo − 1)~~ R = escala del bioma ·
+  `LEG_SCALE[tramo]` (taiga 1e11, Chocó 2e11). **Corrección (fase 10):** una potencia de 3,5 no
+  servía para los tramos 3 y 4 (no había escala de tundra para tercera y cuarta); la tabla da lo
+  mismo bit a bit en los tramos 1–2 (§4.32). Con los de toda la vida, el prototipo daba 11.330
+  esporas de golpe al llegar. En el natal los dos valen lo mismo bit a bit, y el simulador da
+  idéntico en las 21 métricas de antes.
 - **Linaje:** producción ×2 por bioma colonizado fuera del natal. Sin él, el segundo bioma
   tardaba 4–5,5 h. Todos los factores nuevos (bioma, adaptaciones de bioma, linaje, obreras)
   cambian solo al dispersar, comprar o colonizar, que invalidan: ninguno cambia con el tiempo
@@ -374,8 +376,9 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   interfaz: el tick lo comprueba una vez por segundo y el tiempo analítico al final, así el
   simulador y una partida 1.x lo ven sin pantalla. El Acto I mira el logro de la Red
   planetaria y no `owned` (que se reinicia al esporular): una partida 1.x que ya la tuvo lo
-  cierra al cargar. Son las dos únicas funciones que escriben en la Crónica, una entrada por
-  tramo como mucho: el tope se pone donde se construye.
+  cierra al cargar. Son las ~~dos~~ únicas funciones que escriben en la Crónica, una entrada por
+  tramo como mucho: el tope se pone donde se construye. **Corrección (fase 10):** son tres, con
+  `checkReturn`, que escribe la de El regreso en el tramo 5 (§4.32).
 - **Dispersar esporula si la partida puede** y esas esporas ayudan a pagar el viaje: el Acto I
   se cierra a mitad de partida, y obligar a esporular y luego dispersar eran dos confirmaciones
   y dos animaciones seguidas. Reinicia con su propia tabla (`DISPERSE_RESET`), con la lluvia
@@ -387,8 +390,10 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   los cinco logros de Viento suman al +1 % como los demás: Viento no es un sistema nuevo con
   moneda propia, usa esporas y el azar común, y ninguno de esos logros se alcanza sin dispersar.
 - **Adaptaciones de bioma:** tres por bioma, ×2 por rango, con el nivel local que pide cada
-  rango (colonizar los abre todos). Se aprenden en su bioma y valen en todos: en esta versión no
-  se vuelve a un bioma, y una compra que caducara al irse castigaría haberla hecho.
+  rango (colonizar los abre todos). Se aprenden en su bioma y valen en todos: ~~en esta versión no
+  se vuelve a un bioma, y~~ una compra que caducara al irse castigaría haberla hecho.
+  **Corrección (fase 10):** sí se vuelve (El regreso al natal y, en el ciclo libre, a cualquier
+  bioma, §4.32); la regla se queda por la otra razón.
 - **Chocó:** la gota que nadie atrapa cae sola y aplica su efecto, pero solo al expirar con el
   juego abierto; `evaporateDrop` (offline, segundo plano, esporular) sigue sin efecto, o una
   partida nueva empezaría con un Aguacero heredado. No cuenta como atrapada: «Atrapa N gotas»
@@ -569,6 +574,174 @@ sistema, no del juego); Safari en un iPhone real no se ha probado.
   usuario, iOS queda para más adelante) y guardar con el plugin Preferences de Capacitor
   (añadiría JS; el .apk usa `localStorage`, con la copia de seguridad de Android activada).
 
+### 4.32 Viento de esporas II: pradera, tundra, El regreso y ciclo libre (fase 10, bloque A)
+
+Resuelve el muro de la 1.5: tras el último bioma no quedaba destino y cada partida se alargaba
+(hasta 1 h 6 min la cuarta; docs/ROADMAP.md, fase 8). El bloque B (votos y cosméticas) llega
+después, y la 1.6.0 sale con los dos (decisión del usuario).
+
+- **Dos anillos de destinos.** La pradera y la tundra (`ring: 2`) solo se ofrecen con la taiga y el
+  Chocó colonizados (`openRing`, `destinations`): cada anillo se recorre entero y en orden. Así los
+  tramos 1–2 son los de la 1.3–1.5 bit a bit (sus 16 objetivos salen idénticos), y cada bioma nuevo
+  se calibra solo de tercero y de cuarto, en cuatro órdenes. El validador exige a cada tramo, en el
+  bosque y en la Crónica, un bioma de su anillo: la pradera en el tramo 1 cambiaría su R.
+  Descartado: el orden libre (con cuatro destinos ninguna escala servía en todas las posiciones; la
+  tundra primera tardaba 7,5–11 h en el prototipo).
+- **R de los destinos por tabla:** `LEG_SCALE = [1, 1, 3.5, 12.25, 61.25]` (corrige §4.28): con
+  ×3,5 compuesto no había escala de tundra que sirviera de tercera y de cuarta (34:08 y 18:54 de
+  mediana). Pradera 8,1e10 (con los 9e10 del prototipo, la última partida de la pradera tercera
+  pasaba de la hora) y tundra 3,5e9.
+- **Las reglas de bioma nuevas son datos** (`src/data/biomes.ts`). `productionFactor` (tundra ×0,5)
+  lo aplica `generatorBiomeFactor` a todos los generadores y se dice una vez en las reglas, no en
+  cada fila de la tienda; fuera de la tundra vale 1 y las cifras no cambian ni en el último bit. Las
+  horas del bioma (`offlineHours`: tundra +24 h, solo mientras se vive allí) y el efecto nuevo
+  `offlineHours` del Liquen (+12 h por rango, en todos los biomas, como toda adaptación de bioma)
+  se suman en `offlineCapSeconds`, fuera de los derivados, como el Letargo profundo.
+- **Deshielo** (pregunta 1 del usuario). Sin él, la tundra rinde fuera del juego 0,5 · min(H, tope),
+  nunca más que otro bioma, aunque se presente como el bioma de quien vuelve de vez en cuando. Con
+  él, de una ausencia ya recortada al tope, lo que pasa de `thawAfterHours` (8 h, solo en la tundra)
+  rinde sin el ×0,5. Se cobra en `applyOffline` y en `applyBackground` (en el móvil el sistema
+  cierra o congela la app sin preguntar), nunca en `computeDerived`: mirar rinde lo de siempre y una
+  ausencia corta también, así que cerrar y volver a abrir no da nada. El informe de la ausencia lo
+  dice (`offline.thaw`). Ciencia: en la tundra alpina de Niwot Ridge (Colorado), la biomasa
+  microbiana del suelo llega a su máximo del año bajo la nieve, y casi toda es de hongos (Schadt,
+  Martin, Lipson y Schmidt, 2003, _Science_ 301: 1359–1361). Descartado: que fuera del juego no
+  rigiera el ×0,5 (cerrar y abrir rendiría el doble que mirar) y llevar el Liquen solo a la tundra.
+- **Perfil ausente, objetivo con el deshielo:** sesiones de 20 min del perfil activo y H horas
+  fuera, cobradas con `applyOffline`. Los días son ausencias × H: los minutos jugados no cuentan,
+  porque con las mismas sesiones decidirían unos minutos de la última. Con 24 h la tundra tercera
+  tarda lo que la pradera (2,0 días; 3,0 sin el deshielo) y con 48 h empatan con él y sin él (4,0).
+  La especificación pedía que con 48 h ganara la tundra y no se puede (las dos colonizan en la
+  tercera sesión; hacerlo en la segunda pediría de 5 a 190 veces los nutrientes que deja la primera
+  ausencia), así que ese objetivo es una guarda «≤». Decisión aceptada.
+- **La lámina «Donde acaban los árboles»** (`chapter.ring2`) entra en la cola calculada del estado
+  (§4.28) tras la colonización que cierra el primer anillo, que se deduce de la Crónica: quien llega
+  de la 1.5 al muro la ve al cargar, una vez, sin ninguna marca de la migración. La colonización que
+  la precede no ofrece «Ver el viento» (saldrían dos seguidos), y las llegadas a la pradera y la
+  tundra llevan el antetítulo del Acto III. La cola solo recorre los tramos 1–4 (`legBiomes`): en un
+  ciclo, sembrar un destino ya visitado volvía a encolar sus láminas.
+- **El regreso es el tramo 5** (`RETURN_LEG = JOURNEY_LEGS + 1 = MAX_LEG`) y el ciclo libre vive
+  entero en él. Nada que lea `leg === 0` (el requisito de 1e8, el suelo lineal de la 1.x, el Acto I)
+  ni los tramos 1–4 cambia, y la Crónica se queda en seis entradas. Partir cuesta lo de siempre, y
+  en el natal rigen una R fija (`cycleScale`, 4,8e13: con los 6,3e13 del prototipo las partidas de
+  un orden pasaban de 35 min de mediana) y un requisito en múltiplos de ella (`cycleRequirement`,
+  6 R). `sporeFloor` sigue rigiendo solo en el tramo 0. El linaje cuenta destinos colonizados y no
+  entradas de la Crónica: El regreso no lo sube de ×16. Descartados: un id `return` en `BIOME_IDS`
+  (rompía las paletas y la sal del suelo, y debe ser el mismo bosque), un tramo que creciera con
+  cada ciclo (la Crónica no tendría tope) y un epílogo sin juego (dejaba otra vez al jugador sin
+  destino).
+- **`checkReturn` es la tercera y última escritora de la Crónica** (con `checkActOne` y
+  `checkColonization`, §4.28): escribe la sexta entrada una sola vez, en la esporulación que lleva
+  el nivel del natal a 500 en el tramo 5 con cinco entradas. Se escribe al cumplirlo y no al llegar,
+  para que el epílogo se cumpla.
+- **`windTargets` es la única lectura de adónde lleva el viento:** 'journey' (los destinos que
+  quedan), 'return' con el cuarto colonizado y 'cycle' (los cinco biomas) con El regreso cumplido;
+  durante El regreso, nada. La leen Viento, las láminas y `disperse`, que solo acepta un bioma de esa
+  lista. `disperseBlock` pide primero cerrar el bosque actual (colonizarlo o cumplir El regreso):
+  siempre queda algo por delante.
+- **`forestGoal`** responde una vez qué persigue el bosque actual (el Acto I, colonizar, nada más,
+  El regreso, nada más tras cumplirlo, el ciclo n o el ciclo cumplido) y lo leen la cartela, Viento
+  y la Crónica. En el tramo 5 «la Crónica tiene la entrada de este tramo» no significa
+  «colonizado»; `isForestColonized` se queda en el núcleo y la interfaz ya no lo lee. «Ciclo
+  cumplido» no se guarda: el nivel solo cambia al esporular y vuelve a 0 al sembrar, así que
+  `stays > 0` con el nivel en 500 o más lo dice.
+- **La regla de la meta** (`completesGoal`): en El regreso y en un ciclo sin cumplir, la
+  esporulación que lleva el nivel de menos de 500 a 500 o más lo cumple. El botón y la confirmación
+  de Esporular lo dicen, y el bot del simulador esporula entonces, aunque el nivel no se duplique.
+  Con la regla de §17 sola el nivel pasaba 256 → 512 y la última partida cargaba con el 74 % de los
+  nutrientes del ciclo (1:30 h en el prototipo); con la regla y unas 6 R de requisito la cola se
+  reparte en dos partidas parecidas. En los tramos 0–4 siempre es falsa: las métricas publicadas no
+  se mueven. Supone que el jugador esporula al llegar; quien no, tendrá una última partida más
+  larga, como antes.
+- **El ciclo libre.** Con El regreso cumplido, Dispersar se llama Sembrar y lleva a cualquiera de
+  los cinco biomas, también al actual (los récords son por bioma: repetir uno es la forma de
+  mejorarlo), por `SOW_COST` = 300 fijas. Es la misma excepción medida de Dispersar (§4.28): con R
+  y linaje ×16 fijos el ingreso de un ciclo es plano (unas 500 esporas brutas, unas 200 netas), y un
+  coste creciente acabaría sin poder pagarse. `departureCost` dice lo que cuesta partir (hoy 300 en
+  los dos casos). Sembrar esporula antes si la partida puede, deja el nivel en 0, suma
+  `cycle.stays` y aplica la R y el requisito fijos del bioma. `dispersalCount = leg + stays` es la
+  semilla de la red y lo que lanza la transición del suelo: sembrar el mismo bioma cambia de red.
+  Los cuatro logros nuevos (colonizar la pradera y la tundra, El regreso y el primer ciclo) suman al
+  +1 % por la regla de Viento (§4.28). Descartados: R y linaje que crecieran con los ciclos (el techo
+  de 1e63 llegaría hacia el ciclo 150, estimación), un ciclo sin volver el nivel a 0 (el muro otra
+  vez) y exigir cumplir antes de irse (ataría cada ciclo a 2–4 h).
+- **Cumplir y récords** (`src/systems/cycle.ts`). `checkCycleDone` actúa en la esporulación que
+  lleva el nivel a 500 en un ciclo, también en la que `disperse` hace antes de sembrar (si no,
+  cumplir al partir se perdía). Suma `cycle.done` y escribe o mejora en su sitio el récord de
+  (bioma, votos): uno por combinación, 36 como mucho por construcción, cinco sin votos. El tiempo es
+  de reloj desde la llegada, `max(0, ahora − llegada)`: medido en tiempo jugado, cerrar el juego
+  (sin conexión al 100 % con Sueño invernal) daría récords que no se jugaron. Un tiempo negativo
+  que llegue en un guardado (un reloj que retrocedió, una partida importada de otro dispositivo) se
+  repara a 0 al cargar en vez de rechazarse: es solo presentación, y rechazarlo bloquearía el
+  guardado para siempre, porque ese récord sería el mejor y nunca se reemplazaría (precedente:
+  BUG-JOURNAL #18). Los récords son personales: quien atrasa el reloj se engaña a sí mismo y el juego
+  no se rompe por ello. `cycle` y `records` son `custom` en las dos tablas de reinicio: esporular y
+  sembrar pueden escribirlos.
+- **Avisos y no láminas en el ciclo.** Las láminas tienen claves fijas (`chapter.ring2`,
+  `chapter.return.arrive`, `chapter.return.close`); cumplir un ciclo o batir un récord da aviso,
+  anuncio y acorde, para que `seen` no crezca con los ciclos.
+- **La banda de la Red planetaria** (`src/render/planetary-band.ts`, función pura): cinco franjas
+  en el orden del viaje, con el suelo y la silueta de cada bioma (`silhouetteKind`), y una línea de
+  micelio cuyos enlaces se encienden en los niveles 125, 250 y 375 y al cumplir. En la lámina «La
+  red planetaria» es un lienzo decorativo a lo ancho del modal (96 px de alto), la imagen que pide
+  el ROADMAP, legible a 375 px. En el escenario sustituye al bosque lejano mientras se vive en el
+  natal del tramo 5, con alto mínimo de 28 px CSS; en el móvil la tapan en parte el núcleo y la
+  cartela (aceptado: la imagen entera está en la lámina, que se relee desde la Crónica).
+- **Viento en el móvil.** A 375 px quedan unos 290 px de panel bajo la franja fija (§4.30), así que
+  cada fila de destino mide 110–150 px: la cabecera (suelo, nombre y estilo o récord) es el
+  `<summary>` que despliega las reglas, y el motivo para no partir se dice una vez sobre la lista.
+  Estadísticas cuenta los ciclos como número y los récords van en una lista de la Crónica, nunca en
+  un `dl.stats`, cuya columna de valores crece con su contenido. Las pruebas de navegador lo miden a
+  375 × 667 y 412 × 915 en los cinco perfiles, también con el pseudoidioma.
+- **Guardado versión 7, entero de una vez** (§5). `isStayValid` cruza el tramo 5 con `cycle`: con
+  cinco entradas (El regreso en curso) el linaje vive en el natal y no hay ciclos; con seis, sin
+  ciclos sigue en el natal y solo un ciclo empezado lo lleva a otro bioma. El natal es el tramo 0 o
+  el 5, y la sexta entrada de la Crónica es el natal, con fecha y sin partida. Deuda menor e inocua:
+  la migración 4 → 5 construye las claves de las doce adaptaciones de bioma de hoy (también las seis
+  de la fase 10) y la 6 → 7 las vuelve a poner a 0; ninguna podía tener rango antes.
+- **El bot en el tramo 5** (`scripts/sim-play.ts`). Aplica la regla de la meta; en los tramos 0–4,
+  la de §17 sin cambios. Guarda las 300 esporas del viaje con el bosque colonizado y algo por
+  delante, y en el ciclo libre todo el ciclo, para la siembra siguiente; durante El regreso no
+  guarda nada, y la primera siembra espera una partida (12–22 min) en casi todas las semillas: las
+  partidas de espera quedan en 1 de mediana, su objetivo. Guardando también durante El regreso
+  bajaban a 0, pero el bot empezaba la primera vuelta con menos adaptaciones y sin esa partida
+  corta, y la más larga del Chocó pasaba a 1:08:01 (medido en la fase 10). La primera vuelta del
+  ciclo empieza en un bioma distinto en cada orden del viaje (cada bioma sale en cuatro posiciones;
+  el natal nunca la abre, porque acaba de cerrar El regreso) y la métrica de cada bioma es la
+  mediana de sus apariciones por las semillas. El régimen estable vuelve a jugar la misma vuelta
+  sobre una copia, con las adaptaciones de bioma al máximo, compradas por la acción con las esporas
+  de cada rango inyectadas (las disponibles no cambian): es el final de juego, cuando ya nada crece.
+  Una partida de espera para pagar una siembra cuenta en el ciclo siguiente.
+- **Ciclo calibrado** (`cycleScale` y `cycleRequirement`, con el simulador): natal 4,8e13 y 6 R,
+  taiga 4,6e13 y 5 R, Chocó 5,4e14 y 6 R, pradera 3,7e13 y 6 R, tundra 4,6e12 y 6 R. El Chocó queda
+  al límite en las dos direcciones (la más larga de la primera vuelta en 56:52 y el estable con
+  partidas de 15:21 de mediana); si hubiera que elegir, manda la más larga ≤ 60 min, que es el muro
+  que la fase resuelve.
+- **El simulador se reparte entre hilos** (`scripts/sim-pool.ts`, `sim-worker.ts`). Cada orden del
+  primer anillo (un prefijo) se juega una vez por semilla y se ramifica, sobre copias, en los del
+  segundo; las tareas (partida suelta, campaña, natal, trozo de viaje, perfil ausente, vuelta del
+  ciclo) se reparten entre `worker_threads`, y `SIM_WORKERS` fija cuántos (por omisión, los núcleos
+  lógicos menos uno; 0, todo en el hilo principal). Cada tarea recibe y devuelve JSON plano, así que
+  lo que sale no depende del reparto: lo comprueba `tests/sim-pool.test.ts`, también con el prefijo
+  y la rama en hilos distintos. Con los cuatro órdenes, El regreso y dos vueltas del ciclo,
+  `npm run sim` tarda unos 2,5 min en 11 hilos, y el del plasmodio 1 min más (objetivo: 10 min en
+  el PC del usuario). La especificación pedía un hilo por orden; con nueve semillas por orden, el
+  reparto por tareas aprovecha más núcleos y da lo mismo.
+- **El inglés de la interfaz llega aparte** (para hacer sitio: el JS inicial no cabía en sus 95 kB
+  con lo que traía la fase, §7). `src/i18n/lazy-catalog.ts` es el cargador común del inglés, las
+  noticias y los textos de los socios. `main.ts` espera al catálogo antes de montar si el idioma
+  guardado es el inglés (montar en español y rehacer sería un parpadeo en cada arranque), como mucho
+  8 s; si no llega, se juega en español con un aviso fijo y la partida sigue pidiendo inglés, y si
+  llega tarde, la siguiente reconstrucción lo pone y quita el aviso. **No se promete el
+  reintento:** en Chromium, un `import()` fallido se queda en el mapa de módulos del documento, así
+  que volver a elegir English en Ajustes falla igual y solo recargar lo recupera.
+- **Las noticias de los biomas llegan en su propio trozo** (`src/i18n/news/biomes/`): todo lo que
+  solo puede salir tras dispersar (condiciones 'biome', 'dispersals' y 'returned'). El teletipo lo
+  pide con `dispersalCount > 0` y, mientras no llega, no saca ninguna noticia: sin él, en un destino
+  saldría una del natal que allí es falsa (la piña en la pradera). Si el trozo falla (en Chromium,
+  hasta recargar, por lo mismo), el teletipo se queda sin noticias en ese destino: mejor nada que un
+  texto falso. Quien no ha salido del natal no lo descarga.
+
 ### 4.14 Dependencias
 
 | Paquete                                                    | Por qué                                                                                |
@@ -595,6 +768,18 @@ personales: nada sale del navegador.
   de un formato o de una versión del juego posteriores, no se toca: el juego no guarda nada y pide
   recargar con conexión (§4.31, BUG-JOURNAL #24).
 - Si el guardado está dañado, se copia a `micelio:save:backup` y se empieza de cero.
+- **Versión 7 (fase 10), entera de una vez.** `cycle`, `records`, las seis adaptaciones de la
+  pradera y la tundra y las tres cosméticas de los votos entraron con su forma completa en el primer
+  commit que tocó el guardado, también las claves cuyas reglas llegaban después, que hasta entonces
+  solo validan vacías (hoy, los votos, las mutaciones despiertas y los rangos cosméticos, hasta el
+  bloque B). Un push a `main` publica, y una v7 escrita por una versión intermedia dejaría de cargar
+  en la final; así tampoco hace falta otra versión del guardado para los votos.
+  `tests/fixtures/save-v7-c5.json`, escrito por ese primer commit, debe cargar en todos los que
+  siguen. La migración 6 → 7 solo añade claves (el bosque, la Crónica, los niveles, las esporas,
+  `seen` y los socios no se tocan) y se compara campo a campo con una v7 escrita a mano; los seis
+  guardados reales de la 1.5 (`tests/fixtures/save-v6-*.json`) dan, ya migrados, las cifras que
+  calculaba la 1.5. La validación del tramo 5 está en §4.32. La 1.5 no pisa una v7: su
+  `isFromNewerGame` ve `version: 7`, posterior a la suya.
 
 ## 6. Entrada no confiable
 
@@ -610,23 +795,25 @@ El juego no tiene servidor, pero sí dos entradas que no controla:
 
 ## 7. Presupuestos
 
-| Operación                                       | Presupuesto                   | Medido                                                                                                                                                 | Cómo                                    |
-| ----------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| JavaScript del build                            | < 150 kB comprimido           | 89.5 kB inicial + 18.6 kB del plasmodio (fase 9; 76.4 kB en la fase 8)                                                                                 | `npm run build` (gzip que informa Vite) |
-| JS inicial (guarda por paquete)                 | ≤ 95 kB comprimido            | 74.0 kB (fase 10: el inglés de la interfaz llega aparte; 86.4 kB en la v1.5.0, 94.6 kB en la v1.4.2)                                                   | `npm run budget`, también en CI         |
-| JS del plasmodio (modelo, acciones y vista)     | ≤ 20 kB comprimido            | 18.6 kB (estimado ~15 kB en el diseño)                                                                                                                 | `npm run budget`                        |
-| Catálogo de un socio (un idioma)                | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                               | `npm run budget`                        |
-| Catálogo de noticias (un idioma)                | ≤ 7 kB comprimido             | 5.8 kB (es), 5.5 kB (en)                                                                                                                               | `npm run budget`                        |
-| Catálogo de la interfaz en inglés               | ≤ 18 kB comprimido            | 13.1 kB (el español sigue en el JS inicial: es el idioma por defecto)                                                                                  | `npm run budget`                        |
-| .apk de Android                                 | —                             | 5.0 MB                                                                                                                                                 | `.github/workflows/android.yml`         |
-| Vaciar 1.200 s de modelo del plasmodio          | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                              | a mano con `advancePlasmodium` (fase 9) |
-| Rastro del plasmodio                            | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                 | `npm run sim:plasmodio`                 |
-| Frame                                           | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local) | `npm run perf`                          |
-| Partículas vivas                                | ≤ 200 (pool)                  | —                                                                                                                                                      | Tope en `render/particles.ts`           |
-| Segmentos de la red                             | ≤ 2000                        | —                                                                                                                                                      | Tope en `render/network.ts`             |
-| Refresco de números en pantalla                 | ≤ 10 Hz                       | —                                                                                                                                                      | Limitador en `main.ts`                  |
-| Balance en 10 esporulaciones                    | < 1e300                       | 2.4e13                                                                                                                                                 | `npm run sim`                           |
-| Balance del viaje (dos biomas y 4 partidas más) | < 1e63 (nombres de idle)      | 7.4e17                                                                                                                                                 | `npm run sim`                           |
+| Operación                                                        | Presupuesto                   | Medido                                                                                                                                                                                                                                                                                                                                                            | Cómo                                    |
+| ---------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| JavaScript del build                                             | < 150 kB comprimido           | 84.3 kB inicial + 19.3 kB del plasmodio (fase 10). Con los catálogos que llegan aparte, quien juega en español descarga 117.9 kB y quien juega en inglés 133.2 kB (fase 9: 89.5 + 18.6; fase 8: 76.4)                                                                                                                                                             | `npm run build` (gzip que informa Vite) |
+| JS inicial (guarda por paquete)                                  | ≤ 95 kB comprimido            | 83.7 kB (fase 10, bloque A: el inglés de la interfaz y las noticias de los biomas llegan aparte; 74.0 kB al sacar el inglés, 86.4 kB en la v1.5.0, 94.6 kB en la v1.4.2)                                                                                                                                                                                          | `npm run budget`, también en CI         |
+| CSS inicial                                                      | ≤ 9 kB comprimido             | 8.3 kB (7.8 kB en la v1.5.0; cada bioma suma ~0.1 kB)                                                                                                                                                                                                                                                                                                             | `npm run budget`                        |
+| JS del plasmodio (modelo, acciones y vista)                      | ≤ 20 kB comprimido            | 19.2 kB (medido en la fase 10; aquí decía 18.6 kB, la cifra de la fase 9; estimado ~15 kB en el diseño)                                                                                                                                                                                                                                                           | `npm run budget`                        |
+| Catálogo de un socio (un idioma)                                 | ≤ 7 kB comprimido             | 5.4 kB (es), 5.3 kB (en)                                                                                                                                                                                                                                                                                                                                          | `npm run budget`                        |
+| Catálogo de noticias (un idioma)                                 | ≤ 7 kB comprimido             | del sotobosque 4.0 kB (es) y 3.7 kB (en); de los biomas (`news/biomes`, solo tras dispersar) 4.8 kB (es) y 4.5 kB (en). En la v1.5.0, todas juntas: 5.8 y 5.5 kB                                                                                                                                                                                                  | `npm run budget`                        |
+| Catálogo de la interfaz en inglés                                | ≤ 18 kB comprimido            | 15.9 kB con los textos de la fase 10 (13.1 kB al sacarlo; el español sigue en el JS inicial: es el idioma por defecto)                                                                                                                                                                                                                                            | `npm run budget`                        |
+| .apk de Android                                                  | —                             | 5.0 MB                                                                                                                                                                                                                                                                                                                                                            | `.github/workflows/android.yml`         |
+| Vaciar 1.200 s de modelo del plasmodio                           | un tirón al abrir o al volver | 8–10 ms de mediana en caliente y 20–27 ms en frío en la Fusión (Node, escritorio); ×4–5 en un móvil medio                                                                                                                                                                                                                                                         | a mano con `advancePlasmodium` (fase 9) |
+| Rastro del plasmodio                                             | < 1e63 (nombres de idle)      | 6.0e17                                                                                                                                                                                                                                                                                                                                                            | `npm run sim:plasmodio`                 |
+| Frame                                                            | 60 fps estables               | ~165 fps (límite de la pantalla) en el natal, la taiga y con la placa del Puente amargo a la vista; 159 fps con la CPU frenada ×4 (fase 9, Edge local). Fase 10, en la tundra y en El regreso: ~165 fps en Chromium, Firefox y el Pixel 7 (162–164 con la CPU ×4); WebKit y el iPhone 14, 49–57 fps, con la mediana del frame en 16 ms como el natal en ese motor | `npm run perf`                          |
+| Partículas vivas                                                 | ≤ 200 (pool)                  | —                                                                                                                                                                                                                                                                                                                                                                 | Tope en `render/particles.ts`           |
+| Segmentos de la red                                              | ≤ 2000                        | —                                                                                                                                                                                                                                                                                                                                                                 | Tope en `render/network.ts`             |
+| Refresco de números en pantalla                                  | ≤ 10 Hz                       | —                                                                                                                                                                                                                                                                                                                                                                 | Limitador en `main.ts`                  |
+| Balance en 10 esporulaciones                                     | < 1e300                       | 2.3e13                                                                                                                                                                                                                                                                                                                                                            | `npm run sim`                           |
+| Balance del viaje (cuatro destinos, El regreso y el ciclo libre) | < 1e63 (nombres de idle)      | 1.08e18 con dos vueltas del ciclo libre (fase 10; 7.4e17 en la fase 8, con dos biomas y 4 partidas más); crece lineal con los ciclos                                                                                                                                                                                                                              | `npm run sim`                           |
+| Simulador de la red (`npm run sim`)                              | ≤ 10 min en el PC del usuario | 154 s en 11 hilos y 65 s el del plasmodio (fase 10; 165 s + 64 s en un hilo en la fase 9)                                                                                                                                                                                                                                                                         | `npm run sim`                           |
 
 ## 8. Escala
 
@@ -646,10 +833,12 @@ src/systems/   guardado, offline, lluvia, autocompra, logros
 src/ui/        componentes, pestañas, tooltips, modales, avisos
 src/render/    canvas de la red y partículas
 src/audio/     sonidos sintetizados
-src/i18n/      catálogos (es.ts base; en.ts, news/ y partners/ llegan aparte) y formato con Intl
+src/i18n/      catálogos (es.ts base; en.ts, news/, news/biomes/ y partners/ llegan aparte) y
+               formato con Intl
 src/partners/  socios (fase 9): registro, núcleo de cada uno y, aparte, su modelo y su vista
-scripts/       simuladores de balance (red y plasmodio), presupuesto de JS, procedencia de placas
-tests/         pruebas de Vitest
+scripts/       simuladores de balance (red, repartida entre hilos, y plasmodio), presupuesto de JS,
+               procedencia de placas, guardados reales de la 1.5
+tests/         pruebas de Vitest; tests/e2e/, de Playwright; tests/fixtures/, guardados reales
 docs/          STATUS, BUG-JOURNAL, BALANCE
 ```
 
@@ -710,4 +899,8 @@ sobre el viejo y brota la red. Con «reducir movimiento», el cambio de suelo es
 
 ## Correcciones
 
-Ninguna todavía.
+Se tachan en su sitio, con lo que las sustituye al lado. Dónde están:
+
+- §4.28 (fase 10): la R de los destinos es una tabla por tramo, no una potencia de 3,5; las
+  escritoras de la Crónica son tres, no dos; y sí se vuelve a un bioma.
+- §4.30 y §11 (1.4.2): el núcleo de bolsillo, sustituido por la franja fija de arriba.
