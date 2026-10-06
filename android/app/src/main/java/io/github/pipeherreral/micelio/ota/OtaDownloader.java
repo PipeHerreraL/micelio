@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.CookieHandler;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,8 +17,8 @@ import java.security.MessageDigest;
  * (`fetch`) y el zip (`download`). Lo que GitHub ve es lo que se ve aquí:
  *
  * - `User-Agent` fijo, `Micelio`, y ninguna cabecera más que diga algo del teléfono o de la partida.
- *   Sin cookies: `HttpURLConnection` solo las manda con un `CookieHandler` por defecto, y Capacitor
- *   solo lo instala con CapacitorCookies activado, que la app no usa (capacitor.config.ts).
+ *   Sin cookies: Capacitor instala siempre un `CookieHandler` por defecto que las guarda y las manda,
+ *   y estas peticiones no pasan por él ({@link OtaCookies}).
  * - Las redirecciones se siguen a mano, hasta cinco y también entre servidores (GitHub hace dos hasta
  *   su almacén de archivos), nunca de HTTPS a HTTP y nunca a otro esquema.
  * - 15 s para conectar y 30 s sin recibir nada; «Usar ahora» corta la conexión en el acto.
@@ -44,6 +45,7 @@ final class OtaDownloader implements OtaService.Http {
     @Override
     public OtaService.Fetched fetch(String url, int maxBytes, OtaService.Cancel cancel) {
         HttpURLConnection connection = null;
+        OtaCookies.enter();
         try {
             connection = open(url, cancel);
             if (connection == null) return new OtaService.Fetched(-1, null);
@@ -59,12 +61,14 @@ final class OtaDownloader implements OtaService.Http {
             return new OtaService.Fetched(-1, null);
         } finally {
             if (connection != null) connection.disconnect();
+            OtaCookies.leave();
         }
     }
 
     @Override
     public String download(String url, File dest, long size, String sha256, OtaService.Cancel cancel) {
         HttpURLConnection connection = null;
+        OtaCookies.enter();
         try {
             connection = open(url, cancel);
             if (connection == null || connection.getResponseCode() != 200) return "network";
@@ -99,6 +103,7 @@ final class OtaDownloader implements OtaService.Http {
             return "network";
         } finally {
             if (connection != null) connection.disconnect();
+            OtaCookies.leave();
         }
     }
 
@@ -134,7 +139,15 @@ final class OtaDownloader implements OtaService.Http {
         if (!isWebScheme(current)) return null;
         for (int redirects = 0; ; redirects++) {
             if (cancel.isCancelled()) throw new IOException("Cortada");
+            CookieHandler guard = OtaCookies.install();
             HttpURLConnection connection = (HttpURLConnection) current.openConnection();
+            // La conexión toma el manejador del proceso al crearse (en Android, OkHttp lo copia en
+            // openConnection). Si Capacitor puso el suyo justo entonces, se descarta antes de conectar y
+            // cuenta como un fallo de red: se reintenta a los 10 min.
+            if (CookieHandler.getDefault() != guard) {
+                connection.disconnect();
+                throw new IOException("El manejador de cookies cambió al abrir la conexión");
+            }
             connection.setInstanceFollowRedirects(false);
             connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
             connection.setReadTimeout(READ_TIMEOUT_MILLIS);

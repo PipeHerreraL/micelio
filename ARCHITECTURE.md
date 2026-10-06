@@ -952,7 +952,10 @@ rama cumple una parte.
   una hora que retrocede cuenta como caducada, para que adelantar y devolver el reloj no apague las
   búsquedas. Tras un fallo de red, también a mitad de la descarga o si «Usar ahora» la corta,
   reintenta a los 10 min; «Buscar ahora» no mira el intervalo. Cada GET lleva un `User-Agent` fijo,
-  `Micelio`, sin cookies ni identificadores (§5), y nunca sigue una redirección de HTTPS a HTTP.
+  `Micelio`, sin cookies ni identificadores (§5), y nunca sigue una redirección de HTTPS a HTTP. Lo
+  de las cookies no sale solo: Capacitor instala siempre un `CookieHandler` en el proceso (aunque
+  `CapacitorCookies` esté apagado) que guarda las de GitHub (`_octo` dura un año) en el almacén del
+  WebView y las manda después; las peticiones del actualizador no pasan por él (`OtaCookies`).
 - **Al arrancar, la regla del mayor:** se sirve la mayor versión compatible entre la del .apk y la
   confirmada, así que instalar un .apk más viejo no hace retroceder el juego. Se descarta todo
   paquete con un archivo que falta o no mide lo anotado, con `minNative` mayor que el nivel del .apk

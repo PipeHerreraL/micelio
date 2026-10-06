@@ -11,6 +11,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -55,6 +59,8 @@ public class OtaDownloaderTest {
         final ServerSocket socket = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.1"));
         final Map<String, byte[]> routes = new ConcurrentHashMap<>();
         final List<String> requests = Collections.synchronizedList(new ArrayList<String>());
+        /** La Set-Cookie de las rutas que se definan desde aquí, o null: como GitHub, que pone `_octo`. */
+        String setCookie;
 
         TinyServer() throws IOException {
             Thread thread = new Thread(this::serve, "servidor de prueba");
@@ -70,6 +76,7 @@ public class OtaDownloaderTest {
         void route(String path, int status, String location, byte[] body, long length) {
             StringBuilder head = new StringBuilder("HTTP/1.1 " + status + " X\r\nConnection: close\r\n");
             if (location != null) head.append("Location: ").append(location).append("\r\n");
+            if (setCookie != null) head.append("Set-Cookie: ").append(setCookie).append("\r\n");
             if (length >= 0) head.append("Content-Length: ").append(length).append("\r\n");
             byte[] start = head.append("\r\n").toString().getBytes(StandardCharsets.UTF_8);
             byte[] response = new byte[start.length + body.length];
@@ -154,6 +161,61 @@ public class OtaDownloaderTest {
             assertTrue(request, lower.contains("\r\naccept-encoding: identity\r\n"));
             assertFalse(request, lower.contains("\r\ncookie:"));
         }
+    }
+
+    /**
+     * Ni manda ni guarda las cookies del proceso. En la app siempre hay un CookieHandler por defecto
+     * (CapacitorCookies.load() lo instala aunque el complemento esté apagado) que guarda cada Set-Cookie
+     * en el almacén persistente del WebView y lo manda después: GitHub responde con `_octo`, un
+     * identificador que dura un año. Lo que no es del actualizador sigue pasando por él.
+     */
+    @Test
+    public void neitherSendsNorKeepsTheProcessCookies() throws Exception {
+        CookieHandler before = CookieHandler.getDefault();
+        CookieManager process = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+        CookieHandler.setDefault(process);
+        try {
+            // Otra parte del proceso ya tiene una cookie de este servidor.
+            server.setCookie = "_octo=GH1.1.123.456; Path=/";
+            server.body("/otro", new byte[0]);
+            assertFalse(otherGetSendsTheCookie());
+            assertEquals("[_octo=GH1.1.123.456]", process.getCookieStore().getCookies().toString());
+
+            server.setCookie = "_gh_sess=sesion; Path=/";
+            byte[] zip = bytes(1000);
+            server.redirect("/latest/m.json", server.url("/assets/m.json"));
+            server.body("/assets/m.json", "{}".getBytes(StandardCharsets.UTF_8));
+            server.redirect("/download/z.zip", server.url("/assets/z.zip"));
+            server.body("/assets/z.zip", zip);
+            server.requests.clear();
+            assertEquals(200, downloader.fetch(server.url("/latest/m.json"), 1024, new OtaService.Cancel()).status);
+            assertTrue("el resto del proceso sigue con sus cookies", otherGetSendsTheCookie());
+            assertNull(downloader.download(server.url("/download/z.zip"), temp.newFile("download.tmp"), zip.length,
+                    sha256(zip), new OtaService.Cancel()));
+            assertTrue(otherGetSendsTheCookie());
+
+            assertEquals(6, server.requests.size());
+            for (String request : server.requests) {
+                if (request.startsWith("GET /otro ")) continue;
+                assertFalse(request, request.toLowerCase(Locale.ROOT).contains("\r\ncookie:"));
+            }
+            assertEquals("no guarda las que recibe", "[_octo=GH1.1.123.456]",
+                    process.getCookieStore().getCookies().toString());
+        } finally {
+            CookieHandler.setDefault(before);
+        }
+    }
+
+    /** Un GET que no es del actualizador, como el de otra parte del proceso: si llevó la cookie. */
+    private boolean otherGetSendsTheCookie() throws IOException {
+        int before = server.requests.size();
+        HttpURLConnection connection = (HttpURLConnection) new URL(server.url("/otro")).openConnection();
+        try {
+            assertEquals(200, connection.getResponseCode());
+        } finally {
+            connection.disconnect();
+        }
+        return server.requests.get(before).contains("\r\nCookie: _octo=GH1.1.123.456\r\n");
     }
 
     /** Hasta cinco redirecciones; la sexta ya no se sigue y cuenta como sin respuesta. */
